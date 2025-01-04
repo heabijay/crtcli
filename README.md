@@ -8,9 +8,24 @@ A tiny [clio](https://github.com/Advance-Technologies-Foundation/clio) utility a
 
 ## Installation
 
-Download the archive from [releases](https://github.com/heabijay/crtcli/releases) for your platform, extract it, and run executable from terminal.
+### via pre-build binaries
+
+Download the archive from [release page](https://github.com/heabijay/crtcli/releases) for your platform, extract it, and run executable from terminal.
 
 To use crtcli from anywhere, add the directory containing the executable to your system's PATH environment variable.
+
+### via cURL (Linux & macOS)
+
+```shell
+curl -sfL https://raw.githubusercontent.com/heabijay/crtcli/main/install-unix.sh | sh
+```
+
+### via Powershell (Windows)
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows.ps1 | iex
+```
+
 
 ## Commands / Features
 

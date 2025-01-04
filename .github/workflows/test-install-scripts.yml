@@ -1,0 +1,74 @@
+name: Test install scripts
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        default: main
+        description: "Branch to take install scripts from"
+
+jobs:
+  test-install-script:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+
+    runs-on: "${{ matrix.os }}"
+    
+    steps:
+      - name: "Test install script (Linux & macOS)"
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
+        shell: sh
+        run: | 
+          curl -sfL https://raw.githubusercontent.com/heabijay/crtcli/${{ github.event.inputs.branch || 'main' }}/install-unix.sh | sh
+          crtcli --version
+        
+      - name: "Test install script (Windows)"
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: powershell
+        run: |
+          iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/${{ github.event.inputs.branch || 'main' }}/install-windows.ps1 | iex
+          crtcli --version
+  test-uninstall-script:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+
+    runs-on: "${{ matrix.os }}"
+
+    steps:
+      - name: "Test uninstall script (Linux & macOS)"
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
+        env:
+          CRTCLI_INSTALL_CONFIRM_YES: true
+        shell: sh
+        run: |
+          curl -sfL https://raw.githubusercontent.com/heabijay/crtcli/${{ github.event.inputs.branch || 'main' }}/install-unix.sh | sh
+          
+          crtcli --version
+          
+          curl -sfL https://raw.githubusercontent.com/heabijay/crtcli/${{ github.event.inputs.branch || 'main' }}/uninstall-unix.sh | sh
+          
+          if crtcli --version; then
+              echo "crtcli executable is available. Is uninstall script does not work?"
+              exit 2
+          fi
+
+      - name: "Test uninstall script (Windows)"
+        if: ${{ matrix.os == 'windows-latest' }}
+        env:
+          CRTCLI_INSTALL_CONFIRM_YES: true
+        shell: powershell
+        run: |
+          iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/${{ github.event.inputs.branch || 'main' }}/install-windows.ps1 | iex
+          
+          crtcli --version
+          
+          iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/${{ github.event.inputs.branch || 'main' }}/uninstall-windows.ps1 | iex
+          
+          if (Get-Command crtcli -ErrorAction SilentlyContinue) {
+            Write-Host "crtcli executable is available. Is uninstall script does not work?"
+            Exit 2
+          }
