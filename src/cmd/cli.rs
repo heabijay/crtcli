@@ -116,7 +116,7 @@ fn print_fish_completions(cmd: &mut Command) {
         &mut completions,
     );
 
-    let completions_str = String::from_utf8_lossy(&mut completions);
+    let completions_str = String::from_utf8_lossy(&completions);
     let completions_str = postprocess_fish_completions(&completions_str);
 
     std::io::stdout()
@@ -126,7 +126,7 @@ fn print_fish_completions(cmd: &mut Command) {
 
     return;
 
-    fn postprocess_fish_completions<'a>(completions_str: &'a Cow<str>) -> Cow<'a, str> {
+    fn postprocess_fish_completions(completions_str: &str) -> Cow<'_, str> {
         return fix_app_subcommand_completions(completions_str);
 
         /// Patches suggestions for `crtcli app ...` subcommands for fish shell.
@@ -137,7 +137,7 @@ fn print_fish_completions(cmd: &mut Command) {
         ///
         /// This cause after use suggestions for `crtcli app ` you receive also file suggestions.
         /// After this patch, you will receive only suggestions for `crtcli app <subcommand>` for this.
-        fn fix_app_subcommand_completions<'a>(completions_str: &'a Cow<str>) -> Cow<'a, str> {
+        fn fix_app_subcommand_completions(completions_str: &str) -> Cow<'_, str> {
             let app_subcommand_completions_regex = Regex::new(
                 r#"(complete -c crtcli -n "__fish_crtcli_using_subcommand app; and not __fish_seen_subcommand_from .+?") -a ""#
             )

@@ -1,4 +1,5 @@
 use crate::cmd::app::{AppCommand, AppCommandArgs};
+use anstyle::Style;
 use clap::Args;
 use std::error::Error;
 
@@ -17,9 +18,7 @@ impl AppCommand for PkgsCommand {
             .get_packages()?;
 
         match self.json {
-            true => {
-                println!("{}", serde_json::json!(packages))
-            }
+            true => println!("{}", serde_json::json!(packages)),
             false => {
                 for package in &packages {
                     println!("{package}");
@@ -27,7 +26,11 @@ impl AppCommand for PkgsCommand {
             }
         }
 
-        eprintln!("Total: {} packages", packages.len());
+        eprintln!(
+            "{style}Total: {} packages{style:#}",
+            packages.len(),
+            style = Style::new().underline()
+        );
 
         Ok(())
     }

@@ -15,12 +15,7 @@ impl AppCommand for PullFsCommand {
         let result = app
             .build_client()?
             .app_installer_service()
-            .load_packages_to_fs(
-                self.packages
-                    .as_ref()
-                    .map(|vec| vec.iter().map(|s| s.as_str()).collect::<Vec<_>>())
-                    .as_deref(),
-            )?;
+            .load_packages_to_fs(self.packages.as_ref())?;
 
         print_fs_sync_result(&result);
 

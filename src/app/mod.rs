@@ -9,8 +9,7 @@ pub use session::*;
 mod credentials;
 pub use credentials::*;
 
-mod workspace_explorer;
-pub use workspace_explorer::BuildResponse;
+pub mod workspace_explorer;
 
 mod package_installer;
 pub use app_installer::{

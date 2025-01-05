@@ -47,3 +47,12 @@ impl CrtCliPkgConfig {
         }
     }
 }
+
+pub fn combine_apply_features_from_args_and_config(
+    args_features: Option<&PkgApplyFeatures>,
+    pkg_config: Option<&CrtCliPkgConfig>,
+) -> Option<PkgApplyFeatures> {
+    args_features
+        .map(|c| c.combine(pkg_config.map(|c| c.apply())))
+        .or_else(|| pkg_config.map(|c| c.apply().clone()))
+}

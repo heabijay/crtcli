@@ -1,6 +1,7 @@
 use crate::cmd::app::pkg::fs::prepare_pkg_fs_folder;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
 use crate::pkg::utils::get_package_name_from_folder;
+use anstyle::Style;
 use clap::Args;
 use std::error::Error;
 use std::path::PathBuf;
@@ -37,7 +38,10 @@ impl AppCommand for PushPkgFsCommand {
         }
         .run(app)?;
 
-        eprintln!("Package {} pushed successfully!", &package_name);
+        eprintln!(
+            "{bold}{package_name}{bold:#} package pushed successfully!",
+            bold = Style::new().bold()
+        );
 
         if self.compile_package_after_push {
             eprintln!("Compiling package...");

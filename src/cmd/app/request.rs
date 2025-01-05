@@ -1,12 +1,15 @@
 use crate::app::{CrtClientGenericError, CrtRequestBuilderReauthorize};
 use crate::cmd::app::{AppCommand, AppCommandArgs};
+use anstream::{stderr, stdout};
+use anstyle::Style;
 use clap::builder::{ValueParser, ValueParserFactory};
 use clap::Args;
 use reqwest::blocking::Response;
+use reqwest::header::{HeaderName, HeaderValue};
 use reqwest::Method;
 use std::error::Error;
 use std::fs::File;
-use std::io::{stdin, BufRead, ErrorKind, Read};
+use std::io::{stdin, BufRead, ErrorKind, Read, Write};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -124,64 +127,135 @@ impl AppCommand for RequestCommand {
                 .map_err(CrtClientGenericError::from)?,
         };
 
-        eprintln!("Status: {}", response.status());
-
-        if let Some(location) = response.headers().get(reqwest::header::LOCATION) {
-            if let Ok(location) = location.to_str() {
-                eprintln!("Location: {location}");
-            }
-        }
+        print_response_headers(&response);
 
         match &self.output_file {
             Some(output_file) => {
-                let mut file = File::create(output_file)?;
-                let bytes = std::io::copy(&mut response, &mut file)?;
-
-                eprintln!("Content: Written {bytes} bytes");
+                std::io::copy(&mut response, &mut File::create(output_file)?)?;
             }
             None => try_read_response_to_stdout(&mut response)?,
         }
 
         return Ok(());
 
-        fn try_read_response_to_stdout(response: &mut Response) -> Result<(), Box<dyn Error>> {
-            let mut response_str = String::new();
-
-            match response.read_to_string(&mut response_str) {
-                Ok(bytes) => {
-                    eprintln!("Content: {bytes} bytes read");
-
-                    if !response_str.is_empty() {
-                        eprintln!();
-                        println!("{response_str}");
-                    }
-                },
-                Err(err) if err.kind() == ErrorKind::InvalidData => return Err("response body seems like not valid utf8 string, consider to use --output-file <path> parameter to save response body to file".into()),
-                Err(err) => return Err(err.into()),
-            }
-
-            Ok(())
-        }
-
         fn read_data_from_stdin() -> Result<String, std::io::Error> {
+            let dimmed = Style::new().dimmed();
+            let italic = Style::new().italic();
+
             eprintln!("Please enter request data (body) below: ");
-            eprintln!("-=-=- -=-=- -=-=- -=-=- -=-=-");
-            eprintln!();
+            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
+            eprintln!("{italic}");
 
             let mut data = String::new();
 
             loop {
-                if stdin().lock().read_line(&mut data)? == 1 {
+                if stdin()
+                    .lock()
+                    .read_line(&mut data)
+                    .inspect_err(|_| eprint!("{italic:#}"))?
+                    == 1
+                {
                     break;
                 }
             }
 
             data.truncate(data.len() - 2);
 
-            eprintln!("-=-=- -=-=- -=-=- -=-=- -=-=-");
+            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
             eprintln!();
 
             Ok(data)
+        }
+
+        fn print_response_headers(response: &Response) {
+            let key_style = Style::new().bold();
+            let header_style = Style::new().bold().underline();
+            let mut stderr = stderr().lock();
+
+            writeln!(
+                stderr,
+                "{header_style}{version:?} {status_code} {status_reason}{header_style:#}",
+                version = response.version(),
+                status_code = response.status().as_str(),
+                status_reason = response.status().canonical_reason().unwrap_or_default(),
+            )
+            .unwrap();
+
+            const PRINT_HEADERS: [&str; 3] = ["content-length", "content-type", "location"];
+
+            let mut headers: Vec<(&HeaderName, &HeaderValue)> = response
+                .headers()
+                .iter()
+                .filter(|(name, _)| PRINT_HEADERS.contains(&name.as_str()))
+                .collect();
+
+            headers.sort_by_key(|(name, _)| name.as_str());
+
+            let mut name_buf = String::with_capacity(64);
+
+            for (name, value) in headers {
+                writeln!(
+                    stderr,
+                    "{key_style}{name}{key_style:#}: {value}",
+                    name = titlecase_header(name, &mut name_buf),
+                    value = value.to_str().unwrap_or("<not an ascii str>")
+                )
+                .unwrap();
+            }
+
+            return;
+
+            // Source: https://github.com/ducaale/xh/blob/master/src/formatting/headers.rs#L216C1-L232C2
+            fn titlecase_header<'b>(name: &HeaderName, buffer: &'b mut String) -> &'b str {
+                let name = name.as_str();
+
+                buffer.clear();
+                buffer.reserve(name.len());
+
+                // Ought to be equivalent to how hyper does it
+                // https://github.com/hyperium/hyper/blob/f46b175bf71b202fbb907c4970b5743881b891e1/src/proto/h1/role.rs#L1332
+                // Header names are ASCII so operating on char or u8 is equivalent
+                let mut prev = '-';
+
+                for mut c in name.chars() {
+                    if prev == '-' {
+                        c.make_ascii_uppercase();
+                    }
+                    buffer.push(c);
+                    prev = c;
+                }
+
+                buffer
+            }
+        }
+
+        fn try_read_response_to_stdout(response: &mut Response) -> Result<(), Box<dyn Error>> {
+            let mut response_str = String::new();
+
+            match response.read_to_string(&mut response_str) {
+                Ok(_) => {},
+                Err(err) if err.kind() == ErrorKind::InvalidData => return Err("response body seems like not valid utf8 string, consider to use --output-file <path> parameter to save response body to file".into()),
+                Err(err) => return Err(err.into()),
+            }
+
+            if response_str.is_empty() {
+                return Ok(());
+            }
+
+            eprintln!();
+
+            let mut stdout = stdout().lock();
+
+            match serde_json::from_str::<serde_json::Value>(&response_str) {
+                Ok(json) => {
+                    serde_json::to_writer_pretty(&mut stdout, &json)?;
+
+                    writeln!(stdout).unwrap();
+                }
+                _ => writeln!(stdout, "{response_str}").unwrap(),
+            }
+
+            Ok(())
         }
     }
 }

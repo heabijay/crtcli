@@ -1,4 +1,5 @@
 use crate::app::{CrtClient, CrtClientGenericError, InstallLogWatcher, InstallLogWatcherEvent};
+use crate::cmd::app::restart::print_app_restart_requested;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
 use clap::Args;
 use std::error::Error;
@@ -126,11 +127,7 @@ pub fn install_package_from_stream_command(
             .restart_app()
             .map_err(InstallPkgCommandError::AppRestart)?;
 
-        eprintln!("Application restart has been requested");
-
-        if !client.is_net_framework() {
-            eprintln!("Note: if restart does not work, please check if you need to use --net-framework flag");
-        }
+        print_app_restart_requested(&client);
     }
 
     return Ok(());
