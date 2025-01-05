@@ -4,9 +4,11 @@ pub mod push_fs;
 
 use crate::app::{FileSystemSynchronizationObjectState, FileSystemSynchronizationResultResponse};
 use crate::cmd::app::{AppCommand, AppCommandArgs};
+use anstream::stdout;
+use anstyle::{AnsiColor, Color, Style};
 use clap::Subcommand;
-use owo_colors::OwoColorize;
 use std::error::Error;
+use std::io::Write;
 
 #[derive(Debug, Subcommand)]
 pub enum FsCommands {
@@ -31,13 +33,20 @@ impl AppCommand for FsCommands {
 }
 
 fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
+    let mut stdout = stdout().lock();
+    let bold = Style::new().bold();
+    let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
+    let red = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
+
     if !result.changes.is_empty() {
         for package in &result.changes {
-            eprintln!(
-                "Package {} - {:?}",
-                package.workspace_item.name.bold(),
-                package.workspace_item.state
-            );
+            writeln!(
+                stdout,
+                "Package {bold}{name}{bold:#} - {state:?}:",
+                name = package.workspace_item.name,
+                state = package.workspace_item.state
+            )
+            .unwrap();
 
             let mut sorted_items_refs = package.items.iter().collect::<Vec<_>>();
 
@@ -53,57 +62,33 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
             });
 
             for item in sorted_items_refs {
+                let object_type = &item.object_type;
+                let item_name = &item.name;
+                let culture_suffix = item
+                    .culture_name
+                    .as_ref()
+                    .map(|x| format!(", {}", x))
+                    .unwrap_or_default();
+
                 match item.state {
                     FileSystemSynchronizationObjectState::NotChanged => {}
-                    FileSystemSynchronizationObjectState::New => eprintln!(
-                        "\t{status}\t{object_type:?} {arrow} {name}{culture}",
-                        status = "created:".green(),
-                        object_type = item.object_type.green(),
-                        arrow = "->".green(),
-                        name = item.name.green(),
-                        culture = item
-                            .culture_name
-                            .as_ref()
-                            .map(|x| format!(", {}", x))
-                            .unwrap_or_default()
-                            .green()
-                    ),
-                    FileSystemSynchronizationObjectState::Deleted => eprintln!(
-                        "\t{status}\t{object_type:?} {arrow} {name}{culture}",
-                        status = "deleted:".red(),
-                        object_type = item.object_type.red(),
-                        arrow = "->".red(),
-                        name = item.name.red(),
-                        culture = item
-                            .culture_name
-                            .as_ref()
-                            .map(|x| format!(", {}", x))
-                            .unwrap_or_default()
-                            .red()
-                    ),
-                    FileSystemSynchronizationObjectState::Changed => eprintln!(
-                        "\t{status}\t{object_type:?} -> {name}{culture}",
-                        status = "modified:",
-                        object_type = item.object_type,
-                        name = item.name,
-                        culture = item
-                            .culture_name
-                            .as_ref()
-                            .map(|x| format!(", {}", x))
-                            .unwrap_or_default(),
-                    ),
-                    _ => eprintln!(
-                        "\t{status:?}{colon}\t{object_type:?} -> {name}{culture}",
+                    FileSystemSynchronizationObjectState::New => writeln!(
+                        stdout,
+                        "{green}\tcreated:\t{object_type:?} -> {item_name}{culture_suffix}{green:#}",
+                    ).unwrap(),
+                    FileSystemSynchronizationObjectState::Deleted => writeln!(
+                        stdout,
+                        "{red}\tdeleted:\t{object_type:?} -> {item_name}{culture_suffix}{red:#}",
+                    ).unwrap(),
+                    FileSystemSynchronizationObjectState::Changed => writeln!(
+                        stdout,
+                        "\tmodified:\t{object_type:?} -> {item_name}{culture_suffix}",
+                    ).unwrap(),
+                    _ => writeln!(
+                        stdout,
+                        "\t{status:?}:\t{object_type:?} -> {item_name}{culture_suffix}",
                         status = item.state,
-                        colon = ":",
-                        object_type = item.object_type,
-                        name = item.name,
-                        culture = item
-                            .culture_name
-                            .as_ref()
-                            .map(|x| format!(", {}", x))
-                            .unwrap_or_default(),
-                    ),
+                    ).unwrap(),
                 }
             }
         }
@@ -111,28 +96,28 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
 
     if !result.errors.is_empty() {
         if !result.changes.is_empty() {
-            eprintln!();
-            eprintln!();
+            writeln!(stdout).unwrap();
+            writeln!(stdout).unwrap();
         }
 
-        eprintln!("Errors ({}):", result.errors.len());
+        writeln!(stdout, "{red}Errors ({}):{red:#}", result.errors.len()).unwrap();
 
         for error in &result.errors {
-            eprintln!(
-                "{}{} {}: {}",
-                error.workspace_item.name.red(),
-                error
-                    .workspace_item
-                    .culture_name
-                    .as_ref()
-                    .map(|x| format!(", {}", x))
-                    .unwrap_or_default()
-                    .red(),
-                format!("({:?})", error.workspace_item.object_type).red(),
-                error.error_info.red()
-            );
+            let culture_suffix = error
+                .workspace_item
+                .culture_name
+                .as_ref()
+                .map(|x| format!(", {}", x))
+                .unwrap_or_default();
+
+            writeln!(
+                stdout,
+                "{red}{item_name}{culture_suffix} ({object_type:?}): {error_info}{red:#}",
+                item_name = error.workspace_item.name,
+                object_type = error.workspace_item.object_type,
+                error_info = error.error_info,
+            )
+            .unwrap();
         }
     }
-
-    // eprintln!("{}", "Done!".bold().green());
 }

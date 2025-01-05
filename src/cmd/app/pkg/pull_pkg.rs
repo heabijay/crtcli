@@ -1,7 +1,7 @@
 use crate::app::CrtClientGenericError;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
-use crate::cmd::pkg::config_file::CrtCliPkgConfig;
+use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling::extractor::*;
 use clap::Args;
 use std::error::Error;
@@ -47,10 +47,11 @@ impl AppCommand for PullPkgCommand {
 
         let pkg_config = CrtCliPkgConfig::from_package_folder(destination_folder)?;
 
-        let apply_features = pkg_config
-            .map(|c| c.apply().combine(self.apply_features.as_ref()))
-            .or_else(|| self.apply_features.clone())
-            .unwrap_or_default();
+        let apply_features = combine_apply_features_from_args_and_config(
+            self.apply_features.as_ref(),
+            pkg_config.as_ref(),
+        )
+        .unwrap_or_default();
 
         let package_name = detect_target_package_name!(self.package_name, destination_folder);
 

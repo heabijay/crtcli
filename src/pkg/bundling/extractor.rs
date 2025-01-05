@@ -4,7 +4,7 @@ use crate::pkg::bundling::utils::{
 use crate::pkg::bundling::PkgGZipDecoder;
 use crate::pkg::converters::*;
 use crate::pkg::utils::contains_hidden_path;
-use owo_colors::OwoColorize;
+use anstyle::{AnsiColor, Color, Style};
 use std::collections::HashSet;
 use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
@@ -149,9 +149,9 @@ impl SmartMergeContext {
 
                 if result && config.print_merge_log {
                     eprintln!(
-                        "\t{}\t{}",
-                        "deleted:".red(),
-                        path_without_dest.display().red()
+                        "{style}\tdeleted:\t{}{style:#}",
+                        path_without_dest.display(),
+                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
                     );
                 }
 
@@ -259,7 +259,10 @@ pub fn extract_gzip_package_to_folder(
     ) -> Result<bool, ExtractGzipPackageError> {
         if !destination_path.exists() {
             if config.print_merge_log {
-                eprintln!("\t{}\t{}", "created:".green(), relative_path.green());
+                eprintln!(
+                    "{style}\tcreated:\t{relative_path}{style:#}",
+                    style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)))
+                );
             }
 
             return Ok(true);
@@ -279,7 +282,7 @@ pub fn extract_gzip_package_to_folder(
                     .map_or(false, |exists_content| exists_content != *content);
 
                 if result && config.print_merge_log {
-                    eprintln!("\t{}\t{}", "modified:", relative_path);
+                    eprintln!("\tmodified:\t{relative_path}");
                 }
 
                 Ok(result)

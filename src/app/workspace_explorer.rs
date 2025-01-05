@@ -137,28 +137,8 @@ pub struct BuildPackageErrorInfo {
     pub message: String,
 }
 
-impl Display for BuildPackageError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let prefix = match self.warning {
-            true => "WARN",
-            false => "ERROR",
-        };
-
-        let filename_substr = match self.filename.as_str() {
-            "" => "",
-            _ => &format!(" {}({}:{}):", self.filename, self.line, self.column),
-        };
-
-        write!(
-            f,
-            "{}{} {}: {}",
-            prefix, filename_substr, self.error_number, self.error_text
-        )
-    }
-}
-
 #[derive(Deserialize, Debug)]
-pub struct GetPackagesResponse {
+struct GetPackagesResponse {
     packages: Vec<GetPackagesResponseItem>,
 }
 

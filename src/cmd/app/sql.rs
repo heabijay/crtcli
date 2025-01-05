@@ -1,5 +1,6 @@
 use crate::app::sql::SqlRunner;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
+use anstyle::Style;
 use clap::{Args, ValueEnum};
 use serde::Serialize;
 use std::error::Error;
@@ -65,21 +66,29 @@ impl AppCommand for SqlCommand {
         return Ok(());
 
         fn read_data_from_stdin() -> Result<String, std::io::Error> {
+            let dimmed = Style::new().dimmed();
+            let italic = Style::new().italic();
+
             eprintln!("Please enter SQL query below: ");
-            eprintln!("-=-=- -=-=- -=-=- -=-=- -=-=-");
-            eprintln!();
+            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
+            eprintln!("{italic}");
 
             let mut data = String::new();
 
             loop {
-                if stdin().lock().read_line(&mut data)? == 1 {
+                if stdin()
+                    .lock()
+                    .read_line(&mut data)
+                    .inspect_err(|_| eprint!("{italic:#}"))?
+                    == 1
+                {
                     break;
                 }
             }
 
             data.truncate(data.len() - 2);
 
-            eprintln!("-=-=- -=-=- -=-=- -=-=- -=-=-");
+            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
             eprintln!();
 
             Ok(data)

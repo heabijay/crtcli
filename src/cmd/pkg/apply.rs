@@ -1,13 +1,15 @@
 use crate::cmd::cli::CliCommand;
-use crate::cmd::pkg::config_file::CrtCliPkgConfig;
+use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling;
 use crate::pkg::converters::*;
 use crate::pkg::utils::{walk_over_package_files, WalkOverPackageFilesContentError};
+use anstream::stdout;
+use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
-use owo_colors::OwoColorize;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::error::Error;
+use std::io::Write;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -92,22 +94,24 @@ impl CliCommand for ApplyCommand {
     fn run(self) -> Result<(), Box<dyn Error>> {
         let pkg_config = CrtCliPkgConfig::from_package_folder(&self.package_folder)?;
 
-        let features = pkg_config
-            .map(|c| c.apply().combine(self.apply_features.as_ref()))
-            .or_else(|| self.apply_features.clone());
+        let apply_features = combine_apply_features_from_args_and_config(
+            self.apply_features.as_ref(),
+            pkg_config.as_ref(),
+        );
 
-        let features = match features {
+        let apply_features = match apply_features {
             Some(f) => f,
             None if self.no_feature_present_warning_disabled => return Ok(()),
             None => {
                 return Err(
-                    "Please pass any feature(s) to apply like --apply-sorting, ... to continue"
+                    "please pass any feature(s) to apply like --apply-sorting, ... to continue"
                         .into(),
                 )
             }
         };
 
-        let converter = features.build_combined_converter();
+        let converter = apply_features.build_combined_converter();
+        let mut stdout = stdout().lock();
 
         match &self.file {
             None => {
@@ -116,11 +120,11 @@ impl CliCommand for ApplyCommand {
                         .map_err(WalkOverPackageFilesContentError::FolderAccess)
                         .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
-                    apply_file(&self, &converter, file_path)?;
+                    apply_file(&self, &mut stdout, &converter, file_path)?;
                 }
             }
             Some(for_single_file) => {
-                apply_file(&self, &converter, for_single_file.to_owned())?;
+                apply_file(&self, &mut stdout, &converter, for_single_file.to_owned())?
             }
         }
 
@@ -128,6 +132,7 @@ impl CliCommand for ApplyCommand {
 
         fn apply_file(
             _self: &ApplyCommand,
+            mut stdout: impl Write,
             converter: &CombinedPkgFileConverter,
             file_path: PathBuf,
         ) -> Result<(), Box<dyn Error>> {
@@ -158,13 +163,19 @@ impl CliCommand for ApplyCommand {
                     std::fs::write(&file_path, content)
                         .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
 
-                    eprintln!("\t{}\t{}", "modified:", file.filename);
+                    writeln!(stdout, "\tmodified:\t{}", file.filename).unwrap();
                 }
             } else {
                 std::fs::remove_file(&file_path)
                     .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
 
-                eprintln!("\t{}\t{}", "deleted:".red(), file.filename.red());
+                writeln!(
+                    stdout,
+                    "{style}\tdeleted:\t{}{style:#}",
+                    file.filename,
+                    style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                )
+                .unwrap();
             }
 
             Ok(())

@@ -1,4 +1,5 @@
 use crate::app::CrtClientGenericError;
+use crate::cmd::app::restart::print_app_restart_requested;
 use crate::cmd::app::{print_build_response, AppCommand, AppCommandArgs};
 use clap::Args;
 use std::error::Error;
@@ -38,11 +39,7 @@ impl AppCommand for CompilePkgCommand {
                 .restart_app()
                 .map_err(CompilePkgCommandError::AppRestart)?;
 
-            eprintln!("Application restart has been requested");
-
-            if !client.is_net_framework() {
-                eprintln!("Note: if restart does not work, please check if you need to use --net-framework flag");
-            }
+            print_app_restart_requested(&client);
         }
 
         Ok(())

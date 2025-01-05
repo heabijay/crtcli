@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate anstream;
 
+use anstyle::{AnsiColor, Color, Style};
 use clap::Parser;
-use owo_colors::OwoColorize;
 use std::process::ExitCode;
 
 mod app;
@@ -19,11 +19,19 @@ fn main() -> ExitCode {
     match cli.run() {
         Ok(_) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("{} {:#}", "Error:".red(), err.red());
+            eprintln!(
+                "{style}Error: {err:#}{style:#}",
+                style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+            );
 
             if is_debug {
                 eprintln!();
-                eprintln!("Error (Debug-view): {:?}", err);
+                eprintln!(
+                    "{style}Error (Debug-view): {err:?}{style:#}",
+                    style = Style::new()
+                        .fg_color(Some(Color::Ansi(AnsiColor::BrightRed)))
+                        .dimmed()
+                );
             }
 
             ExitCode::FAILURE
