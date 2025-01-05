@@ -4,7 +4,7 @@ use anstyle::Style;
 use clap::{Args, ValueEnum};
 use serde::Serialize;
 use std::error::Error;
-use std::io::{stdin, BufRead};
+use std::io::{stdin, IsTerminal, Read};
 use std::path::PathBuf;
 
 #[derive(Args, Debug)]
@@ -68,28 +68,27 @@ impl AppCommand for SqlCommand {
         fn read_data_from_stdin() -> Result<String, std::io::Error> {
             let dimmed = Style::new().dimmed();
             let italic = Style::new().italic();
+            let stdin_terminal = stdin().is_terminal();
 
-            eprintln!("Please enter SQL query below: ");
-            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
-            eprintln!("{italic}");
+            if stdin_terminal {
+                eprintln!("Enter SQL query below: (Press Ctrl+D to finish)");
+                eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
+                eprintln!("{italic}");
+            }
 
             let mut data = String::new();
 
-            loop {
-                if stdin()
-                    .lock()
-                    .read_line(&mut data)
-                    .inspect_err(|_| eprint!("{italic:#}"))?
-                    == 1
-                {
-                    break;
+            stdin().lock().read_to_string(&mut data).inspect_err(|_| {
+                if stdin_terminal {
+                    eprint!("{italic:#}")
                 }
+            })?;
+
+            if stdin_terminal {
+                eprintln!();
+                eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
+                eprintln!();
             }
-
-            data.truncate(data.len() - 2);
-
-            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
-            eprintln!();
 
             Ok(data)
         }

@@ -9,7 +9,7 @@ use reqwest::header::{HeaderName, HeaderValue};
 use reqwest::Method;
 use std::error::Error;
 use std::fs::File;
-use std::io::{stdin, BufRead, ErrorKind, Read, Write};
+use std::io::{stdin, ErrorKind, IsTerminal, Read, Write};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -141,28 +141,27 @@ impl AppCommand for RequestCommand {
         fn read_data_from_stdin() -> Result<String, std::io::Error> {
             let dimmed = Style::new().dimmed();
             let italic = Style::new().italic();
+            let stdin_terminal = stdin().is_terminal();
 
-            eprintln!("Please enter request data (body) below: ");
-            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
-            eprintln!("{italic}");
+            if stdin_terminal {
+                eprintln!("Enter Request Data (Body) below: (Press Ctrl+D to finish)");
+                eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
+                eprintln!("{italic}");
+            }
 
             let mut data = String::new();
 
-            loop {
-                if stdin()
-                    .lock()
-                    .read_line(&mut data)
-                    .inspect_err(|_| eprint!("{italic:#}"))?
-                    == 1
-                {
-                    break;
+            stdin().lock().read_to_string(&mut data).inspect_err(|_| {
+                if stdin_terminal {
+                    eprint!("{italic:#}")
                 }
+            })?;
+
+            if stdin_terminal {
+                eprintln!();
+                eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
+                eprintln!();
             }
-
-            data.truncate(data.len() - 2);
-
-            eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
-            eprintln!();
 
             Ok(data)
         }
