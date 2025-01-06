@@ -2,52 +2,39 @@ use crate::app::{CrtClient, CrtClientGenericError};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{spawn, JoinHandle};
+use std::time::Duration;
 
 pub struct InstallLogWatcher {
     crt_client: Arc<CrtClient>,
-    handler: Option<fn(InstallLogWatcherEvent<'_>)>,
-
-    pooling_delay: std::time::Duration,
+    pooling_delay: Duration,
     wait_for_clear_on_start: bool,
     fetch_last_log_on_stop: bool,
 }
 
 pub struct InstallLogWatcherHandle {
-    cancellation_sender: Sender<()>,
-    iteration_cvar: Arc<(Mutex<bool>, Condvar)>,
+    stop_signal: Sender<()>,
+    worker_finished: Arc<(Mutex<bool>, Condvar)>,
     _worker: JoinHandle<()>,
 }
 
-struct WorkerContext {
-    crt_client: Arc<CrtClient>,
-    handler: Option<fn(InstallLogWatcherEvent<'_>)>,
-    cancellation_receiver: Receiver<()>,
-
-    pooling_delay: std::time::Duration,
-    wait_for_clear_on_start: bool,
-    fetch_last_log_on_stop: bool,
-    iteration_cvar: Arc<(Mutex<bool>, Condvar)>,
-}
-
 #[derive(Debug, Clone)]
-pub enum InstallLogWatcherEvent<'c> {
-    Clear(),
-    Append(&'c str),
+pub enum InstallLogWatcherEvent<'a> {
+    Clear,
+    Append(&'a str),
 }
 
 impl InstallLogWatcher {
     pub fn new(crt_client: Arc<CrtClient>) -> Self {
         Self {
             crt_client,
-            pooling_delay: std::time::Duration::from_millis(1000),
+            pooling_delay: Duration::from_millis(1000),
             wait_for_clear_on_start: false,
             fetch_last_log_on_stop: false,
-            handler: None,
         }
     }
 
     #[allow(dead_code)]
-    pub fn pooling_delay(mut self, value: std::time::Duration) -> Self {
+    pub fn pooling_delay(mut self, value: Duration) -> Self {
         self.pooling_delay = value;
         self
     }
@@ -63,171 +50,115 @@ impl InstallLogWatcher {
         self
     }
 
-    pub fn with_handler(mut self, value: fn(InstallLogWatcherEvent<'_>)) -> Self {
-        self.handler = Some(value);
-        self
-    }
+    pub fn start<H>(self, handler: H) -> InstallLogWatcherHandle
+    where
+        H: Fn(InstallLogWatcherEvent<'_>) + Send + 'static,
+    {
+        let (stop_signal_tx, stop_signal_rx) = channel();
+        let worker_finished = Arc::new((Mutex::new(false), Condvar::new()));
+        let worker_finished_clone = Arc::clone(&worker_finished);
 
-    pub fn start(self) -> InstallLogWatcherHandle {
-        let cancellation_channel = channel();
-        let iteration_cvar = Arc::new((Mutex::new(false), Condvar::new()));
-
-        let context = WorkerContext {
-            crt_client: self.crt_client,
-            handler: self.handler,
-
-            cancellation_receiver: cancellation_channel.1,
-            iteration_cvar: Arc::clone(&iteration_cvar),
-            pooling_delay: self.pooling_delay,
-            wait_for_clear_on_start: self.wait_for_clear_on_start,
-            fetch_last_log_on_stop: self.fetch_last_log_on_stop,
-        };
+        let worker = spawn(move || {
+            if let Err(e) = self.run_worker(handler, stop_signal_rx, worker_finished_clone) {
+                eprintln!("InstallLogWatcher worker error: {}", e);
+            }
+        });
 
         InstallLogWatcherHandle {
-            iteration_cvar,
-            cancellation_sender: cancellation_channel.0,
-            _worker: spawn(move || {
-                context.main();
-            }),
+            stop_signal: stop_signal_tx,
+            worker_finished,
+            _worker: worker,
         }
+    }
+
+    fn run_worker<H>(
+        &self,
+        handler: H,
+        stop_signal: Receiver<()>,
+        worker_finished: Arc<(Mutex<bool>, Condvar)>,
+    ) -> Result<(), CrtClientGenericError>
+    where
+        H: Fn(InstallLogWatcherEvent<'_>) + Send + 'static,
+    {
+        let mut last_log = String::new();
+        let mut clear_received = !self.wait_for_clear_on_start;
+
+        loop {
+            let current_log = self.crt_client.package_installer_service().get_log_file()?;
+
+            if current_log.is_empty() && !clear_received {
+                handler(InstallLogWatcherEvent::Clear);
+                clear_received = true;
+            } else if current_log != last_log {
+                if !last_log.is_empty() && !current_log.starts_with(&last_log) {
+                    handler(InstallLogWatcherEvent::Clear);
+                    clear_received = true;
+                }
+
+                if clear_received {
+                    let delta = if last_log.is_empty() || !current_log.starts_with(&last_log) {
+                        &current_log
+                    } else {
+                        &current_log[last_log.len()..]
+                    };
+
+                    if !delta.is_empty() {
+                        handler(InstallLogWatcherEvent::Append(delta));
+                    }
+                }
+            }
+
+            last_log = current_log;
+
+            if stop_signal.recv_timeout(self.pooling_delay).is_ok() {
+                if self.fetch_last_log_on_stop {
+                    let final_log = self.crt_client.package_installer_service().get_log_file()?;
+                    if final_log != last_log {
+                        if !last_log.is_empty() && !final_log.starts_with(&last_log) {
+                            handler(InstallLogWatcherEvent::Clear);
+                        }
+                        let delta = if last_log.is_empty() || !final_log.starts_with(&last_log) {
+                            &final_log
+                        } else {
+                            &final_log[last_log.len()..]
+                        };
+
+                        if !delta.is_empty() {
+                            handler(InstallLogWatcherEvent::Append(delta));
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        // Notify that the worker has finished
+        let (lock, cvar) = &*worker_finished;
+        let mut finished = lock.lock().unwrap();
+        *finished = true;
+        cvar.notify_all();
+
+        Ok(())
     }
 }
 
 impl InstallLogWatcherHandle {
-    pub fn wait_next_check_complete(&self) {
-        let (lock, cvar) = &*self.iteration_cvar;
-        let finished = lock.lock().unwrap();
-
-        if !*finished {
-            drop(cvar.wait(finished).unwrap())
+    pub fn wait_until_stopped(&self) {
+        let (lock, cvar) = &*self.worker_finished;
+        let mut finished = lock.lock().unwrap();
+        while !*finished {
+            finished = cvar.wait(finished).unwrap();
         }
     }
 
     pub fn stop(&self) {
-        let _ = self.cancellation_sender.send(());
+        let _ = self.stop_signal.send(());
     }
 }
 
 impl Drop for InstallLogWatcherHandle {
     fn drop(&mut self) {
-        self.stop()
+        self.stop();
+        // self.wait_until_stopped();
     }
-}
-
-impl WorkerContext {
-    fn main(&self) {
-        let mut iteration_ctx = WorkerIterationContext {
-            current_log: None,
-            timeout_received: false,
-            clear_event_received: !self.wait_for_clear_on_start,
-        };
-
-        loop {
-            let _ = process_iteration(self, &mut iteration_ctx);
-
-            notify_iteration_complete(self);
-
-            if iteration_ctx.timeout_received {
-                break;
-            }
-
-            if self
-                .cancellation_receiver
-                .recv_timeout(self.pooling_delay)
-                .is_ok()
-            {
-                iteration_ctx.timeout_received = true;
-
-                if !self.fetch_last_log_on_stop {
-                    break;
-                }
-            }
-        }
-
-        notify_iterations_finished(self);
-
-        return;
-
-        fn process_iteration(
-            worker_ctx: &WorkerContext,
-            iteration_ctx: &mut WorkerIterationContext,
-        ) -> Result<(), CrtClientGenericError> {
-            let log_file = worker_ctx
-                .crt_client
-                .package_installer_service()
-                .get_log_file()?;
-
-            if log_file.is_empty() && !iteration_ctx.clear_event_received {
-                iteration_ctx.clear_event_received = true;
-            }
-
-            if iteration_ctx.current_log.is_none() {
-                if !log_file.is_empty() {
-                    handler_invoke(
-                        worker_ctx,
-                        iteration_ctx,
-                        InstallLogWatcherEvent::Append(&log_file),
-                    );
-                }
-            } else if log_file.starts_with(iteration_ctx.current_log.as_ref().unwrap()) {
-                let delta = log_file
-                    .strip_prefix(iteration_ctx.current_log.as_ref().unwrap())
-                    .unwrap();
-
-                if !delta.is_empty() {
-                    handler_invoke(
-                        worker_ctx,
-                        iteration_ctx,
-                        InstallLogWatcherEvent::Append(delta),
-                    );
-                }
-            } else {
-                handler_invoke(worker_ctx, iteration_ctx, InstallLogWatcherEvent::Clear());
-
-                if !iteration_ctx.clear_event_received {
-                    iteration_ctx.clear_event_received = true;
-                }
-
-                handler_invoke(
-                    worker_ctx,
-                    iteration_ctx,
-                    InstallLogWatcherEvent::Append(&log_file),
-                );
-            }
-
-            iteration_ctx.current_log = Some(log_file);
-
-            Ok(())
-        }
-
-        fn handler_invoke(
-            worker_ctx: &WorkerContext,
-            iteration_ctx: &WorkerIterationContext,
-            event: InstallLogWatcherEvent,
-        ) {
-            if let Some(handler) = worker_ctx.handler {
-                if iteration_ctx.clear_event_received {
-                    handler(event);
-                }
-            }
-        }
-
-        fn notify_iteration_complete(worker_ctx: &WorkerContext) {
-            let (_, cvar) = &*worker_ctx.iteration_cvar;
-            cvar.notify_all();
-        }
-
-        fn notify_iterations_finished(worker_ctx: &WorkerContext) {
-            let (lock, cvar) = &*worker_ctx.iteration_cvar;
-            let mut finished = lock.lock().unwrap();
-            *finished = true;
-            cvar.notify_all();
-        }
-    }
-}
-
-struct WorkerIterationContext {
-    current_log: Option<String>,
-    timeout_received: bool,
-    clear_event_received: bool,
 }

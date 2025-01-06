@@ -1,5 +1,6 @@
 use crate::cmd::app::{AppCommand, AppCommandArgs};
 use crate::cmd::utils::{generate_zip_package_filename, get_next_filename_if_exists};
+use anstyle::Style;
 use clap::Args;
 use std::error::Error;
 use std::fs::File;
@@ -55,14 +56,28 @@ impl AppCommand for DownloadPkgCommand {
             false => output_path,
         };
 
-        let mut result = app
-            .build_client()?
+        let client = app.build_client()?;
+
+        let progress = spinner!(
+            "Downloading {bold}{target}{bold:#} {target_label} from {bold}{url}{bold:#}",
+            target = packages.join(", "),
+            target_label = match packages.len() {
+                0 | 1 => "package",
+                _ => "packages",
+            },
+            bold = Style::new().bold(),
+            url = client.base_url()
+        );
+
+        let mut result = client
             .package_installer_service()
-            .get_zip_packages(&packages.iter().map(String::as_str).collect::<Vec<&str>>())?;
+            .get_zip_packages(&packages)?;
 
         let mut file = File::create(&output_path)?;
 
         std::io::copy(&mut result, &mut file)?;
+
+        progress.finish_and_clear();
 
         println!("{}", output_path.display());
 

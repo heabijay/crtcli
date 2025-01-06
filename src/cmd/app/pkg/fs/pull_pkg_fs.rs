@@ -2,7 +2,7 @@ use crate::cmd::app::pkg::fs::prepare_pkg_fs_folder;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
 use crate::cmd::cli::CliCommand;
 use crate::pkg::utils::get_package_name_from_folder;
-use anstyle::Style;
+use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
 use std::path::PathBuf;
@@ -29,14 +29,18 @@ impl AppCommand for PullPkgFsCommand {
 
         prepare_pkg_fs_folder(package_folder)?;
 
+        let client = app.build_client()?;
+
         crate::cmd::app::fs::pull_fs::PullFsCommand {
             packages: Some(vec![package_name.clone()]),
         }
         .run(app)?;
 
         eprintln!(
-            "{bold}{package_name}{bold:#} package pulled successfully!",
-            bold = Style::new().bold()
+            "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully pulled to filesystem from {green_bold}{url}{green_bold:#}{green}!{green:#}",
+            green=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+            green_bold=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+            url=client.base_url(),
         );
 
         crate::cmd::pkg::apply::ApplyCommand {

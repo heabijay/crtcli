@@ -1,5 +1,6 @@
 use crate::cmd::app::fs::print_fs_sync_result;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
+use anstyle::Style;
 use clap::Args;
 use std::error::Error;
 
@@ -12,10 +13,29 @@ pub struct PullFsCommand {
 
 impl AppCommand for PullFsCommand {
     fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let result = app
-            .build_client()?
+        let bold = Style::new().bold();
+        let client = app.build_client()?;
+
+        let pull_target_str = match &self.packages {
+            Some(packages) if packages.len() == 1 => {
+                &format!("{bold}{}{bold:#} package", packages[0])
+            }
+            Some(packages) if packages.len() > 1 => {
+                &format!("{bold}{}{bold:#} packages", packages.join(", "))
+            }
+            _ => "all packages",
+        };
+
+        let progress = spinner!(
+            "Pulling {pull_target_str} to filesystem from {bold}{url}{bold:#}",
+            url = client.base_url()
+        );
+
+        let result = client
             .app_installer_service()
             .load_packages_to_fs(self.packages.as_ref())?;
+
+        progress.finish_and_clear();
 
         print_fs_sync_result(&result);
 
