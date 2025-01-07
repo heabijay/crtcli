@@ -77,7 +77,4 @@ impl AppCommand for PkgCommands {
 pub enum DetectTargetPackageNameError {
     #[error("failed to detect package name in folder (also you can specify package name as argument): {0}")]
     GetPackageNameFromFolder(#[from] GetPackageNameFromFolderError),
-
-    #[error("failed to get valid current directory: {0}")]
-    GetCurrentDirError(#[from] std::io::Error),
 }

@@ -511,13 +511,11 @@ but faster due to in memory processing, merging only changes and more feature-ri
 
 **Options:**
 
-- `--package | -p <PACKAGE_NAME>` — Package name to pull.
+- `--package | -p <PACKAGE:DESTINATION>` — Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs)
 
-  Defaults: Tries to determine package name from destination folder. (From file ./descriptor.json)
-
-- `--destination-folder | -d <DESTINATION_FOLDER>` — Destination folder where the package files will be unpacked using merge.
-
-  Defaults: Current directory
+  Defaults: 
+  - Package: Tries to determine package name from destination folder (From file ./descriptor.json)
+  - Destination: Current directory
 
 And here you can use transforms from [pkg apply](#pkg-apply) command.
 
@@ -527,9 +525,15 @@ And here you can use transforms from [pkg apply](#pkg-apply) command.
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg pull -p UsrCustomPackage -d /repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage' from insecure Creatio 'https://localhost:5000' and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
+- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg pull -p UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage' from insecure Creatio 'https://localhost:5000' and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
 
 - `crtcli app pkg pull` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
+
+- `crtcli app pkg pull -p UsrPackage2` — Downloads package 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
+
+- `crtcli app pkg pull -p UsrPackage3:/repos/Pkg3 -p UsrPackage2:/repos/Pkg2` — Downloads packages 'UsrPackage3' and 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' and '/repos/Pkg2' folders using merge with default applied transforms.
+
+- `crtcli app pkg pull -p :/repos/Pkg3` — Downloads package 'UsrPackage3' (cause destination folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' folder using merge with default applied transforms.
 
 
 ### app pkg push
