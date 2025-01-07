@@ -43,6 +43,12 @@ impl AppCommand for SqlCommand {
 
         let client = app.build_client()?;
 
+        let process = spinner!(
+            "Executing SQL query at {bold}{url}{bold:#}",
+            bold = Style::new().bold(),
+            url = client.base_url()
+        );
+
         let result = match &self.runner {
             None => client.sql(sql)?,
             Some(SqlRunnerSelect::Cliogate) => {
@@ -52,6 +58,8 @@ impl AppCommand for SqlCommand {
                 crate::app::sql::SqlConsoleSqlRunner.sql(&client, sql)?
             }
         };
+
+        process.finish_and_clear();
 
         if let Some(table) = result.table {
             let mut buf = vec![];

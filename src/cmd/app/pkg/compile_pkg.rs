@@ -1,6 +1,6 @@
-use crate::app::CrtClientGenericError;
-use crate::cmd::app::restart::print_app_restart_requested;
+use crate::cmd::app;
 use crate::cmd::app::{print_build_response, AppCommand, AppCommandArgs};
+use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
 use thiserror::Error;
@@ -19,7 +19,7 @@ pub struct CompilePkgCommand {
 #[derive(Debug, Error)]
 pub enum CompilePkgCommandError {
     #[error("App restart error: {0}")]
-    AppRestart(#[source] CrtClientGenericError),
+    AppRestart(#[source] Box<dyn Error>),
 }
 
 impl AppCommand for CompilePkgCommand {
@@ -27,19 +27,31 @@ impl AppCommand for CompilePkgCommand {
         let package_name = detect_target_package_name!(&self.package_name);
         let client = app.build_client()?;
 
-        let result = client
+        let progress = spinner_precise!(
+            "Compiling {bold}{package_name}{bold:#} package at {bold}{url}{bold:#}",
+            bold = Style::new().bold(),
+            url = client.base_url()
+        );
+
+        let response = client
             .workspace_explorer_service()
             .build_package(package_name)?;
 
-        print_build_response(&result)?;
+        progress.finish_and_clear();
+
+        print_build_response(&response)?;
+
+        eprintln!(
+            "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully compiled at {green_bold}{url}{green_bold:#}{green}!{green:#}",
+            green=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+            green_bold=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+            url=client.base_url(),
+        );
 
         if self.restart {
-            client
-                .app_installer_service()
-                .restart_app()
+            app::restart::RestartCommand
+                .run(app)
                 .map_err(CompilePkgCommandError::AppRestart)?;
-
-            print_app_restart_requested(&client);
         }
 
         Ok(())

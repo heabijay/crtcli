@@ -20,7 +20,11 @@ impl AppCommand for RestartCommand {
 }
 
 pub fn print_app_restart_requested(client: &CrtClient) {
-    eprintln!("Application restart has been requested");
+    eprintln!(
+        "✔ Application restart has been requested at {bold}{url}{bold:#}",
+        bold = Style::new().bold(),
+        url = client.base_url()
+    );
 
     if !client.is_net_framework() {
         eprintln!(

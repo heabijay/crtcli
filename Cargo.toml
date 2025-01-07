@@ -16,6 +16,7 @@ clap_complete = "4.5.40"
 dotenvy = "0.15.7"
 flate2 = "1.0.35"
 hyper-util = "0.1.10"
+indicatif = "0.17.9"
 quick-xml = "0.37.2"
 regex = "1.11.1"
 serde = { version = "1.0.217", features = ["derive"] }

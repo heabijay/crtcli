@@ -3,6 +3,7 @@ use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling::extractor::*;
+use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
 use std::io::Read;
@@ -55,16 +56,27 @@ impl AppCommand for PullPkgCommand {
 
         let package_name = detect_target_package_name!(self.package_name, destination_folder);
 
-        let mut package = app
+        let client = app
             .build_client()
-            .map_err(PullPkgCommandError::DownloadPackage)?
+            .map_err(PullPkgCommandError::DownloadPackage)?;
+
+        let bold = Style::new().bold();
+
+        let progress = spinner!(
+            "Pulling {bold}{package_name}{bold:#} package from {bold}{url}{bold:#}",
+            url = client.base_url()
+        );
+
+        let mut package = client
             .package_installer_service()
-            .get_zip_packages(&[package_name])
+            .get_zip_packages([package_name])
             .map_err(PullPkgCommandError::DownloadPackage)?;
 
         let mut package_data = vec![];
 
         package.read_to_end(&mut package_data)?;
+
+        progress.finish_and_clear();
 
         let extract_config = PackageToFolderExtractorConfig::default()
             .with_files_already_exists_in_folder_strategy(
@@ -80,6 +92,13 @@ impl AppCommand for PullPkgCommand {
             &extract_config,
         )
         .map_err(PullPkgCommandError::ExtractPackage)?;
+
+        eprintln!(
+            "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully pulled from {green_bold}{url}{green_bold:#}{green}!{green:#}",
+            green=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+            green_bold=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+            url=client.base_url(),
+        );
 
         Ok(())
     }

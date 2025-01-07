@@ -1,6 +1,5 @@
 use crate::app::workspace_explorer::{BuildPackageError, BuildResponse};
-use crate::app::CrtClientGenericError;
-use crate::cmd::app::restart::print_app_restart_requested;
+use crate::cmd::app;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
@@ -23,27 +22,45 @@ pub struct CompileCommand {
 #[derive(Debug, Error)]
 pub enum CompileCommandError {
     #[error("App restart error: {0}")]
-    AppRestart(#[source] CrtClientGenericError),
+    AppRestart(#[source] Box<dyn Error>),
 }
 
 impl AppCommand for CompileCommand {
     fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
         let client = app.build_client()?;
 
+        let progress = spinner_precise!(
+            "{operation_str} Creatio application at {bold}{url}{bold:#}",
+            bold = Style::new().bold(),
+            operation_str = match self.force_rebuild {
+                true => "Rebuilding",
+                false => "Compiling",
+            },
+            url = client.base_url()
+        );
+
         let response = match self.force_rebuild {
             true => client.workspace_explorer_service().rebuild()?,
             false => client.workspace_explorer_service().build()?,
         };
 
-        print_build_response(&response)?;
+        progress.suspend(|| print_build_response(&response))?;
+
+        progress.finish_with_message(format!(
+            "{green}Creatio application {operation_str} successfully at {green_bold}{url}{green_bold:#}{green}!{green:#}",
+            green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+            green_bold = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+            operation_str = match self.force_rebuild {
+                true => "rebuilt",
+                false => "compiled",
+            },
+            url=client.base_url(),
+        ));
 
         if self.restart {
-            client
-                .app_installer_service()
-                .restart_app()
+            app::restart::RestartCommand
+                .run(app)
                 .map_err(CompileCommandError::AppRestart)?;
-
-            print_app_restart_requested(&client);
         }
 
         Ok(())
@@ -80,7 +97,7 @@ pub fn print_build_response(response: &BuildResponse) -> Result<(), Box<dyn Erro
     }
 
     if let Some(message) = &response.message {
-        writeln!(stdout, "-> {message}").unwrap();
+        writeln!(stdout, "> {message}").unwrap();
     }
 
     match (
@@ -92,11 +109,6 @@ pub fn print_build_response(response: &BuildResponse) -> Result<(), Box<dyn Erro
         (false, false, None) => {}
         _ => return Err("compilation finished with errors".into()),
     }
-
-    eprintln!(
-        "{style}Compilation completed successfully!{style:#}",
-        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)))
-    );
 
     Ok(())
 }

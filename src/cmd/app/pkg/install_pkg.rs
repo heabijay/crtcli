@@ -1,6 +1,7 @@
 use crate::app::{CrtClient, CrtClientGenericError, InstallLogWatcher, InstallLogWatcherEvent};
 use crate::cmd::app::restart::print_app_restart_requested;
 use crate::cmd::app::{AppCommand, AppCommandArgs};
+use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
 use std::fs::File;
@@ -94,19 +95,30 @@ pub fn install_package_from_stream_command(
 
     apply_options_before_install(&client, options, &descriptors)?;
 
+    let progress = spinner_precise!(
+        "Installing {bold}{package_name}{bold:#} package archive at {bold}{url}{bold:#}",
+        bold = Style::new().bold(),
+        url = client.base_url()
+    );
+
+    let progress = Arc::new(progress);
+
     client
         .package_installer_service()
         .upload_package(package_reader, package_name.to_owned())
         .map_err(InstallPkgCommandError::Upload)?;
 
     let log_watcher = (!options.disable_install_log_pooling).then(|| {
+        let progress_clone = Arc::clone(&progress);
+
         InstallLogWatcher::new(Arc::clone(&client))
-            .with_handler(|event| match event {
-                InstallLogWatcherEvent::Clear() => {}
-                InstallLogWatcherEvent::Append(text) => print!("{text}"),
-            })
             .fetch_last_log_on_stop(true)
-            .start()
+            .start(move |event| match event {
+                InstallLogWatcherEvent::Clear => {}
+                InstallLogWatcherEvent::Append(text) => {
+                    progress_clone.suspend(move || print!("{}", text))
+                }
+            })
     });
 
     let install_result = client
@@ -116,8 +128,25 @@ pub fn install_package_from_stream_command(
 
     if let Some(log_watcher) = log_watcher {
         log_watcher.stop();
-        log_watcher.wait_next_check_complete();
+        log_watcher.wait_until_stopped();
     }
+
+    progress.finish_with_message(
+        match install_result {
+            Ok(_) => format!(
+                "{green}Package archive {green_bold}{package_name}{green_bold:#}{green} successfully installed at {green_bold}{url}{green_bold:#}",
+                green=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+                green_bold=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+                url=client.base_url()
+            ),
+            Err(_) => format!(
+                "{red}Package archive {red_bold}{package_name}{red_bold:#}{red} installation failed at {red_bold}{url}{red_bold:#}",
+                red=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))),
+                red_bold=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))).bold(),
+                url=client.base_url()
+            ),
+        }
+    );
 
     install_result?;
 

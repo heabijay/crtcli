@@ -2,6 +2,7 @@ use crate::app::client::{CrtClient, CrtClientGenericError};
 use crate::app::{CrtRequestBuilderReauthorize, StandardServiceResponse};
 use reqwest::header::HeaderMap;
 use reqwest::Method;
+use serde::Serialize;
 use serde_json::json;
 use std::io::{Read, Seek};
 
@@ -24,10 +25,14 @@ impl<'c> PackageInstallerService<'c> {
             .text()?)
     }
 
-    pub fn get_zip_packages(
+    pub fn get_zip_packages<StrArr, Str>(
         &self,
-        package_names: &[&str],
-    ) -> Result<impl Read, CrtClientGenericError> {
+        package_names: StrArr,
+    ) -> Result<impl Read, CrtClientGenericError>
+    where
+        StrArr: AsRef<[Str]> + Serialize,
+        Str: AsRef<str>,
+    {
         let response = self
             .0
             .request(
