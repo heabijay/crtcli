@@ -7,7 +7,6 @@ use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
 use std::sync::Arc;
-use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct DownloadPkgCommand {
@@ -24,17 +23,11 @@ pub struct DownloadPkgCommand {
     output_filename: Option<String>,
 }
 
-#[derive(Error, Debug)]
-enum DownloadPkgCommandError {
-    #[error("failed to get valid current directory (also you can specify output_folder arg): {0}")]
-    GetCurrentDir(#[source] std::io::Error),
-}
-
 impl AppCommand for DownloadPkgCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let output_folder = match &self.output_folder {
-            Some(path) => path,
-            None => &std::env::current_dir().map_err(DownloadPkgCommandError::GetCurrentDir)?,
+            Some(output_folder) => output_folder,
+            None => &PathBuf::from("."),
         };
 
         let packages = match self.packages.len() {

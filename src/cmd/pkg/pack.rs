@@ -41,18 +41,15 @@ pub enum PackCompression {
 
 #[derive(Error, Debug)]
 enum PackCommandError {
-    #[error("failed to get valid current directory (also you can specify output_folder arg): {0}")]
-    GetCurrentDir(#[source] std::io::Error),
-
     #[error("failed to write output package bundle: {0}")]
     WriteBundleFile(#[from] std::io::Error),
 }
 
 impl CliCommand for PackCommand {
     fn run(self) -> Result<(), Box<dyn Error>> {
-        let output_folder = match self.output_folder {
-            Some(path) => path,
-            None => std::env::current_dir().map_err(PackCommandError::GetCurrentDir)?,
+        let output_folder = match &self.output_folder {
+            Some(output_folder) => output_folder,
+            None => &PathBuf::from("."),
         };
 
         let output_filename = match &self.output_filename {

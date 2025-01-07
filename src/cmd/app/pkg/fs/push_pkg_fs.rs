@@ -27,8 +27,8 @@ pub struct PushPkgFsCommand {
 impl AppCommand for PushPkgFsCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let destination_folder = match &self.package_folder {
-            Some(f) => f,
-            None => &std::env::current_dir()?,
+            Some(package_folder) => package_folder,
+            None => &PathBuf::from("."),
         };
 
         let package_name = get_package_name_from_folder(destination_folder)?;

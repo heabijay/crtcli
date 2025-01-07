@@ -23,11 +23,6 @@ pub struct PushPkgCommand {
 
 #[derive(Debug, Error)]
 pub enum PushPkgCommandError {
-    #[error(
-        "failed to get valid current directory (also you can specify --package_folder arg): {0}"
-    )]
-    GetCurrentDir(#[source] std::io::Error),
-
     #[error("{0}")]
     DetectPackageName(#[from] DetectTargetPackageNameError),
 
@@ -43,9 +38,9 @@ pub enum PushPkgCommandError {
 
 impl AppCommand for PushPkgCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
-        let source_folder = match &self.source_folder {
+        let source_folder: &[PathBuf] = match &self.source_folder {
             Some(f) => f,
-            None => &vec![std::env::current_dir().map_err(PushPkgCommandError::GetCurrentDir)?],
+            None => &[PathBuf::from(".")],
         };
 
         let (package_filename, package_content) = match source_folder.len() {
@@ -80,7 +75,7 @@ impl AppCommand for PushPkgCommand {
         }
 
         fn pack_folders_as_zip(
-            source_folders: &Vec<PathBuf>,
+            source_folders: &[PathBuf],
         ) -> Result<(String, Vec<u8>), Box<dyn Error>> {
             let mut package_zip_cursor = Cursor::new(vec![]);
 

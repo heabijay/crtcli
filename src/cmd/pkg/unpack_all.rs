@@ -26,11 +26,6 @@ pub struct UnpackAllCommand {
 
 #[derive(Error, Debug)]
 enum UnpackAllCommandError {
-    #[error(
-        "failed to get valid current directory (also you can specify destination_folder arg): {0}"
-    )]
-    GetCurrentDir(#[source] std::io::Error),
-
     #[error("invalid package filename in path")]
     InvalidPackageFilename(),
 
@@ -46,8 +41,6 @@ impl CliCommand for UnpackAllCommand {
         let destination_folder = match self.destination_folder {
             Some(folder) => folder,
             None => {
-                let current_dir =
-                    std::env::current_dir().map_err(UnpackAllCommandError::GetCurrentDir)?;
                 let filename = self
                     .package_filepath
                     .file_stem()
@@ -55,7 +48,7 @@ impl CliCommand for UnpackAllCommand {
                     .to_str()
                     .ok_or(UnpackAllCommandError::InvalidPackageFilename())?;
 
-                crate::cmd::utils::get_next_filename_if_exists(current_dir.join(filename))
+                crate::cmd::utils::get_next_filename_if_exists(PathBuf::from(".").join(filename))
             }
         };
 

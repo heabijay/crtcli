@@ -23,8 +23,8 @@ pub struct PullPkgFsCommand {
 impl AppCommand for PullPkgFsCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let package_folder = match &self.package_folder {
-            Some(f) => f,
-            None => &std::env::current_dir()?,
+            Some(package_folder) => package_folder,
+            None => &PathBuf::from("."),
         };
 
         let package_name = get_package_name_from_folder(package_folder)?;

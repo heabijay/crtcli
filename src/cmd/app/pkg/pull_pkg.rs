@@ -27,9 +27,6 @@ pub struct PullPkgCommand {
 
 #[derive(Debug, Error)]
 pub enum PullPkgCommandError {
-    #[error("failed to get valid current directory (also you can specify --destination-folder arg): {0}")]
-    GetCurrentDir(#[source] std::io::Error),
-
     #[error("{0}")]
     DetectPackageName(#[from] DetectTargetPackageNameError),
 
@@ -43,8 +40,8 @@ pub enum PullPkgCommandError {
 impl AppCommand for PullPkgCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let destination_folder = match &self.destination_folder {
-            Some(f) => f,
-            None => &std::env::current_dir().map_err(PullPkgCommandError::GetCurrentDir)?,
+            Some(destination_folder) => destination_folder,
+            None => &PathBuf::from("."),
         };
 
         let pkg_config = CrtCliPkgConfig::from_package_folder(destination_folder)?;
@@ -55,7 +52,7 @@ impl AppCommand for PullPkgCommand {
         )
         .unwrap_or_default();
 
-        let package_name = detect_target_package_name!(self.package_name, destination_folder);
+        let package_name = detect_target_package_name!(self.package_name, &destination_folder);
 
         let progress = spinner!(
             "Pulling {bold}{package_name}{bold:#} package from {bold}{url}{bold:#}",

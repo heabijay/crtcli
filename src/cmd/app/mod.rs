@@ -8,18 +8,11 @@ macro_rules! detect_target_package_name {
         }
     };
     ($specified_package_name:expr) => {
-        detect_target_package_name!(
-            $specified_package_name,
-            &std::env::current_dir()
-                .map_err(crate::cmd::app::pkg::DetectTargetPackageNameError::GetCurrentDirError)?
-        )
+        detect_target_package_name!($specified_package_name, &std::path::PathBuf::from("."))
     };
     () => {
-        crate::pkg::utils::get_package_name_from_folder(
-            &std::env::current_dir()
-                .map_err(crate::cmd::app::pkg::DetectTargetPackageNameError::GetCurrentDirError)?,
-        )
-        .map_err(crate::cmd::app::pkg::DetectTargetPackageNameError::GetPackageNameFromFolder)?
+        crate::pkg::utils::get_package_name_from_folder(&std::path::PathBuf::from("."))
+            .map_err(crate::cmd::app::pkg::DetectTargetPackageNameError::GetPackageNameFromFolder)?
     };
 }
 
