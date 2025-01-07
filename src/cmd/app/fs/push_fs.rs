@@ -17,7 +17,7 @@ impl AppCommand for PushFsCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let bold = Style::new().bold();
 
-        let pull_target_str = match &self.packages {
+        let push_target_str = match &self.packages {
             Some(packages) if packages.len() == 1 => {
                 &format!("{bold}{}{bold:#} package", packages[0])
             }
@@ -28,7 +28,7 @@ impl AppCommand for PushFsCommand {
         };
 
         let progress = spinner!(
-            "Pushing {pull_target_str} from filesystem to {bold}{url}{bold:#}",
+            "Pushing {push_target_str} from filesystem to {bold}{url}{bold:#}",
             url = client.base_url()
         );
 

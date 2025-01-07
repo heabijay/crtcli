@@ -4,6 +4,7 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling::extractor::*;
 use anstyle::{AnsiColor, Color, Style};
+use clap::builder::{ValueParser, ValueParserFactory};
 use clap::Args;
 use std::error::Error;
 use std::io::Read;
@@ -13,13 +14,16 @@ use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct PullPkgCommand {
-    /// Package name to pull (default: package name in ./descriptor.json of destination folder)
-    #[arg(short, long = "package", value_hint = clap::ValueHint::Other)]
-    package_name: Option<String>,
-
-    /// Destination folder where package will be unpacked (default: current directory)
-    #[arg(short, long, value_hint = clap::ValueHint::DirPath)]
-    destination_folder: Option<PathBuf>,
+    /// Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs) (default: package name in ./descriptor.json of current folder)
+    ///
+    /// Examples:
+    /// `crtcli app pkg pull` (Pulls package from `./descriptor.json` to current dir)
+    /// `crtcli app pkg pull -p UsrPackage` (Pulls `UsrPackage` to current dir)
+    /// `crtcli app pkg pull -p UsrPackage:Src,UsrPackage2:Src2` (Pulls `UsrPackage` to `./Src`, `UsrPackage2` to `./Src2`)
+    /// `crtcli app pkg pull -p :Src` (Pulls package from `./Src/descriptor.json` to `./Src`)
+    #[arg(short, long = "package", value_name = "PACKAGE:DESTINATION", value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
+    #[clap(verbatim_doc_comment)]
+    packages_map: Vec<PackageDestinationArg>,
 
     #[command(flatten)]
     apply_features: Option<crate::cmd::pkg::PkgApplyFeatures>,
@@ -37,59 +41,145 @@ pub enum PullPkgCommandError {
     ExtractPackage(#[from] ExtractSingleZipPackageError),
 }
 
-impl AppCommand for PullPkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
-        let destination_folder = match &self.destination_folder {
-            Some(destination_folder) => destination_folder,
-            None => &PathBuf::from("."),
+#[derive(Debug, Clone)]
+struct PackageDestinationArg {
+    package_name: String,
+    destination_folder: PathBuf,
+}
+
+#[derive(Error, Debug)]
+enum HeaderArgParsingError {
+    #[error("value cannot be empty, use \"PackageName:DestinationFolder\" format")]
+    EmptyValue,
+
+    #[error("{0}")]
+    DetectPackageName(#[from] DetectTargetPackageNameError),
+}
+
+impl TryFrom<&str> for PackageDestinationArg {
+    type Error = HeaderArgParsingError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            return Err(HeaderArgParsingError::EmptyValue);
+        }
+
+        let (package_name, destination_folder) = value
+            .split_once(":")
+            .map(|(package_name, destination_folder)| {
+                (package_name.trim(), destination_folder.trim())
+            })
+            .unwrap_or((value, ""));
+
+        let package_name = if package_name.is_empty() {
+            None
+        } else {
+            Some(package_name.to_owned())
         };
 
-        let pkg_config = CrtCliPkgConfig::from_package_folder(destination_folder)?;
+        let destination_folder = destination_folder
+            .is_empty()
+            .then_some(PathBuf::from("."))
+            .unwrap_or_else(|| PathBuf::from(destination_folder));
 
-        let apply_features = combine_apply_features_from_args_and_config(
-            self.apply_features.as_ref(),
-            pkg_config.as_ref(),
-        )
-        .unwrap_or_default();
+        let package_name = detect_target_package_name!(package_name, &destination_folder);
 
-        let package_name = detect_target_package_name!(self.package_name, &destination_folder);
+        Ok(Self {
+            package_name: package_name.to_string(),
+            destination_folder,
+        })
+    }
+}
+
+impl ValueParserFactory for PackageDestinationArg {
+    type Parser = ValueParser;
+
+    fn value_parser() -> Self::Parser {
+        ValueParser::new(|s: &str| PackageDestinationArg::try_from(s))
+    }
+}
+
+impl AppCommand for PullPkgCommand {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+        let current_folder = PathBuf::from(".");
+
+        let packages_map: &[_] = if self.packages_map.is_empty() {
+            &[PackageDestinationArg {
+                package_name: detect_target_package_name!(),
+                destination_folder: current_folder.clone(),
+            }]
+        } else {
+            &self.packages_map
+        };
+
+        if packages_map
+            .iter()
+            .filter(|p| p.destination_folder == current_folder)
+            .count()
+            > 1
+        {
+            return Err("destination folders expected to be unique for each package".into());
+        }
+
+        let packages_str = packages_map
+            .iter()
+            .map(|p| p.package_name.as_str())
+            .collect::<Vec<&str>>()
+            .join(", ");
 
         let progress = spinner!(
-            "Pulling {bold}{package_name}{bold:#} package from {bold}{url}{bold:#}",
-            bold = Style::new().bold(),
-            url = client.base_url()
+            "Pulling {bold}{packages_str}{bold:#} package{packages_suffix} from {bold}{url}{bold:#}",
+            bold=Style::new().bold(),
+            url=client.base_url(),
+            packages_suffix=if packages_map.len() > 1 { "s" } else { "" }
         );
 
-        let mut package = client
+        let mut packages = client
             .package_installer_service()
-            .get_zip_packages([package_name])
+            .get_zip_packages(
+                packages_map
+                    .iter()
+                    .map(|p| p.package_name.as_str())
+                    .collect::<Vec<_>>(),
+            )
             .map_err(PullPkgCommandError::DownloadPackage)?;
 
         let mut package_data = vec![];
 
-        package.read_to_end(&mut package_data)?;
+        packages.read_to_end(&mut package_data)?;
 
         progress.finish_and_clear();
 
-        let extract_config = PackageToFolderExtractorConfig::default()
-            .with_files_already_exists_in_folder_strategy(
-                FilesAlreadyExistsInFolderStrategy::SmartMerge,
-            )
-            .print_merge_log(true)
-            .with_converter(apply_features.build_combined_converter());
+        for package_map in packages_map {
+            let pkg_config = CrtCliPkgConfig::from_package_folder(&package_map.destination_folder)?;
 
-        extract_single_zip_package_to_folder(
-            std::io::Cursor::new(package_data),
-            destination_folder,
-            Some(package_name),
-            &extract_config,
-        )
-        .map_err(PullPkgCommandError::ExtractPackage)?;
+            let apply_features = combine_apply_features_from_args_and_config(
+                self.apply_features.as_ref(),
+                pkg_config.as_ref(),
+            )
+            .unwrap_or_default();
+
+            let extract_config = PackageToFolderExtractorConfig::default()
+                .with_files_already_exists_in_folder_strategy(
+                    FilesAlreadyExistsInFolderStrategy::SmartMerge,
+                )
+                .print_merge_log(true)
+                .with_converter(apply_features.build_combined_converter());
+
+            extract_single_zip_package_to_folder(
+                std::io::Cursor::new(&package_data),
+                &package_map.destination_folder,
+                Some(&package_map.package_name),
+                &extract_config,
+            )
+            .map_err(PullPkgCommandError::ExtractPackage)?;
+        }
 
         eprintln!(
-            "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully pulled from {green_bold}{url}{green_bold:#}{green}!{green:#}",
+            "{green}✔ Package{packages_suffix} {green_bold}{packages_str}{green_bold:#}{green} successfully pulled from {green_bold}{url}{green_bold:#}{green}!{green:#}",
             green=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
             green_bold=Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+            packages_suffix=if packages_map.len() > 1 { "s" } else { "" },
             url=client.base_url(),
         );
 
