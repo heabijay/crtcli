@@ -1,7 +1,9 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use anstyle::Style;
 use clap::Args;
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct PkgsCommand {
@@ -11,11 +13,8 @@ pub struct PkgsCommand {
 }
 
 impl AppCommand for PkgsCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let packages = app
-            .build_client()?
-            .workspace_explorer_service()
-            .get_packages()?;
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+        let packages = client.workspace_explorer_service().get_packages()?;
 
         match self.json {
             true => println!("{}", serde_json::json!(packages)),

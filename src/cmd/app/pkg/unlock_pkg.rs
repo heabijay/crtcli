@@ -1,6 +1,8 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use clap::Args;
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct UnlockPkgCommand {
@@ -10,13 +12,10 @@ pub struct UnlockPkgCommand {
 }
 
 impl AppCommand for UnlockPkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let package_name = detect_target_package_name!(&self.package_name);
 
-        let result = app
-            .build_client()?
-            .sql_scripts()
-            .unlock_package(package_name)?;
+        let result = client.sql_scripts().unlock_package(package_name)?;
 
         eprintln!("Rows affected: {}", result);
 

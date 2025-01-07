@@ -1,5 +1,5 @@
-use crate::app::{CrtClientGenericError, CrtRequestBuilderReauthorize};
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::{CrtClient, CrtClientGenericError, CrtRequestBuilderReauthorize};
+use crate::cmd::app::AppCommand;
 use anstream::{stderr, stdout};
 use anstyle::Style;
 use clap::builder::{ValueParser, ValueParserFactory};
@@ -11,6 +11,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{stdin, ErrorKind, IsTerminal, Read, Write};
 use std::path::PathBuf;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Args, Debug)]
@@ -87,10 +88,10 @@ impl ValueParserFactory for HeaderArg {
 }
 
 impl AppCommand for RequestCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let url = self
             .url
-            .strip_prefix(&app.url)
+            .strip_prefix(client.base_url())
             .unwrap_or(&self.url)
             .trim_start_matches('/');
 
@@ -101,7 +102,6 @@ impl AppCommand for RequestCommand {
             (None, true) => Some(read_data_from_stdin()?),
         };
 
-        let client = app.build_client()?;
         let mut request = client.request(self.method.clone(), url);
 
         for header in &self.header {

@@ -1,6 +1,8 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use clap::Args;
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct GetUidPkgCommand {
@@ -14,9 +16,8 @@ pub struct GetUidPkgCommand {
 }
 
 impl AppCommand for GetUidPkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let package = app
-            .build_client()?
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+        let package = client
             .package_service()
             .get_package_properties(&self.package_uid)?;
 

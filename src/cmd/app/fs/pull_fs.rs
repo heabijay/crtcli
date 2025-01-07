@@ -1,8 +1,10 @@
+use crate::app::CrtClient;
 use crate::cmd::app::fs::print_fs_sync_result;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommand;
 use anstyle::Style;
 use clap::Args;
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct PullFsCommand {
@@ -12,9 +14,8 @@ pub struct PullFsCommand {
 }
 
 impl AppCommand for PullFsCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let bold = Style::new().bold();
-        let client = app.build_client()?;
 
         let pull_target_str = match &self.packages {
             Some(packages) if packages.len() == 1 => {

@@ -1,10 +1,12 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use crate::cmd::utils::{generate_zip_package_filename, get_next_filename_if_exists};
 use anstyle::Style;
 use clap::Args;
 use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Args, Debug)]
@@ -29,7 +31,7 @@ enum DownloadPkgCommandError {
 }
 
 impl AppCommand for DownloadPkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let output_folder = match &self.output_folder {
             Some(path) => path,
             None => &std::env::current_dir().map_err(DownloadPkgCommandError::GetCurrentDir)?,
@@ -55,8 +57,6 @@ impl AppCommand for DownloadPkgCommand {
             true => get_next_filename_if_exists(output_path),
             false => output_path,
         };
-
-        let client = app.build_client()?;
 
         let progress = spinner!(
             "Downloading {bold}{target}{bold:#} {target_label} from {bold}{url}{bold:#}",

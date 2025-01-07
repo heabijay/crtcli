@@ -38,6 +38,7 @@ mod sql;
 use crate::app::{CrtClient, CrtClientGenericError, CrtCredentials};
 use clap::{Args, Subcommand};
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Debug, Args)]
 pub struct AppCommandArgs {
@@ -81,7 +82,7 @@ impl AppCommandArgs {
 }
 
 pub trait AppCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>>;
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>>;
 }
 
 #[derive(Debug, Subcommand)]
@@ -120,18 +121,20 @@ pub enum AppCommands {
     Sql(sql::SqlCommand),
 }
 
-impl AppCommand for AppCommands {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+impl AppCommands {
+    pub fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+        let client = Arc::new(app.build_client()?);
+
         match self {
-            AppCommands::Compile(command) => command.run(app),
-            AppCommands::FlushRedis(command) => command.run(app),
-            AppCommands::Fs { command } => command.run(app),
-            AppCommands::InstallLog(command) => command.run(app),
-            AppCommands::Pkg { command } => command.run(app),
-            AppCommands::Pkgs(command) => command.run(app),
-            AppCommands::Restart(command) => command.run(app),
-            AppCommands::Request(command) => command.run(app),
-            AppCommands::Sql(command) => command.run(app),
+            AppCommands::Compile(command) => command.run(client),
+            AppCommands::FlushRedis(command) => command.run(client),
+            AppCommands::Fs { command } => command.run(client),
+            AppCommands::InstallLog(command) => command.run(client),
+            AppCommands::Pkg { command } => command.run(client),
+            AppCommands::Pkgs(command) => command.run(client),
+            AppCommands::Restart(command) => command.run(client),
+            AppCommands::Request(command) => command.run(client),
+            AppCommands::Sql(command) => command.run(client),
         }
     }
 }

@@ -1,7 +1,9 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use clap::Subcommand;
 use std::error::Error;
 use std::path::Path;
+use std::sync::Arc;
 use thiserror::Error;
 use walkdir::WalkDir;
 
@@ -19,10 +21,10 @@ pub enum PkgFsCommands {
 }
 
 impl AppCommand for PkgFsCommands {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         match self {
-            PkgFsCommands::Pull(command) => command.run(app),
-            PkgFsCommands::Push(command) => command.run(app),
+            PkgFsCommands::Pull(command) => command.run(client),
+            PkgFsCommands::Push(command) => command.run(client),
         }
     }
 }

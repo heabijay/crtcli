@@ -1,11 +1,13 @@
 use crate::app::sql::SqlRunner;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use anstyle::Style;
 use clap::{Args, ValueEnum};
 use serde::Serialize;
 use std::error::Error;
 use std::io::{stdin, IsTerminal, Read};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct SqlCommand {
@@ -33,15 +35,13 @@ enum SqlRunnerSelect {
 }
 
 impl AppCommand for SqlCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let sql = match (self.sql.as_ref(), self.file.as_ref()) {
             (Some(_), Some(_)) => return Err("sql command and --file argument cannot be specified at the same time, consider to remove one of them".into()),
             (Some(sql), None) => sql,
             (None, Some(file)) => &std::fs::read_to_string(file)?,
             (None, None) => &read_data_from_stdin()?,
         };
-
-        let client = app.build_client()?;
 
         let process = spinner!(
             "Executing SQL query at {bold}{url}{bold:#}",

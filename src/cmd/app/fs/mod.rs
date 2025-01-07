@@ -2,13 +2,16 @@ mod check_fs;
 pub mod pull_fs;
 pub mod push_fs;
 
-use crate::app::{FileSystemSynchronizationObjectState, FileSystemSynchronizationResultResponse};
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::{
+    CrtClient, FileSystemSynchronizationObjectState, FileSystemSynchronizationResultResponse,
+};
+use crate::cmd::app::AppCommand;
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Subcommand;
 use std::error::Error;
 use std::io::Write;
+use std::sync::Arc;
 
 #[derive(Debug, Subcommand)]
 pub enum FsCommands {
@@ -23,11 +26,11 @@ pub enum FsCommands {
 }
 
 impl AppCommand for FsCommands {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         match self {
-            FsCommands::Check(command) => command.run(app),
-            FsCommands::Pull(command) => command.run(app),
-            FsCommands::Push(command) => command.run(app),
+            FsCommands::Check(command) => command.run(client),
+            FsCommands::Pull(command) => command.run(client),
+            FsCommands::Push(command) => command.run(client),
         }
     }
 }

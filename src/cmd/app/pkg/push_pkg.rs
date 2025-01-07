@@ -1,6 +1,7 @@
+use crate::app::CrtClient;
 use crate::cmd::app::pkg::install_pkg::*;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommand;
 use crate::pkg::bundling::packer::*;
 use clap::Args;
 use flate2::Compression;
@@ -41,7 +42,7 @@ pub enum PushPkgCommandError {
 }
 
 impl AppCommand for PushPkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let source_folder = match &self.source_folder {
             Some(f) => f,
             None => &vec![std::env::current_dir().map_err(PushPkgCommandError::GetCurrentDir)?],
@@ -51,8 +52,6 @@ impl AppCommand for PushPkgCommand {
             1 => pack_folder_as_gzip(source_folder.iter().next().unwrap())?,
             _ => pack_folders_as_zip(source_folder)?,
         };
-
-        let client = Arc::new(app.build_client()?);
 
         install_package_from_stream_command(
             client,

@@ -1,11 +1,13 @@
 use crate::app::workspace_explorer::{BuildPackageError, BuildResponse};
+use crate::app::CrtClient;
 use crate::cmd::app;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommand;
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
 use std::io::Write;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Args, Debug)]
@@ -26,9 +28,7 @@ pub enum CompileCommandError {
 }
 
 impl AppCommand for CompileCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let client = app.build_client()?;
-
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let progress = spinner_precise!(
             "{operation_str} Creatio application at {bold}{url}{bold:#}",
             bold = Style::new().bold(),
@@ -59,7 +59,7 @@ impl AppCommand for CompileCommand {
 
         if self.restart {
             app::restart::RestartCommand
-                .run(app)
+                .run(client)
                 .map_err(CompileCommandError::AppRestart)?;
         }
 

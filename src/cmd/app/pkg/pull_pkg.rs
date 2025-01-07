@@ -1,6 +1,6 @@
-use crate::app::CrtClientGenericError;
+use crate::app::{CrtClient, CrtClientGenericError};
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommand;
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling::extractor::*;
 use anstyle::{AnsiColor, Color, Style};
@@ -8,6 +8,7 @@ use clap::Args;
 use std::error::Error;
 use std::io::Read;
 use std::path::PathBuf;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Args, Debug)]
@@ -40,7 +41,7 @@ pub enum PullPkgCommandError {
 }
 
 impl AppCommand for PullPkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let destination_folder = match &self.destination_folder {
             Some(f) => f,
             None => &std::env::current_dir().map_err(PullPkgCommandError::GetCurrentDir)?,
@@ -56,14 +57,9 @@ impl AppCommand for PullPkgCommand {
 
         let package_name = detect_target_package_name!(self.package_name, destination_folder);
 
-        let client = app
-            .build_client()
-            .map_err(PullPkgCommandError::DownloadPackage)?;
-
-        let bold = Style::new().bold();
-
         let progress = spinner!(
             "Pulling {bold}{package_name}{bold:#} package from {bold}{url}{bold:#}",
+            bold = Style::new().bold(),
             url = client.base_url()
         );
 

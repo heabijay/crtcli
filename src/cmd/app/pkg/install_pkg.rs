@@ -1,6 +1,6 @@
 use crate::app::{CrtClient, CrtClientGenericError, InstallLogWatcher, InstallLogWatcherEvent};
 use crate::cmd::app::restart::print_app_restart_requested;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommand;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
@@ -65,9 +65,7 @@ pub enum InstallPkgCommandError {
 }
 
 impl AppCommand for InstallPkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let client = Arc::new(app.build_client()?);
-
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         install_package_from_stream_command(
             client,
             File::open(&self.filepath)?,

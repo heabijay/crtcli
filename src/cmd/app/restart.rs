@@ -1,16 +1,15 @@
 use crate::app::CrtClient;
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommand;
 use anstyle::Style;
 use clap::Args;
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct RestartCommand;
 
 impl AppCommand for RestartCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let client = app.build_client()?;
-
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         client.app_installer_service().restart_app()?;
 
         print_app_restart_requested(&client);

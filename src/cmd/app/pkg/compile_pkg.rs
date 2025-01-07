@@ -1,8 +1,10 @@
+use crate::app::CrtClient;
 use crate::cmd::app;
-use crate::cmd::app::{print_build_response, AppCommand, AppCommandArgs};
+use crate::cmd::app::{print_build_response, AppCommand};
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Args, Debug)]
@@ -23,9 +25,8 @@ pub enum CompilePkgCommandError {
 }
 
 impl AppCommand for CompilePkgCommand {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let package_name = detect_target_package_name!(&self.package_name);
-        let client = app.build_client()?;
 
         let progress = spinner_precise!(
             "Compiling {bold}{package_name}{bold:#} package at {bold}{url}{bold:#}",
@@ -50,7 +51,7 @@ impl AppCommand for CompilePkgCommand {
 
         if self.restart {
             app::restart::RestartCommand
-                .run(app)
+                .run(client)
                 .map_err(CompilePkgCommandError::AppRestart)?;
         }
 

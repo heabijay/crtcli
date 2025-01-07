@@ -1,7 +1,9 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::app::CrtClient;
+use crate::cmd::app::AppCommand;
 use crate::pkg::utils::GetPackageNameFromFolderError;
 use clap::Subcommand;
 use std::error::Error;
+use std::sync::Arc;
 use thiserror::Error;
 
 mod fs;
@@ -56,17 +58,17 @@ pub enum PkgCommands {
 }
 
 impl AppCommand for PkgCommands {
-    fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         match self {
-            PkgCommands::Compile(command) => command.run(app),
-            PkgCommands::Download(command) => command.run(app),
-            PkgCommands::Fs { command } => command.run(app),
-            PkgCommands::Install(command) => command.run(app),
-            PkgCommands::GetUid(command) => command.run(app),
-            PkgCommands::Lock(command) => command.run(app),
-            PkgCommands::Pull(command) => command.run(app),
-            PkgCommands::Push(command) => command.run(app),
-            PkgCommands::Unlock(command) => command.run(app),
+            PkgCommands::Compile(command) => command.run(client),
+            PkgCommands::Download(command) => command.run(client),
+            PkgCommands::Fs { command } => command.run(client),
+            PkgCommands::Install(command) => command.run(client),
+            PkgCommands::GetUid(command) => command.run(client),
+            PkgCommands::Lock(command) => command.run(client),
+            PkgCommands::Pull(command) => command.run(client),
+            PkgCommands::Push(command) => command.run(client),
+            PkgCommands::Unlock(command) => command.run(client),
         }
     }
 }

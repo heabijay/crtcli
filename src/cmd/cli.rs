@@ -1,4 +1,4 @@
-use crate::cmd::app::{AppCommand, AppCommandArgs};
+use crate::cmd::app::AppCommandArgs;
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use regex::Regex;
 use std::borrow::Cow;
