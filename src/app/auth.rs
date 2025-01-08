@@ -1,7 +1,7 @@
 use crate::app::client::CrtClient;
 use crate::app::session::CrtSession;
 use crate::app::utils::{collect_set_cookies, find_cookie_by_name, CookieParsingError};
-use crate::app::CrtClientGenericError;
+use crate::app::CrtClientError;
 use reqwest::Method;
 use serde::Deserialize;
 use serde_json::json;
@@ -56,7 +56,7 @@ impl<'c> AuthService<'c> {
 #[derive(Error, Debug)]
 pub enum LoginError {
     #[error("{0}")]
-    Request(#[from] CrtClientGenericError),
+    Request(#[from] CrtClientError),
 
     #[error("response read error: {0}")]
     ResponseRead(#[from] std::io::Error),
@@ -81,7 +81,7 @@ pub enum LoginError {
 
 impl From<reqwest::Error> for LoginError {
     fn from(value: reqwest::Error) -> Self {
-        LoginError::Request(CrtClientGenericError::from(value))
+        LoginError::Request(CrtClientError::from(value))
     }
 }
 

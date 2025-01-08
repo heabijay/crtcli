@@ -1,4 +1,4 @@
-use crate::app::{CrtClient, CrtClientGenericError, CrtDbType};
+use crate::app::{CrtClient, CrtClientError, CrtDbType};
 
 pub struct SqlScripts<'c>(&'c CrtClient);
 
@@ -7,10 +7,7 @@ impl<'c> SqlScripts<'c> {
         Self(client)
     }
 
-    pub fn mark_package_as_not_changed(
-        &self,
-        package_uid: &str,
-    ) -> Result<u64, CrtClientGenericError> {
+    pub fn mark_package_as_not_changed(&self, package_uid: &str) -> Result<u64, CrtClientError> {
         let query = match self.0.db_type()? {
             CrtDbType::MsSql => format!(
                 r#"UPDATE "SysSchema" 
@@ -53,10 +50,7 @@ impl<'c> SqlScripts<'c> {
         Ok(self.0.sql(&query)?.rows_affected)
     }
 
-    pub fn delete_package_localizations(
-        &self,
-        package_uid: &str,
-    ) -> Result<u64, CrtClientGenericError> {
+    pub fn delete_package_localizations(&self, package_uid: &str) -> Result<u64, CrtClientError> {
         let query = match self.0.db_type()? {
             _ => &format!(
                 r#"DELETE FROM "SysLocalizableValue" 
@@ -86,7 +80,7 @@ impl<'c> SqlScripts<'c> {
         Ok(self.0.sql(query)?.rows_affected)
     }
 
-    pub fn reset_schema_content(&self, package_uid: &str) -> Result<u64, CrtClientGenericError> {
+    pub fn reset_schema_content(&self, package_uid: &str) -> Result<u64, CrtClientError> {
         let query = match self.0.db_type()? {
             _ => &format!(
                 r#"DELETE FROM "SysSchemaContent" WHERE "SysSchemaId" IN (
@@ -114,7 +108,7 @@ impl<'c> SqlScripts<'c> {
         Ok(self.0.sql(query)?.rows_affected)
     }
 
-    pub fn lock_package(&self, package_name: &str) -> Result<u64, CrtClientGenericError> {
+    pub fn lock_package(&self, package_name: &str) -> Result<u64, CrtClientError> {
         let query = match self.0.db_type()? {
             CrtDbType::MsSql => &format!(
                 r#"UPDATE "SysPackage" 
@@ -133,7 +127,7 @@ impl<'c> SqlScripts<'c> {
         Ok(self.0.sql(query)?.rows_affected)
     }
 
-    pub fn unlock_package(&self, package_name: &str) -> Result<u64, CrtClientGenericError> {
+    pub fn unlock_package(&self, package_name: &str) -> Result<u64, CrtClientError> {
         let query = match self.0.db_type()? {
             CrtDbType::MsSql => &format!(
                 r#"UPDATE "SysPackage" 

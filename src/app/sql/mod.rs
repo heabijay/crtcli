@@ -4,10 +4,10 @@ pub use runner::*;
 mod scripts;
 pub use scripts::*;
 
-use crate::app::{CrtClient, CrtClientGenericError, CrtDbType};
+use crate::app::{CrtClient, CrtClientError, CrtDbType};
 use std::ops::Deref;
 
-pub fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientGenericError> {
+pub fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientError> {
     return match client.sql("SELECT version();") {
         Ok(r) => {
             let output = r.table.ok_or_else(get_unexpected_output_error)?;
@@ -30,7 +30,7 @@ pub fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientGenericE
                 false => Ok(CrtDbType::Oracle),
             };
         }
-        Err(CrtClientGenericError::SqlRunner(sql_err))
+        Err(CrtClientError::SqlRunner(sql_err))
             if { matches!(sql_err.deref(), SqlRunnerError::NotFound) } =>
         {
             Ok(CrtDbType::MsSql)
@@ -38,8 +38,8 @@ pub fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientGenericE
         Err(err) => Err(err),
     };
 
-    fn get_unexpected_output_error() -> CrtClientGenericError {
-        CrtClientGenericError::SqlRunner(Box::new(SqlRunnerError::DbTypeDetection {
+    fn get_unexpected_output_error() -> CrtClientError {
+        CrtClientError::SqlRunner(Box::new(SqlRunnerError::DbTypeDetection {
             err: "unexpected empty sql output".into(),
         }))
     }

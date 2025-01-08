@@ -1,4 +1,4 @@
-use crate::app::{CrtClient, CrtClientGenericError};
+use crate::app::{CrtClient, CrtClientError};
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::AppCommand;
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
@@ -35,7 +35,7 @@ pub enum PullPkgCommandError {
     DetectPackageName(#[from] DetectTargetPackageNameError),
 
     #[error("cannot download package from remote: {0}")]
-    DownloadPackage(#[from] CrtClientGenericError),
+    DownloadPackage(#[from] CrtClientError),
 
     #[error("cannot unpack package: {0}")]
     ExtractPackage(#[from] ExtractSingleZipPackageError),

@@ -1,5 +1,5 @@
-use crate::app::client::{CrtClient, CrtClientGenericError};
-use crate::app::{CrtRequestBuilderReauthorize, StandardServiceError, StandardServiceResponse};
+use crate::app::client::{CrtClient, CrtClientError};
+use crate::app::{CrtRequestBuilderExt, StandardServiceError, StandardServiceResponse};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -11,7 +11,7 @@ impl<'c> AppInstallerService<'c> {
         Self(client)
     }
 
-    pub fn restart_app(&self) -> Result<(), CrtClientGenericError> {
+    pub fn restart_app(&self) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(
@@ -30,7 +30,7 @@ impl<'c> AppInstallerService<'c> {
         Ok(())
     }
 
-    pub fn clear_redis_db(&self) -> Result<(), CrtClientGenericError> {
+    pub fn clear_redis_db(&self) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(
@@ -52,7 +52,7 @@ impl<'c> AppInstallerService<'c> {
         code: &str,
         name: &str,
         package_filename: &str,
-    ) -> Result<(), CrtClientGenericError> {
+    ) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(
@@ -76,7 +76,7 @@ impl<'c> AppInstallerService<'c> {
     pub fn load_packages_to_db<StrArr, Str>(
         &self,
         package_names: Option<StrArr>,
-    ) -> Result<FileSystemSynchronizationResultResponse, CrtClientGenericError>
+    ) -> Result<FileSystemSynchronizationResultResponse, CrtClientError>
     where
         Str: AsRef<str>,
         StrArr: AsRef<[Str]> + Serialize,
@@ -99,7 +99,7 @@ impl<'c> AppInstallerService<'c> {
     pub fn load_packages_to_fs<StrArr, Str>(
         &self,
         package_names: Option<StrArr>,
-    ) -> Result<FileSystemSynchronizationResultResponse, CrtClientGenericError>
+    ) -> Result<FileSystemSynchronizationResultResponse, CrtClientError>
     where
         Str: AsRef<str>,
         StrArr: AsRef<[Str]> + Serialize,

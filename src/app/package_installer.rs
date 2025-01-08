@@ -1,5 +1,5 @@
-use crate::app::client::{CrtClient, CrtClientGenericError};
-use crate::app::{CrtRequestBuilderReauthorize, StandardServiceResponse};
+use crate::app::client::{CrtClient, CrtClientError};
+use crate::app::{CrtRequestBuilderExt, StandardServiceResponse};
 use reqwest::header::HeaderMap;
 use reqwest::Method;
 use serde::Serialize;
@@ -13,7 +13,7 @@ impl<'c> PackageInstallerService<'c> {
         Self(client)
     }
 
-    pub fn get_log_file(&self) -> Result<String, CrtClientGenericError> {
+    pub fn get_log_file(&self) -> Result<String, CrtClientError> {
         Ok(self
             .0
             .request(
@@ -28,7 +28,7 @@ impl<'c> PackageInstallerService<'c> {
     pub fn get_zip_packages<StrArr, Str>(
         &self,
         package_names: StrArr,
-    ) -> Result<impl Read, CrtClientGenericError>
+    ) -> Result<impl Read, CrtClientError>
     where
         StrArr: AsRef<[Str]> + Serialize,
         Str: AsRef<str>,
@@ -50,7 +50,7 @@ impl<'c> PackageInstallerService<'c> {
         &self,
         mut package_reader: impl Read + Send + Seek + 'static,
         package_filename: String,
-    ) -> Result<(), CrtClientGenericError> {
+    ) -> Result<(), CrtClientError> {
         let mut file_header_map = HeaderMap::new();
 
         let content_type =
@@ -83,7 +83,7 @@ impl<'c> PackageInstallerService<'c> {
         Ok(())
     }
 
-    pub fn install_package(&self, package_filename: &str) -> Result<(), CrtClientGenericError> {
+    pub fn install_package(&self, package_filename: &str) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(
@@ -103,7 +103,7 @@ impl<'c> PackageInstallerService<'c> {
         &self,
         code: &str,
         package_filename: &str,
-    ) -> Result<(), CrtClientGenericError> {
+    ) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(

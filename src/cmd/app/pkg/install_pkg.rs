@@ -1,4 +1,4 @@
-use crate::app::{CrtClient, CrtClientGenericError, InstallLogWatcher, InstallLogWatcherEvent};
+use crate::app::{CrtClient, CrtClientError, InstallLogWatcher, InstallLogWatcherEvent};
 use crate::cmd::app::restart::print_app_restart_requested;
 use crate::cmd::app::AppCommand;
 use anstyle::{AnsiColor, Color, Style};
@@ -49,19 +49,19 @@ pub enum InstallPkgCommandError {
     ReadDescriptor(#[from] crate::pkg::utils::GetPackageDescriptorFromReaderError),
 
     #[error("failed to apply SQL options before package install: {0}")]
-    SqlBeforePackage(#[source] CrtClientGenericError),
+    SqlBeforePackage(#[source] CrtClientError),
 
     #[error("package descriptor.json was found, but the package uid value is null")]
     PackageUidValueNull,
 
     #[error("failed to upload package: {0}")]
-    Upload(#[source] CrtClientGenericError),
+    Upload(#[source] CrtClientError),
 
     #[error("failed to install package: {0}")]
-    Install(#[source] CrtClientGenericError),
+    Install(#[source] CrtClientError),
 
     #[error("failed to restart app: {0}")]
-    AppRestart(#[source] CrtClientGenericError),
+    AppRestart(#[source] CrtClientError),
 }
 
 impl AppCommand for InstallPkgCommand {
@@ -109,14 +109,21 @@ pub fn install_package_from_stream_command(
     let log_watcher = (!options.disable_install_log_pooling).then(|| {
         let progress_clone = Arc::clone(&progress);
 
-        InstallLogWatcher::new(Arc::clone(&client))
-            .fetch_last_log_on_stop(true)
-            .start(move |event| match event {
-                InstallLogWatcherEvent::Clear => {}
-                InstallLogWatcherEvent::Append(text) => {
-                    progress_clone.suspend(move || print!("{}", text))
-                }
-            })
+        // Sometimes, Creatio based on .NET Framework (IIS) does not allow retrieval of the installation log in real-time.
+        // Instead, it appears that Creatio blocks the log request until package installation is finished.
+        // The reason for this is unknown, but hopefully, this could help.
+        if client.is_net_framework() {
+            InstallLogWatcher::new_with_new_session(&client).unwrap()
+        } else {
+            InstallLogWatcher::new(Arc::clone(&client))
+        }
+        .fetch_last_log_on_stop(true)
+        .start(move |event| match event {
+            InstallLogWatcherEvent::Clear => {}
+            InstallLogWatcherEvent::Append(text) => {
+                progress_clone.suspend(move || print!("{}", text))
+            }
+        })
     });
 
     let install_result = client

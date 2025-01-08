@@ -23,7 +23,7 @@ mod package;
 mod install_log_watcher;
 pub use install_log_watcher::*;
 
-mod cookie_cache;
+mod session_cache;
 
 pub mod sql;
 mod utils;
