@@ -32,7 +32,7 @@ impl AppCommand for PullPkgFsCommand {
         prepare_pkg_fs_folder(package_folder)?;
 
         crate::cmd::app::fs::pull_fs::PullFsCommand {
-            packages: Some(vec![package_name.clone()]),
+            packages: vec![package_name.clone()],
         }
         .run(Arc::clone(&client))?;
 

@@ -30,9 +30,10 @@ impl AppCommand for DownloadPkgCommand {
             None => &PathBuf::from("."),
         };
 
-        let packages = match self.packages.len() {
-            0 => &vec![detect_target_package_name!()],
-            _ => &self.packages,
+        let packages = if self.packages.is_empty() {
+            &vec![detect_target_package_name!()]
+        } else {
+            &self.packages
         };
 
         let default_filename = match packages.len() {

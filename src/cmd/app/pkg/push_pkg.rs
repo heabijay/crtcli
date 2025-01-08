@@ -15,7 +15,7 @@ use thiserror::Error;
 pub struct PushPkgCommand {
     /// Folders containing packages to be packed and installed (default: current directory)
     #[arg(short = 's', long, value_name = "SOURCE_FOLDERS", value_hint = clap::ValueHint::DirPath)]
-    source_folder: Option<Vec<PathBuf>>,
+    source_folder: Vec<PathBuf>,
 
     #[command(flatten)]
     install_pkg_options: InstallPkgCommandOptions,
@@ -38,9 +38,10 @@ pub enum PushPkgCommandError {
 
 impl AppCommand for PushPkgCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
-        let source_folder: &[PathBuf] = match &self.source_folder {
-            Some(f) => f,
-            None => &[PathBuf::from(".")],
+        let source_folder: &[PathBuf] = if self.source_folder.is_empty() {
+            &[PathBuf::from(".")]
+        } else {
+            &self.source_folder
         };
 
         let (package_filename, package_content) = match source_folder.len() {
@@ -86,7 +87,7 @@ impl AppCommand for PushPkgCommand {
                     gzip_config: GZipPackageFromFolderPackerConfig {
                         compression: Some(Compression::fast()),
                     },
-                    zip_compression_method: Some(zip::CompressionMethod::Deflated),
+                    zip_compression_method: Some(zip::CompressionMethod::Stored),
                 },
             )
             .map_err(PushPkgCommandError::PackZipPackage)?;
