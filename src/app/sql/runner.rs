@@ -1,4 +1,4 @@
-use crate::app::{CrtClient, CrtClientGenericError, CrtRequestBuilderReauthorize};
+use crate::app::{CrtClient, CrtClientError, CrtRequestBuilderExt};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
@@ -20,7 +20,7 @@ pub enum SqlRunnerError {
     DbTypeDetection { err: String },
 
     #[error("sql request error: {0}")]
-    Request(#[from] CrtClientGenericError),
+    Request(#[from] CrtClientError),
 
     #[error("sql runner not found on target server")]
     NotFound,
@@ -51,18 +51,16 @@ impl SqlRunner for ClioGateSqlRunner {
         }
 
         if response.status() == StatusCode::BAD_REQUEST {
-            let response_text = response
-                .text()
-                .map_err(CrtClientGenericError::ReqwestError)?;
+            let response_text = response.text().map_err(CrtClientError::ReqwestError)?;
 
             return Err(SqlRunnerError::Execution { err: response_text });
         }
 
         let response_body: serde_json::Value = response
             .error_for_status()
-            .map_err(CrtClientGenericError::ReqwestError)?
+            .map_err(CrtClientError::ReqwestError)?
             .json()
-            .map_err(CrtClientGenericError::ReqwestError)?;
+            .map_err(CrtClientError::ReqwestError)?;
 
         let response_body = response_body.as_str().ok_or_else(|| {
             SqlRunnerError::Other("failed to parse response body as json string".into())
@@ -107,9 +105,9 @@ impl SqlRunner for SqlConsoleSqlRunner {
 
         let response_body: SqlConsoleResponse = response
             .error_for_status()
-            .map_err(CrtClientGenericError::ReqwestError)?
+            .map_err(CrtClientError::ReqwestError)?
             .json()
-            .map_err(CrtClientGenericError::ReqwestError)?;
+            .map_err(CrtClientError::ReqwestError)?;
 
         let response_body = response_body.execute_sql_script_result_root;
 

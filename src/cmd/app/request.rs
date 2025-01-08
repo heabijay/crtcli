@@ -1,4 +1,4 @@
-use crate::app::{CrtClient, CrtClientGenericError, CrtRequestBuilderReauthorize};
+use crate::app::{CrtClient, CrtClientError, CrtRequestBuilderExt};
 use crate::cmd::app::AppCommand;
 use anstream::{stderr, stdout};
 use anstyle::Style;
@@ -121,10 +121,10 @@ impl AppCommand for RequestCommand {
         }
 
         let mut response = match self.anonymous {
-            true => request.send().map_err(CrtClientGenericError::from)?,
+            true => request.send().map_err(CrtClientError::from)?,
             false => request
                 .send_with_session(&client)
-                .map_err(CrtClientGenericError::from)?,
+                .map_err(CrtClientError::from)?,
         };
 
         print_response_headers(&response);

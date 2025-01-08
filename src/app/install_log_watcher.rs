@@ -1,4 +1,4 @@
-use crate::app::{CrtClient, CrtClientGenericError};
+use crate::app::{CrtClient, CrtClientBuilder, CrtClientError};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{spawn, JoinHandle};
@@ -31,6 +31,21 @@ impl InstallLogWatcher {
             wait_for_clear_on_start: false,
             fetch_last_log_on_stop: false,
         }
+    }
+
+    pub fn new_with_new_session(crt_client: &CrtClient) -> Result<Self, CrtClientError> {
+        Ok(Self {
+            crt_client: Arc::new(
+                CrtClientBuilder::new(crt_client.credentials().clone())
+                    .with_new_memory_cache()
+                    .use_net_framework_mode(crt_client.is_net_framework())
+                    .danger_accept_invalid_certs(crt_client.is_insecure())
+                    .build()?,
+            ),
+            pooling_delay: Duration::from_millis(1000),
+            wait_for_clear_on_start: false,
+            fetch_last_log_on_stop: false,
+        })
     }
 
     #[allow(dead_code)]
@@ -76,7 +91,7 @@ impl InstallLogWatcher {
         handler: H,
         stop_signal: Receiver<()>,
         worker_finished: Arc<(Mutex<bool>, Condvar)>,
-    ) -> Result<(), CrtClientGenericError>
+    ) -> Result<(), CrtClientError>
     where
         H: Fn(InstallLogWatcherEvent<'_>) + Send + 'static,
     {

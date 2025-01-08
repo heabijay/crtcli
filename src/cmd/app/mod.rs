@@ -28,7 +28,7 @@ mod request;
 mod restart;
 mod sql;
 
-use crate::app::{CrtClient, CrtClientGenericError, CrtCredentials};
+use crate::app::{CrtClient, CrtClientError, CrtCredentials};
 use clap::{Args, Subcommand};
 use std::error::Error;
 use std::sync::Arc;
@@ -60,7 +60,7 @@ pub struct AppCommandArgs {
 }
 
 impl AppCommandArgs {
-    pub fn build_client(&self) -> Result<CrtClient, CrtClientGenericError> {
+    pub fn build_client(&self) -> Result<CrtClient, CrtClientError> {
         let client = CrtClient::builder(CrtCredentials::new(
             &self.url,
             &self.username,

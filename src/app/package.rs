@@ -1,6 +1,4 @@
-use crate::app::{
-    CrtClient, CrtClientGenericError, CrtRequestBuilderReauthorize, StandardServiceResponse,
-};
+use crate::app::{CrtClient, CrtClientError, CrtRequestBuilderExt, StandardServiceResponse};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -15,7 +13,7 @@ impl<'c> PackageService<'c> {
     pub fn get_package_properties(
         &self,
         package_uid: &str,
-    ) -> Result<GetPackagePropertiesModel, CrtClientGenericError> {
+    ) -> Result<GetPackagePropertiesModel, CrtClientError> {
         let response = self
             .0
             .request(
@@ -25,10 +23,10 @@ impl<'c> PackageService<'c> {
             .json(&json!(package_uid))
             .send_with_session(self.0)?
             .error_for_status()
-            .map_err(CrtClientGenericError::from)?;
+            .map_err(CrtClientError::from)?;
 
         let response: GetPackagePropertiesResponse =
-            response.json().map_err(CrtClientGenericError::from)?;
+            response.json().map_err(CrtClientError::from)?;
 
         response.into_result()
     }
@@ -43,13 +41,13 @@ struct GetPackagePropertiesResponse {
 }
 
 impl GetPackagePropertiesResponse {
-    pub fn into_result(self) -> Result<GetPackagePropertiesModel, CrtClientGenericError> {
+    pub fn into_result(self) -> Result<GetPackagePropertiesModel, CrtClientError> {
         if self.base.success {
             Ok(self.package.expect(
                 "get_package_properties response success, but package info is not received",
             ))
         } else {
-            Err(CrtClientGenericError::from(self.base.error_info.expect(
+            Err(CrtClientError::from(self.base.error_info.expect(
                 "get_package_properties response not success, but error is not received",
             )))
         }

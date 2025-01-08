@@ -1,5 +1,5 @@
-use crate::app::client::{CrtClient, CrtClientGenericError};
-use crate::app::{CrtRequestBuilderReauthorize, StandardServiceResponse};
+use crate::app::client::{CrtClient, CrtClientError};
+use crate::app::{CrtRequestBuilderExt, StandardServiceResponse};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -12,7 +12,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Self(client)
     }
 
-    pub fn build(&self) -> Result<BuildResponse, CrtClientGenericError> {
+    pub fn build(&self) -> Result<BuildResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -26,7 +26,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Ok(response.json()?)
     }
 
-    pub fn rebuild(&self) -> Result<BuildResponse, CrtClientGenericError> {
+    pub fn rebuild(&self) -> Result<BuildResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -40,10 +40,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Ok(response.json()?)
     }
 
-    pub fn build_package(
-        &self,
-        package_name: &str,
-    ) -> Result<BuildResponse, CrtClientGenericError> {
+    pub fn build_package(&self, package_name: &str) -> Result<BuildResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -59,7 +56,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Ok(response.json()?)
     }
 
-    pub fn get_packages(&self) -> Result<Vec<GetPackagesResponseItem>, CrtClientGenericError> {
+    pub fn get_packages(&self) -> Result<Vec<GetPackagesResponseItem>, CrtClientError> {
         let response = self
             .0
             .request(
@@ -75,7 +72,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Ok(response.packages)
     }
 
-    pub fn get_is_file_system_development_mode(&self) -> Result<bool, CrtClientGenericError> {
+    pub fn get_is_file_system_development_mode(&self) -> Result<bool, CrtClientError> {
         let response = self
             .0
             .request(

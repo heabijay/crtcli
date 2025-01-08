@@ -50,7 +50,7 @@ impl AppCommand for PushPkgCommand {
 
         install_package_from_stream_command(
             client,
-            std::io::Cursor::new(package_content),
+            Cursor::new(package_content),
             &package_filename,
             &self.install_pkg_options,
         )
