@@ -10,21 +10,17 @@ use std::sync::Arc;
 pub struct PullFsCommand {
     /// A space-separated or comma-separated list of package names to pull. Example: "CrtBase,CrtCore"
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
-    pub packages: Option<Vec<String>>,
+    pub packages: Vec<String>,
 }
 
 impl AppCommand for PullFsCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
         let bold = Style::new().bold();
 
-        let pull_target_str = match &self.packages {
-            Some(packages) if packages.len() == 1 => {
-                &format!("{bold}{}{bold:#} package", packages[0])
-            }
-            Some(packages) if packages.len() > 1 => {
-                &format!("{bold}{}{bold:#} packages", packages.join(", "))
-            }
-            _ => "all packages",
+        let pull_target_str = match &self.packages.len() {
+            0 => "all packages",
+            1 => &format!("{bold}{}{bold:#} package", &self.packages[0]),
+            _ => &format!("{bold}{}{bold:#} packages", &self.packages.join(", ")),
         };
 
         let progress = spinner!(
@@ -32,9 +28,13 @@ impl AppCommand for PullFsCommand {
             url = client.base_url()
         );
 
-        let result = client
-            .app_installer_service()
-            .load_packages_to_fs(self.packages.as_ref())?;
+        let result =
+            client
+                .app_installer_service()
+                .load_packages_to_fs(match &self.packages.len() {
+                    0 => None,
+                    _ => Some(&self.packages),
+                })?;
 
         progress.finish_and_clear();
 

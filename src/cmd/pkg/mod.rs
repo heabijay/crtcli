@@ -15,7 +15,7 @@ pub enum PkgCommands {
     /// Applies transformations to the contents of a package folder
     Apply(apply::ApplyCommand),
 
-    /// Creates a package archive (.zip or .gz) from a package folder
+    /// Creates a package archive (.zip or .gz) from package folders
     Pack(pack::PackCommand),
 
     /// Extract a single package from a package archive (.zip or .gz)

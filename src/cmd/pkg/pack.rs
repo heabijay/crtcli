@@ -4,12 +4,13 @@ use clap::{Args, ValueEnum};
 use std::error::Error;
 use std::path::PathBuf;
 use thiserror::Error;
+use zip::CompressionMethod;
 
 #[derive(Debug, Args)]
 pub struct PackCommand {
-    /// Source folder containing the package to be packaged
-    #[arg(value_hint = clap::ValueHint::DirPath)]
-    package_folder: PathBuf,
+    /// Source folders containing packages to be packaged
+    #[arg(required = true, value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
+    package_folders: Vec<PathBuf>,
 
     /// Destination folder where the output package archive will be saved (defaults to the current directory)
     #[arg(short = 'f', long, value_hint = clap::ValueHint::DirPath)]
@@ -43,6 +44,11 @@ pub enum PackCompression {
 enum PackCommandError {
     #[error("failed to write output package bundle: {0}")]
     WriteBundleFile(#[from] std::io::Error),
+
+    #[error(
+        "cannot pack multiple packages into a gzip file, please use the zip format or pack only one package."
+    )]
+    MultiplePackagesIntoGzip,
 }
 
 impl CliCommand for PackCommand {
@@ -55,12 +61,23 @@ impl CliCommand for PackCommand {
         let output_filename = match &self.output_filename {
             Some(filename) => filename,
             None => {
-                let pkg_name =
-                    crate::pkg::utils::get_package_name_from_folder(&self.package_folder)?;
+                if self.package_folders.len() == 1 {
+                    let pkg_name =
+                        crate::pkg::utils::get_package_name_from_folder(&self.package_folders[0])?;
 
-                match self.format {
-                    PackFormat::Gzip => &format!("{pkg_name}.gz"),
-                    PackFormat::Zip => &crate::cmd::utils::generate_zip_package_filename(&pkg_name),
+                    match self.format {
+                        PackFormat::Gzip => &format!("{pkg_name}.gz"),
+                        PackFormat::Zip => {
+                            &crate::cmd::utils::generate_zip_package_filename(&pkg_name)
+                        }
+                    }
+                } else {
+                    match self.format {
+                        PackFormat::Zip => {
+                            &crate::cmd::utils::generate_zip_package_filename("Packages")
+                        }
+                        PackFormat::Gzip => "Packages.gz",
+                    }
                 }
             }
         };
@@ -81,7 +98,11 @@ impl CliCommand for PackCommand {
 
         let zip_config = ZipPackageFromFolderPackerConfig {
             gzip_config,
-            zip_compression_method: None,
+            zip_compression_method: match self.compression {
+                PackCompression::Fast => Some(CompressionMethod::Stored),
+                PackCompression::Normal => None,
+                PackCompression::Best => Some(CompressionMethod::Deflated),
+            },
         };
 
         let gzip_config = &zip_config.gzip_config;
@@ -90,10 +111,14 @@ impl CliCommand for PackCommand {
 
         match self.format {
             PackFormat::Gzip => {
-                pack_gzip_package_from_folder(&self.package_folder, file, gzip_config)?
+                if self.package_folders.len() > 1 {
+                    Err(PackCommandError::MultiplePackagesIntoGzip)?
+                }
+
+                pack_gzip_package_from_folder(&self.package_folders[0], file, gzip_config)?
             }
             PackFormat::Zip => {
-                pack_single_zip_package_from_folder(&self.package_folder, file, &zip_config)?
+                pack_zip_package_from_folders(&self.package_folders, file, &zip_config)?
             }
         }
 

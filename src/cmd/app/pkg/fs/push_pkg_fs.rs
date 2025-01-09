@@ -36,7 +36,7 @@ impl AppCommand for PushPkgFsCommand {
         prepare_pkg_fs_folder(destination_folder)?;
 
         crate::cmd::app::fs::push_fs::PushFsCommand {
-            packages: Some(vec![package_name.clone()]),
+            packages: vec![package_name.clone()],
         }
         .run(Arc::clone(&client))?;
 

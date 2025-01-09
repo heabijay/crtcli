@@ -2,7 +2,7 @@ use crate::pkg::bundling::{PkgGZipEncoder, PkgGZipEncoderError};
 use crate::pkg::utils::{walk_over_package_files_content, WalkOverPackageFilesContentError};
 use flate2::Compression;
 use std::io::{Seek, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
@@ -21,8 +21,13 @@ pub enum PackZipPackageFromFolderError {
     #[error("unable to access folder: {0}")]
     FolderAccess(#[from] walkdir::Error),
 
-    #[error("failed to detect package name from package folder: {0}")]
-    DetectPackageName(#[from] crate::pkg::utils::GetPackageNameFromFolderError),
+    #[error("failed to detect package name from package folder ({folder_path}): {source}")]
+    DetectPackageName {
+        #[source]
+        source: crate::pkg::utils::GetPackageNameFromFolderError,
+
+        folder_path: PathBuf,
+    },
 
     #[error("zip error occurred: {0}")]
     Zip(#[from] zip::result::ZipError),
@@ -71,7 +76,11 @@ pub fn pack_zip_package_from_folders<P: AsRef<Path>>(
     for pkg_folder in pkg_folders.as_ref() {
         let filename = format!(
             "{pkg_name}.gz",
-            pkg_name = crate::pkg::utils::get_package_name_from_folder(pkg_folder.as_ref())?
+            pkg_name = crate::pkg::utils::get_package_name_from_folder(pkg_folder.as_ref())
+                .map_err(|err| PackZipPackageFromFolderError::DetectPackageName {
+                    folder_path: pkg_folder.as_ref().to_path_buf(),
+                    source: err
+                })?
         );
 
         zip.start_file(filename, zip_file_options)?;
@@ -82,6 +91,7 @@ pub fn pack_zip_package_from_folders<P: AsRef<Path>>(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn pack_single_zip_package_from_folder(
     pkg_folder: impl AsRef<Path>,
     zip_writer: impl Write + Seek,

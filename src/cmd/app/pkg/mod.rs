@@ -29,7 +29,7 @@ pub enum PkgCommands {
     /// Compiles a specific package within the Creatio instance
     Compile(compile_pkg::CompilePkgCommand),
 
-    /// Downloads one or more packages from the Creatio instance as a zip archive
+    /// Downloads packages from the Creatio instance as a zip archive
     Download(download_pkg::DownloadPkgCommand),
 
     /// Commands/aliases to simplify manipulate with package insides File System Development mode (FSD) location
@@ -47,10 +47,10 @@ pub enum PkgCommands {
     /// Execute SQL to make package locked if it is unlocked in Creatio
     Lock(lock_pkg::LockPkgCommand),
 
-    /// Downloads a package from Creatio, unpacks it to a destination folder, and applies configured transforms
+    /// Downloads packages from Creatio, unpacks it to destination folders, and applies configured transforms
     Pull(pull_pkg::PullPkgCommand),
 
-    /// Packs a package from a source folder and installs it into the Creatio instance
+    /// Packs packages from source folders and installs it into the Creatio instance
     Push(push_pkg::PushPkgCommand),
 
     /// Execute SQL to make package unlocked if it is locked in Creatio
