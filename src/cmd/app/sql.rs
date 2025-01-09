@@ -79,7 +79,7 @@ impl AppCommand for SqlCommand {
             let stdin_terminal = stdin().is_terminal();
 
             if stdin_terminal {
-                eprintln!("Enter SQL query below: (Press Ctrl+D to finish)");
+                eprintln!("Enter SQL query below: (Press Ctrl+D twice to finish)");
                 eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
                 eprintln!("{italic}");
             }
@@ -93,6 +93,7 @@ impl AppCommand for SqlCommand {
             })?;
 
             if stdin_terminal {
+                eprintln!();
                 eprintln!();
                 eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
                 eprintln!();

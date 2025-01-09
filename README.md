@@ -671,15 +671,20 @@ Sends authenticated HTTP requests to the Creatio instance, similar to curl.
 
   stdin & stdout:
   ```shell
-  Please enter request data (body) below: 
+  Enter request data below: (Press Ctrl+D twice to finish)
   -=-=- -=-=- -=-=- -=-=- -=-=-
   
-  {"request":"test"}
+  {"date":"2025-01-01"}
   
   -=-=- -=-=- -=-=- -=-=- -=-=-
   
-  Status: 404 Not Found
-  Content: 0 bytes read
+  HTTP/2.0 200 OK
+  Content-Length: 62
+  Content-Type: application/json; charset=utf-8
+  
+  {
+    "UsrPostMethodResult": 0.02379281219143697
+  }
   ```
 
 - `crtcli app request GET 0/ServiceModel/PublicService.svc/UsrPubMethod -a -H "X-Access-Token: 123"` — Sends an anonymous GET request to '0/ServiceModel/PublicService.svc/UsrPubMethod' to Creatio '$CRTCLI_APP_URL' with custom header 'X-Access-Token: 123'.
@@ -731,7 +736,7 @@ _Beta: this command is still under development._
 
   stdin & stdout:
   ```shell
-  Please enter SQL query below: 
+  Enter SQL query below: (Press Ctrl+D twice to finish)
   -=-=- -=-=- -=-=- -=-=- -=-=-
   
   select count(*) from "Contact"
@@ -740,7 +745,7 @@ _Beta: this command is still under development._
   
   [
     {
-      "count": 18
+      "count": 13
     }
   ]
   ```

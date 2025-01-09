@@ -39,7 +39,7 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
     let mut stdout = stdout().lock();
     let bold = Style::new().bold();
     let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
-    let red = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
+    let red = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)));
 
     if !result.changes.is_empty() {
         for package in &result.changes {
