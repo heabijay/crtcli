@@ -6,6 +6,8 @@ A tiny [clio](https://github.com/Advance-Technologies-Foundation/clio) utility a
 
 > crtcli is under researching & development. The CLI interface may change, so exercise caution when using it in scripts and remember to check for updates.
 
+[![asciicast](https://asciinema.org/a/ey8Ql6ex0A3nvpBASLJQ95mIn.svg)](https://asciinema.org/a/ey8Ql6ex0A3nvpBASLJQ95mIn)
+
 ## Installation
 
 ### via pre-build binaries
