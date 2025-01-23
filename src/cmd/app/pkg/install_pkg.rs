@@ -26,6 +26,10 @@ pub struct InstallPkgCommandOptions {
     #[arg(short, long)]
     restart: bool,
 
+    /// Compile the package in Creatio after successful installation
+    #[arg(short, long)]
+    compile_package: bool,
+
     /// Overrides changed schemas in the database: executes SQL to mark package schemas as not changed before installation
     #[arg(short, long)]
     force: bool,
@@ -59,6 +63,9 @@ pub enum InstallPkgCommandError {
 
     #[error("failed to install package: {0}")]
     Install(#[source] CrtClientError),
+
+    #[error("failed to compile package: {0}")]
+    PkgCompile(#[source] Box<dyn Error>),
 
     #[error("failed to restart app: {0}")]
     AppRestart(#[source] CrtClientError),
@@ -155,7 +162,25 @@ pub fn install_package_from_stream_command(
 
     install_result?;
 
-    if options.restart {
+    if options.compile_package {
+        match descriptors.len() {
+            0 => {}
+            1 if descriptors.first().unwrap().name().is_some() => {
+                crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
+                    package_name: Some(descriptors.first().unwrap().name().unwrap().to_owned()),
+                    restart: options.restart,
+                }
+                .run(client)
+                .map_err(InstallPkgCommandError::PkgCompile)?
+            }
+            _ => crate::cmd::app::compile::CompileCommand {
+                restart: options.restart,
+                force_rebuild: false,
+            }
+            .run(client)
+            .map_err(InstallPkgCommandError::PkgCompile)?,
+        }
+    } else if options.restart {
         client
             .app_installer_service()
             .restart_app()

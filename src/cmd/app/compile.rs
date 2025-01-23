@@ -14,11 +14,11 @@ use thiserror::Error;
 pub struct CompileCommand {
     /// Use Rebuild method instead of just Build
     #[arg(short = 'f', long)]
-    force_rebuild: bool,
+    pub force_rebuild: bool,
 
     /// Restart application after successful compilation
     #[arg(short, long)]
-    restart: bool,
+    pub restart: bool,
 }
 
 #[derive(Debug, Error)]
@@ -80,8 +80,6 @@ pub fn print_build_response(response: &BuildResponse) -> Result<(), Box<dyn Erro
                 false => error_printer.print(&mut stdout, error),
             }
         }
-
-        writeln!(stdout).unwrap();
     }
 
     if let Some(error_info) = &response.error_info {
@@ -92,8 +90,6 @@ pub fn print_build_response(response: &BuildResponse) -> Result<(), Box<dyn Erro
             style = error_printer.error_style
         )
         .unwrap();
-
-        writeln!(stdout).unwrap();
     }
 
     if let Some(message) = &response.message {
