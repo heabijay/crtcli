@@ -25,7 +25,7 @@ pub struct ApplyCommand {
     /// Apply transforms only to a specific file within the package folder
     #[arg(short = 'f', long, value_hint = clap::ValueHint::FilePath)]
     pub file: Option<PathBuf>,
-    
+
     /// Checks for potential changes without applying them, exiting with a non-zero code if changes are needed
     #[arg(long = "check")]
     pub check_only: bool,
@@ -92,7 +92,7 @@ enum ApplyCommandError {
 
     #[error("unable to change file {0}: {1}")]
     FileChangeAccessError(PathBuf, #[source] std::io::Error),
-    
+
     #[error("apply check not passed, there are some files with non-applied transforms, for example: {0}")]
     CheckNotPassed(PathBuf),
 }
@@ -168,9 +168,9 @@ impl CliCommand for ApplyCommand {
             if let Some(content) = converted_content {
                 if content != file.content {
                     if _self.check_only {
-                        return Err(ApplyCommandError::CheckNotPassed(file_path))?;
+                        return Err(ApplyCommandError::CheckNotPassed(file_path).into());
                     }
-                    
+
                     std::fs::write(&file_path, content)
                         .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
 
@@ -178,9 +178,9 @@ impl CliCommand for ApplyCommand {
                 }
             } else {
                 if _self.check_only {
-                    return Err(ApplyCommandError::CheckNotPassed(file_path))?;
+                    return Err(ApplyCommandError::CheckNotPassed(file_path).into());
                 }
-                
+
                 std::fs::remove_file(&file_path)
                     .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
 
