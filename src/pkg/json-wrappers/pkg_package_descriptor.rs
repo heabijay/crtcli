@@ -63,6 +63,18 @@ impl PkgPackageDescriptorJsonWrapper {
         &mut self.descriptor_mut()["DependsOn"]
     }
 
+    fn pkg_type(&self) -> u64 {
+        self.descriptor()["Type"].as_u64().unwrap_or(0)
+    }
+
+    fn pkg_type_exact(&self) -> Option<u64> {
+        self.descriptor()["Type"].as_u64()
+    }
+
+    fn pkg_type_on_mut(&mut self) -> &mut Value {
+        &mut self.descriptor_mut()["Type"]
+    }
+
     pub fn apply_sorting(&mut self) -> Result<&mut Self, PkgPackageDescriptorSortingError> {
         let columns = self
             .depends_on_mut()

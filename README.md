@@ -341,6 +341,8 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 - `--restart | -r` — Restart the Creatio application after successful installation.
 
+- `--compile-package | -c` — Compile the package in Creatio after successful installation.
+
 - `--force | -f` (sql) — Overrides changed schemas in the database. Use this if you've modified schemas in an unlocked package within Creatio, and the installing process is preventing updates to those schemas.
 
   Under the hood, this option executes the following SQL script before package installation to mark all package schemas as unchanged:
@@ -429,7 +431,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg install /repo/UsrPackage-latest.zip` — Installs package archive '/repo/UsrPackage-latest.zip' at insecure Creatio 'https://localhost:5000'.
 
-- `crtcli app pkg install UsrPackage.gz -fr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' and restarts it after successful installation.
+- `crtcli app pkg install UsrPackage.gz -fcr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL', compiles package and restarts Creatio after successful installation.
 
 - `crtcli app pkg install UsrPackage.gz -Fr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, clears all localization data of 'UsrPackage' schemas, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' and restarts it after successful installation.
 
@@ -558,7 +560,7 @@ but it works faster due to in memory processing and merging only changes and als
 
   Defaults: Current directory
 
-And here you can use options from [app pkg install](#app-pkg-install) command like --restart, --force, ...
+And here you can use options from [app pkg install](#app-pkg-install) command like --restart, --compile-package, --force, ...
 
 **Examples:**
 
@@ -566,7 +568,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg push -s /repos/UsrCustomPackage` — Packs and installs package 'UsrCustomPackage' into insecure Creatio 'https://localhost:5000'.
 
-- `crtcli app pkg push -Fr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' with executing sql scripts to mark package schemas as unchanged, schema localization cleanup and restarts application after install. 
+- `crtcli app pkg push -Fcr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' with executing sql scripts to mark package schemas as unchanged, schema localization cleanup, compiles package and restarts application after install. 
 
 - `crtcli app pkg push -s /repos/UsrCustomPackage1 -s /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into Creatio '$CRTCLI_APP_URL' at once. 
 
