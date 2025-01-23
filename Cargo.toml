@@ -1,7 +1,7 @@
 [package]
 name = "crtcli"
 description = "Command-line tool for interacting with Creatio and Creatio packages"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["heabijay <heabijay@gmail.com>"]
 repository = "https://github.com/heabijay/crtcli"
@@ -11,8 +11,8 @@ license = "MIT"
 anstyle = "1.0.10"
 anstream = "0.6.18"
 bincode = "1.3.3"
-clap = { version = "4.5.24", features = ["derive", "env", "suggestions", "usage"] }
-clap_complete = "4.5.41"
+clap = { version = "4.5.27", features = ["derive", "env", "suggestions", "usage"] }
+clap_complete = "4.5.42"
 dotenvy = "0.15.7"
 flate2 = "1.0.35"
 hyper-util = "0.1.10"
@@ -21,7 +21,7 @@ quick-xml = "0.37.2"
 regex = "1.11.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = { version = "1.0.135", features = ["preserve_order"] }
-thiserror = "2.0.10"
+thiserror = "2.0.11"
 time = { version = "0.3.37", features = ["formatting", "local-offset", "macros"] }
 toml = "0.8.19"
 walkdir = "2.5.0"
@@ -36,7 +36,7 @@ features = ["charset", "blocking", "http2", "macos-system-configuration", "json"
 pretty_assertions = "1.4.1"
 
 [profile.dev]
-debug = false # Disable debug symbol to speedup dev compilation
+debug = false # Disable debug symbols to speedup dev compilation
 
 [profile.release]
 lto = true
