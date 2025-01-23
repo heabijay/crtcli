@@ -14,8 +14,8 @@ use thiserror::Error;
 #[derive(Args, Debug)]
 pub struct PushPkgCommand {
     /// Folders containing packages to be packed and installed (default: current directory)
-    #[arg(short = 's', long, value_name = "SOURCE_FOLDERS", value_hint = clap::ValueHint::DirPath)]
-    source_folder: Vec<PathBuf>,
+    #[arg(value_name = "SOURCE_FOLDERS", value_hint = clap::ValueHint::DirPath)]
+    source_folders: Vec<PathBuf>,
 
     #[command(flatten)]
     install_pkg_options: InstallPkgCommandOptions,
@@ -38,10 +38,10 @@ pub enum PushPkgCommandError {
 
 impl AppCommand for PushPkgCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
-        let source_folder: &[PathBuf] = if self.source_folder.is_empty() {
+        let source_folder: &[PathBuf] = if self.source_folders.is_empty() {
             &[PathBuf::from(".")]
         } else {
-            &self.source_folder
+            &self.source_folders
         };
 
         let (package_filename, package_content) = match source_folder.len() {

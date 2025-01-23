@@ -18,10 +18,10 @@ pub struct PullPkgCommand {
     ///
     /// Examples:
     /// `crtcli app pkg pull` (Pulls package from `./descriptor.json` to current dir)
-    /// `crtcli app pkg pull -p UsrPackage` (Pulls `UsrPackage` to current dir)
-    /// `crtcli app pkg pull -p UsrPackage:Src,UsrPackage2:Src2` (Pulls `UsrPackage` to `./Src`, `UsrPackage2` to `./Src2`)
-    /// `crtcli app pkg pull -p :Src` (Pulls package from `./Src/descriptor.json` to `./Src`)
-    #[arg(short, long = "package", value_name = "PACKAGE:DESTINATION", value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
+    /// `crtcli app pkg pull UsrPackage` (Pulls `UsrPackage` to current dir)
+    /// `crtcli app pkg pull UsrPackage:Src,UsrPackage2:Src2` (Pulls `UsrPackage` to `./Src`, `UsrPackage2` to `./Src2`)
+    /// `crtcli app pkg pull :Src` (Pulls package from `./Src/descriptor.json` to `./Src`)
+    #[arg(value_name = "PACKAGE:DESTINATION", value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
     #[clap(verbatim_doc_comment)]
     packages_map: Vec<PackageDestinationArg>,
 
