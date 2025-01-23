@@ -774,6 +774,8 @@ This is useful for standardizing package structure, cleaning up localization fil
 
 - `--file | -f <FILE>` — Apply transforms only to a specific file within the package folder. The path should be relative to the package folder or absolute (but still within the package folder). Useful for pre-commit git hooks.
 
+- `--check` — Checks for potential changes without applying them, exiting with a non-zero code if changes are needed. Could be useful for pre-commit git hooks or CI workflows.
+
 **Transforms (also options):**
 
 - `--apply-sorting | -S <true/false>` — Sorts the contents of specific files within the package. This is useful when you work with any VCS cause it prevents you from check some inconsistent diffs.

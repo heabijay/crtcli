@@ -47,6 +47,7 @@ impl AppCommand for PullPkgFsCommand {
             package_folder: package_folder.to_owned(),
             file: None,
             apply_features: self.apply_features.clone(),
+            check_only: false,
             no_feature_present_warning_disabled: true,
         }
         .run()?;
