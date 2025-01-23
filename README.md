@@ -512,16 +512,17 @@ rm "tmp-pkg.zip"
 
 but faster due to in memory processing, merging only changes and more feature-rich.
 
+**Arguments:**
 
-**Options:**
-
-- `--package | -p <PACKAGE:DESTINATION>` — Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs)
+- `<PACKAGE:DESTINATION>` — Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs)
 
   Defaults: 
   - Package: Tries to determine package name from destination folder (From file ./descriptor.json)
   - Destination: Current directory
 
-And here you can use transforms from [pkg apply](#pkg-apply) command.
+**Options:**
+
+Here you can use transforms from [pkg apply](#pkg-apply) command.
 
 \* Check [package.crtcli.toml](#packagecrtclitoml) to configure default apply transforms.
 
@@ -529,15 +530,15 @@ And here you can use transforms from [pkg apply](#pkg-apply) command.
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg pull -p UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage' from insecure Creatio 'https://localhost:5000' and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
+- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg pull UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage' from insecure Creatio 'https://localhost:5000' and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
 
 - `crtcli app pkg pull` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
 
-- `crtcli app pkg pull -p UsrPackage2` — Downloads package 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
+- `crtcli app pkg pull UsrPackage2` — Downloads package 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
 
-- `crtcli app pkg pull -p UsrPackage3:/repos/Pkg3 -p UsrPackage2:/repos/Pkg2` — Downloads packages 'UsrPackage3' and 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' and '/repos/Pkg2' folders using merge with default applied transforms.
+- `crtcli app pkg pull UsrPackage3:/repos/Pkg3 UsrPackage2:/repos/Pkg2` — Downloads packages 'UsrPackage3' and 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' and '/repos/Pkg2' folders using merge with default applied transforms.
 
-- `crtcli app pkg pull -p :/repos/Pkg3` — Downloads package 'UsrPackage3' (cause destination folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' folder using merge with default applied transforms.
+- `crtcli app pkg pull :/repos/Pkg3` — Downloads package 'UsrPackage3' (cause destination folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' folder using merge with default applied transforms.
 
 
 ### app pkg push
@@ -554,23 +555,25 @@ rm "tmp-package.gz"
 
 but it works faster due to in memory processing and merging only changes and also has additional features.
 
-**Options:**
+**Arguments**
 
-- `--source-folder | -s <SOURCE_FOLDERS>` — Folder containing the package to be packed and installed. You can specify multiple source folders to install several packages at once.
+- `<SOURCE_FOLDERS>` — Folder containing the package to be packed and installed. You can specify multiple source folders to install several packages at once.
 
   Defaults: Current directory
 
-And here you can use options from [app pkg install](#app-pkg-install) command like --restart, --compile-package, --force, ...
+**Options:**
+
+Here you can use options from [app pkg install](#app-pkg-install) command like --restart, --compile-package, --force, ...
 
 **Examples:**
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg push -s /repos/UsrCustomPackage` — Packs and installs package 'UsrCustomPackage' into insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg push /repos/UsrCustomPackage` — Packs and installs package 'UsrCustomPackage' into insecure Creatio 'https://localhost:5000'.
 
 - `crtcli app pkg push -Fcr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' with executing sql scripts to mark package schemas as unchanged, schema localization cleanup, compiles package and restarts application after install. 
 
-- `crtcli app pkg push -s /repos/UsrCustomPackage1 -s /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into Creatio '$CRTCLI_APP_URL' at once. 
+- `crtcli app pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into Creatio '$CRTCLI_APP_URL' at once. 
 
 
 ### app pkg unlock
