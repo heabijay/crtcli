@@ -29,6 +29,7 @@ mod pkgs;
 mod request;
 mod restart;
 mod sql;
+mod tunnel;
 
 use crate::CommandHandledError;
 use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
@@ -47,12 +48,7 @@ pub struct AppCommandArgs {
     /// Creatio Base URL or App Alias
     ///
     /// Check workspace.crtcli.toml in docs for more information about app aliases
-    #[arg(
-        verbatim_doc_comment,
-        value_name = "URL/APP",
-        value_hint = clap::ValueHint::Url,
-        env = "CRTCLI_APP_URL"
-    )]
+    #[arg(value_name = "URL/APP", value_hint = clap::ValueHint::Url, env = "CRTCLI_APP_URL")]
     url: String,
 
     /// Creatio Username [default: Supervisor]
@@ -113,11 +109,26 @@ pub enum AppCommands {
     Request(request::RequestCommand),
 
     /// Executes SQL queries in the Creatio using a supported SQL runner installed package
+    ///
+    /// This command requires any compatible SQL runner package to be installed.
+    ///
+    /// For more information, please check docs: https://github.com/heabijay/crtcli
     Sql(sql::SqlCommand),
+
+    /// Establishes TCP tunnels via the Creatio instance to access internal services
+    ///
+    /// This command requires the crtcli.tunneling package to be installed.
+    ///
+    /// For more information, please check docs: https://github.com/heabijay/crtcli
+    Tunnel(tunnel::TunnelCommand),
 }
 
 impl AppCommands {
     pub async fn run(&self, args: AppCommandArgs) -> CommandResult {
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .expect("failed to install rustls crypto provider");
+
         let args = Self::load_and_apply_workspace_config(args)?;
         let client = Arc::new(Self::build_client(&args)?);
 
@@ -131,6 +142,7 @@ impl AppCommands {
             AppCommands::Restart(command) => command.run(client).await,
             AppCommands::Request(command) => command.run(client).await,
             AppCommands::Sql(command) => command.run(client).await,
+            AppCommands::Tunnel(command) => command.run(client).await,
         }
     }
 

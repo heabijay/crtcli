@@ -332,7 +332,7 @@ pub fn extract_single_zip_package_to_folder(
     fn zip_get_file_by_package_name<'a, R: Read + Seek>(
         zip: &'a mut ZipArchive<R>,
         package_name: &str,
-    ) -> Result<zip::read::ZipFile<'a>, ZipError> {
+    ) -> Result<zip::read::ZipFile<'a, R>, ZipError> {
         let index = zip
             .index_for_name(package_name)
             .or_else(|| zip.index_for_name(&format!("{package_name}.gz")))

@@ -873,9 +873,9 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli pkg pack /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3 --format gzip --compression best` — Packs folders '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3' as package archive and outputs package file 'Packages_2024-12-01_21-00-00.zip' to current directory.
 
-- `crtcli pkg pack . -f /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
+- `crtcli pkg pack . -o /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
 
-- `crtcli pkg pack . -f /backups/ -n 'UsrPackage-latest.zip'` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
+- `crtcli pkg pack . -o /backups/UsrPackage-latest.zip` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
 
 
 ### pkg unpack

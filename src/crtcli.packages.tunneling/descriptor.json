@@ -1,0 +1,11 @@
+{
+  "Descriptor": {
+    "UId": "39c05f7d-8cb0-44e4-b58e-41deb298f096",
+    "Name": "crtcli.tunneling",
+    "Description": "Provides TCP tunneling capabilities for crtcli. https://github.com/heabijay/crtcli",
+    "ModifiedOnUtc": "\/Date(1743883421000)\/",
+    "PackageVersion": "0.1.0",
+    "Maintainer": "heabijay",
+    "DependsOn": []
+  }
+}
