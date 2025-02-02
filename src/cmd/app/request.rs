@@ -28,15 +28,11 @@ pub struct RequestCommand {
     #[arg(short, long)]
     anonymous: bool,
 
-    /// Request body data (for methods like POST).
+    /// Request body data (for methods like POST) (Use '-' value to read data from standard input)
     #[arg(short, long, value_hint = clap::ValueHint::Other)]
     data: Option<String>,
 
-    /// Read the request body data from standard input. Use a double Enter to signal the end of input
-    #[arg(short = 'D', long)]
-    data_stdin: bool,
-
-    /// Add a custom header to the request (format: Key: Value). The default Content-Type is application/json
+    /// Add a custom header to the request (format: Key: Value). Default Content-Type is application/json
     #[arg(short = 'H', long, value_hint = clap::ValueHint::Other, value_delimiter = ',')]
     header: Vec<HeaderArg>,
 
@@ -95,11 +91,10 @@ impl AppCommand for RequestCommand {
             .unwrap_or(&self.url)
             .trim_start_matches('/');
 
-        let data = match (&self.data, self.data_stdin) {
-            (Some(_), true) => return Err("you cannot use --data and --data-stdin arguments together, please select one of them".into()),
-            (None, false) => None,
-            (Some(str), false) => Some(str.clone()),
-            (None, true) => Some(read_data_from_stdin()?),
+        let data = match &self.data {
+            None => None,
+            Some(str) if str == "-" => Some(read_data_from_stdin()?),
+            Some(str) => Some(str.clone()),
         };
 
         let mut request = client.request(self.method.clone(), url);

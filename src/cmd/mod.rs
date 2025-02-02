@@ -36,6 +36,20 @@ macro_rules! spinner {
     }
 }
 
+macro_rules! output_has_filename_or {
+    ($output:expr, $default_output_filepath:expr) => {
+        if $output.is_dir()
+            || $output
+                .to_string_lossy()
+                .ends_with(std::path::MAIN_SEPARATOR_STR)
+        {
+            $default_output_filepath
+        } else {
+            $output
+        }
+    };
+}
+
 mod cli;
 pub use cli::Cli;
 
