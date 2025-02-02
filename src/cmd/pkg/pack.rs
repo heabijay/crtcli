@@ -12,13 +12,14 @@ pub struct PackCommand {
     #[arg(required = true, value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
     package_folders: Vec<PathBuf>,
 
-    /// Destination folder where the output package archive will be saved (defaults to the current directory)
-    #[arg(short = 'f', long, value_hint = clap::ValueHint::DirPath)]
-    output_folder: Option<PathBuf>,
-
-    /// Filename of the output package archive file (optional, will be auto-generated if not specified)
-    #[arg(short = 'n', long, value_hint = clap::ValueHint::FilePath)]
-    output_filename: Option<String>,
+    /// Output path where the output package archive will be saved (default: current directory & auto-generated name)
+    ///
+    /// - If a directory is provided, the archive will be saved there with an auto-generated name.
+    /// - If a file path is provided, the archive will be saved with that name.
+    /// - If not specified, the archive will be saved in the current directory with an auto-generated name.
+    #[arg(short, long, value_name = "PATH", value_hint = clap::ValueHint::AnyPath)]
+    #[clap(verbatim_doc_comment)]
+    output: Option<PathBuf>,
 
     #[arg(long, default_value = "zip")]
     format: PackFormat,
@@ -53,40 +54,31 @@ enum PackCommandError {
 
 impl CliCommand for PackCommand {
     fn run(self) -> Result<(), Box<dyn Error>> {
-        let output_folder = match &self.output_folder {
-            Some(output_folder) => output_folder,
+        let output_path = match &self.output {
+            Some(output_path) => output_path,
             None => &PathBuf::from("."),
         };
 
-        let output_filename = match &self.output_filename {
-            Some(filename) => filename,
-            None => {
-                if self.package_folders.len() == 1 {
-                    let pkg_name =
-                        crate::pkg::utils::get_package_name_from_folder(&self.package_folders[0])?;
+        let output_path = output_has_filename_or!(output_path, {
+            let filename = if self.package_folders.len() == 1 {
+                let pkg_name =
+                    crate::pkg::utils::get_package_name_from_folder(&self.package_folders[0])?;
 
-                    match self.format {
-                        PackFormat::Gzip => &format!("{pkg_name}.gz"),
-                        PackFormat::Zip => {
-                            &crate::cmd::utils::generate_zip_package_filename(&pkg_name)
-                        }
-                    }
-                } else {
-                    match self.format {
-                        PackFormat::Zip => {
-                            &crate::cmd::utils::generate_zip_package_filename("Packages")
-                        }
-                        PackFormat::Gzip => "Packages.gz",
-                    }
+                match self.format {
+                    PackFormat::Gzip => &format!("{pkg_name}.gz"),
+                    PackFormat::Zip => &crate::cmd::utils::generate_zip_package_filename(&pkg_name),
                 }
-            }
-        };
+            } else {
+                match self.format {
+                    PackFormat::Zip => {
+                        &crate::cmd::utils::generate_zip_package_filename("Packages")
+                    }
+                    PackFormat::Gzip => "Packages.gz",
+                }
+            };
 
-        let output_path = output_folder.join(output_filename);
-        let output_path = match &self.output_filename.is_none() {
-            true => crate::cmd::utils::get_next_filename_if_exists(output_path),
-            false => output_path,
-        };
+            &crate::cmd::utils::get_next_filename_if_exists(output_path.join(filename))
+        });
 
         let gzip_config = GZipPackageFromFolderPackerConfig {
             compression: match self.compression {
@@ -107,7 +99,7 @@ impl CliCommand for PackCommand {
 
         let gzip_config = &zip_config.gzip_config;
 
-        let file = std::fs::File::create(&output_path)?;
+        let file = std::fs::File::create(output_path)?;
 
         match self.format {
             PackFormat::Gzip => {

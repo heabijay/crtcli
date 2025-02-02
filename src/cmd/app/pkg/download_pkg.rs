@@ -1,6 +1,5 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
-use crate::cmd::utils::{generate_zip_package_filename, get_next_filename_if_exists};
 use anstyle::Style;
 use clap::Args;
 use std::error::Error;
@@ -14,19 +13,20 @@ pub struct DownloadPkgCommand {
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     packages: Vec<String>,
 
-    /// Directory where the downloaded package archive will be saved (default: current directory)
-    #[arg(short = 'f', long, value_hint = clap::ValueHint::DirPath)]
-    output_folder: Option<PathBuf>,
-
-    /// Name of the output zip file (optional, will be auto-generated if not specified)
-    #[arg(short = 'n', long, value_hint = clap::ValueHint::FilePath)]
-    output_filename: Option<String>,
+    /// Output path where the downloaded package archive will be saved (default: current directory & auto-generated name)
+    ///
+    /// - If a directory is provided, the archive will be saved there with an auto-generated name.
+    /// - If a file path is provided, the archive will be saved with that name.
+    /// - If not specified, the archive will be saved in the current directory with an auto-generated name.
+    #[arg(short, long, value_name = "PATH", value_hint = clap::ValueHint::AnyPath)]
+    #[clap(verbatim_doc_comment)]
+    output: Option<PathBuf>,
 }
 
 impl AppCommand for DownloadPkgCommand {
     fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
-        let output_folder = match &self.output_folder {
-            Some(output_folder) => output_folder,
+        let output_path = match &self.output {
+            Some(output_path) => output_path,
             None => &PathBuf::from("."),
         };
 
@@ -36,21 +36,16 @@ impl AppCommand for DownloadPkgCommand {
             &self.packages
         };
 
-        let default_filename = match packages.len() {
-            1 => packages.iter().next().unwrap(),
-            _ => "Packages",
-        };
+        let output_path = output_has_filename_or!(output_path, {
+            let default_filename = match packages.len() {
+                1 => packages.iter().next().unwrap(),
+                _ => "Packages",
+            };
 
-        let output_filename = match &self.output_filename {
-            Some(filename) => filename,
-            None => &generate_zip_package_filename(default_filename),
-        };
-
-        let output_path = output_folder.join(output_filename);
-        let output_path = match self.output_filename.is_none() {
-            true => get_next_filename_if_exists(output_path),
-            false => output_path,
-        };
+            &crate::cmd::utils::get_next_filename_if_exists(output_path.join(
+                crate::cmd::utils::generate_zip_package_filename(default_filename),
+            ))
+        });
 
         let progress = spinner!(
             "Downloading {bold}{target}{bold:#} {target_label} from {bold}{url}{bold:#}",
@@ -67,7 +62,7 @@ impl AppCommand for DownloadPkgCommand {
             .package_installer_service()
             .get_zip_packages(&packages)?;
 
-        let mut file = File::create(&output_path)?;
+        let mut file = File::create(output_path)?;
 
         std::io::copy(&mut result, &mut file)?;
 
