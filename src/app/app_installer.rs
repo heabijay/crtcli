@@ -25,9 +25,7 @@ impl<'c> AppInstallerService<'c> {
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        response.json::<StandardServiceResponse>()?.into_result()?;
-
-        Ok(())
+        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
     }
 
     pub fn clear_redis_db(&self) -> Result<(), CrtClientError> {
@@ -41,9 +39,7 @@ impl<'c> AppInstallerService<'c> {
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        response.json::<StandardServiceResponse>()?.into_result()?;
-
-        Ok(())
+        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
     }
 
     #[allow(dead_code)]
@@ -64,13 +60,10 @@ impl<'c> AppInstallerService<'c> {
                 "Name": name,
                 "ZipPackageName": package_filename
             }))
-            .header(reqwest::header::CONTENT_LENGTH, "0")
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        response.json::<StandardServiceResponse>()?.into_result()?;
-
-        Ok(())
+        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
     }
 
     pub fn load_packages_to_db<StrArr, Str>(

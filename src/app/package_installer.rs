@@ -78,9 +78,7 @@ impl<'c> PackageInstallerService<'c> {
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        response.json::<StandardServiceResponse>()?.into_result()?;
-
-        Ok(())
+        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
     }
 
     pub fn install_package(&self, package_filename: &str) -> Result<(), CrtClientError> {
@@ -93,9 +91,7 @@ impl<'c> PackageInstallerService<'c> {
             .json(&json!(package_filename))
             .send_with_session(self.0)?;
 
-        response.json::<StandardServiceResponse>()?.into_result()?;
-
-        Ok(())
+        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
     }
 
     #[allow(dead_code)]
@@ -117,8 +113,6 @@ impl<'c> PackageInstallerService<'c> {
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        response.json::<StandardServiceResponse>()?.into_result()?;
-
-        Ok(())
+        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
     }
 }

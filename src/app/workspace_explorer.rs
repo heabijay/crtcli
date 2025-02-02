@@ -67,9 +67,7 @@ impl<'c> WorkspaceExplorerService<'c> {
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        let response: GetPackagesResponse = response.json()?;
-
-        Ok(response.packages)
+        response.json::<GetPackagesResponse>()?.into_result()
     }
 
     pub fn get_is_file_system_development_mode(&self) -> Result<bool, CrtClientError> {
@@ -83,11 +81,9 @@ impl<'c> WorkspaceExplorerService<'c> {
             .send_with_session(self.0)?
             .error_for_status()?;
 
-        let response = response.json::<GetIsFileDesignModeResponse>()?;
-
-        response.base.into_result()?;
-
-        Ok(response.value)
+        response
+            .json::<GetIsFileDesignModeResponse>()?
+            .into_result()
     }
 }
 
@@ -136,7 +132,20 @@ pub struct BuildPackageErrorInfo {
 
 #[derive(Deserialize, Debug)]
 struct GetPackagesResponse {
-    packages: Vec<GetPackagesResponseItem>,
+    #[serde(flatten)]
+    base: StandardServiceResponse,
+
+    packages: Option<Vec<GetPackagesResponseItem>>,
+}
+
+impl GetPackagesResponse {
+    fn into_result(self) -> Result<Vec<GetPackagesResponseItem>, CrtClientError> {
+        self.base.into_result()?;
+
+        Ok(self
+            .packages
+            .expect("GetPackages response success, but packages property is not received"))
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -158,5 +167,15 @@ struct GetIsFileDesignModeResponse {
     #[serde(flatten)]
     base: StandardServiceResponse,
 
-    value: bool,
+    value: Option<bool>,
+}
+
+impl GetIsFileDesignModeResponse {
+    fn into_result(self) -> Result<bool, CrtClientError> {
+        self.base.into_result()?;
+
+        Ok(self
+            .value
+            .expect("GetIsFileDesignMode response success, but value property is not received"))
+    }
 }

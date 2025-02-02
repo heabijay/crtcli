@@ -341,8 +341,6 @@ pub enum CrtClientError {
 
     #[error("sql runner error: {0}")]
     SqlRunner(#[from] Box<sql::SqlRunnerError>),
-    // #[error("failed to access the cache: {0}")]
-    // AccessCache(#[from] AccessCacheError)
 }
 
 impl From<auth::LoginError> for CrtClientError {
