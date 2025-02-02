@@ -22,13 +22,11 @@ impl<'c> PackageService<'c> {
             )
             .json(&json!(package_uid))
             .send_with_session(self.0)?
-            .error_for_status()
-            .map_err(CrtClientError::from)?;
+            .error_for_status()?;
 
-        let response: GetPackagePropertiesResponse =
-            response.json().map_err(CrtClientError::from)?;
-
-        response.into_result()
+        response
+            .json::<GetPackagePropertiesResponse>()?
+            .into_result()
     }
 }
 
