@@ -34,6 +34,7 @@ pub struct CrtClientFlags {
 pub struct CrtClientBuilder {
     credentials: CrtCredentials,
     flags: CrtClientFlags,
+    session: Option<CrtSession>,
     session_cache: Box<dyn CrtSessionCache>,
     inner_client_builder: reqwest::blocking::ClientBuilder,
 }
@@ -43,6 +44,7 @@ impl CrtClientBuilder {
         Self {
             credentials,
             flags: Default::default(),
+            session: None,
             session_cache: create_default_session_cache(),
             inner_client_builder: reqwest::blocking::ClientBuilder::new()
                 .user_agent(CRTCLI_CLIENT_USER_AGENT)
@@ -97,12 +99,17 @@ impl CrtClientBuilder {
         self
     }
 
+    pub fn with_session(mut self, session: Option<CrtSession>) -> Self {
+        self.session = session;
+        self
+    }
+
     pub fn build(self) -> Result<CrtClient, CrtClientError> {
         Ok(CrtClient {
             credentials: self.credentials,
             flags: self.flags,
             inner_client: self.inner_client_builder.build()?,
-            session: RwLock::new(None),
+            session: RwLock::new(self.session),
             session_cache: self.session_cache,
             sql_runner: RwLock::new(None),
             db_type: RwLock::new(None),

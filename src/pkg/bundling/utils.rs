@@ -120,10 +120,10 @@ pub fn remove_dir_all_files_predicate(
         let dir_entry_path = dir_entry.path();
 
         if dir_entry_type.is_dir() {
-            let is_dir_valid = previous_valid_file.as_ref().map_or(false, |p| {
+            let is_dir_valid = previous_valid_file.as_ref().is_some_and(|p| {
                 p.path()
                     .parent()
-                    .map_or(false, |p| p.starts_with(dir_entry_path))
+                    .is_some_and(|p| p.starts_with(dir_entry_path))
             });
 
             if !is_dir_valid {

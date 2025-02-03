@@ -28,10 +28,14 @@ mod request;
 mod restart;
 mod sql;
 
-use crate::app::{CrtClient, CrtClientError, CrtCredentials};
+use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
+use anstyle::{AnsiColor, Color, Style};
 use clap::{Args, Subcommand};
 use std::error::Error;
 use std::sync::Arc;
+
+const DEFAULT_APP_USERNAME: &str = "Supervisor";
+const DEFAULT_APP_PASSWORD: &str = "Supervisor";
 
 #[derive(Debug, Args)]
 pub struct AppCommandArgs {
@@ -39,13 +43,13 @@ pub struct AppCommandArgs {
     #[arg(value_hint = clap::ValueHint::Url, env = "CRTCLI_APP_URL")]
     url: String,
 
-    /// Creatio Username
+    /// Creatio Username [default: Supervisor]
     #[arg(value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_USERNAME")]
-    username: String,
+    username: Option<String>,
 
-    /// Creatio Password
+    /// Creatio Password [default: Supervisor]
     #[arg(value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_PASSWORD")]
-    password: String,
+    password: Option<String>,
 
     /// Ignore SSL certificate errors
     #[arg(long, short, env = "CRTCLI_APP_INSECURE")]
@@ -57,21 +61,6 @@ pub struct AppCommandArgs {
     /// However, some features like "app restart" works by different API routes in both platforms.
     #[arg(long = "net-framework", env = "CRTCLI_APP_NETFRAMEWORK")]
     net_framework: bool,
-}
-
-impl AppCommandArgs {
-    pub fn build_client(&self) -> Result<CrtClient, CrtClientError> {
-        let client = CrtClient::builder(CrtCredentials::new(
-            &self.url,
-            &self.username,
-            &self.password,
-        ))
-        .danger_accept_invalid_certs(self.insecure)
-        .use_net_framework_mode(self.net_framework)
-        .build()?;
-
-        Ok(client)
-    }
 }
 
 pub trait AppCommand {
@@ -110,13 +99,13 @@ pub enum AppCommands {
     /// Sends authenticated HTTP requests to the Creatio instance, similar to curl
     Request(request::RequestCommand),
 
-    /// Executes SQL queries in the Creatio database using a supported SQL runner package installed in Creatio
+    /// Executes SQL queries in the Creatio using a supported SQL runner installed package
     Sql(sql::SqlCommand),
 }
 
 impl AppCommands {
-    pub fn run(&self, app: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
-        let client = Arc::new(app.build_client()?);
+    pub fn run(&self, args: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+        let client = Arc::new(Self::build_client(args)?);
 
         match self {
             AppCommands::Compile(command) => command.run(client),
@@ -128,6 +117,59 @@ impl AppCommands {
             AppCommands::Restart(command) => command.run(client),
             AppCommands::Request(command) => command.run(client),
             AppCommands::Sql(command) => command.run(client),
+        }
+    }
+
+    fn build_client(args: &AppCommandArgs) -> Result<CrtClient, CrtClientError> {
+        let username = if let Some(username) = &args.username {
+            username
+        } else {
+            DEFAULT_APP_USERNAME
+        };
+
+        let password = if let Some(password) = &args.password {
+            password
+        } else {
+            DEFAULT_APP_PASSWORD
+        };
+
+        let credentials = CrtCredentials::new(&args.url, username, password);
+        let session = check_default_credentials_in_cache(&credentials, args);
+
+        return CrtClient::builder(credentials)
+            .danger_accept_invalid_certs(args.insecure)
+            .use_net_framework_mode(args.net_framework)
+            .with_session(session)
+            .build();
+
+        fn check_default_credentials_in_cache(
+            credentials: &CrtCredentials,
+            args: &AppCommandArgs,
+        ) -> Option<CrtSession> {
+            let session =
+                crate::app::session_cache::create_default_session_cache().get_entry(credentials);
+
+            if let Some(session) = session {
+                return Some(session);
+            }
+
+            if args.username.is_none() {
+                eprintln!(
+                    "{style}warning: Creatio username is not specified, using default:{style:#} {italic}{DEFAULT_APP_USERNAME}{italic:#}",
+                    style=Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow))).dimmed(),
+                    italic=Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow))).dimmed().italic(),
+                );
+            }
+
+            if args.password.is_none() {
+                eprintln!(
+                    "{style}warning: Creatio password is not specified, using default:{style:#} {italic}{DEFAULT_APP_USERNAME}{italic:#}",
+                    style=Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow))).dimmed(),
+                    italic=Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow))).dimmed().italic(),
+                );
+            }
+
+            None
         }
     }
 }
