@@ -88,9 +88,13 @@ Please check [dotenv (.env) files](#dotenv-env-files) for simplified commands us
 
 - `<URL>` (required) (env: `CRTCLI_APP_URL`) —  The base URL of Creatio instance.
 
-- `<USERNAME>` (required) (env: `CRTCLI_APP_USERNAME`) — Creatio Username.
+- `[USERNAME]` (env: `CRTCLI_APP_USERNAME`) — Creatio Username.
 
-- `<PASSWORD>` (required) (env: `CRTCLI_APP_PASSWORD`) — Creatio Password.
+  Defaults: `Supervisor`
+
+- `[PASSWORD]` (env: `CRTCLI_APP_PASSWORD`) — Creatio Password.
+
+  Defaults: `Supervisor`
 
 **Options:**
 
@@ -124,7 +128,7 @@ Clears the Redis cache associated with the Creatio instance.
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i flush-redis` — Flushes the Redis cache for the insecure Creatio instance at https://localhost:5000.
+- `crtcli app https://localhost:5000 -i flush-redis` — Flushes the Redis cache for the insecure Creatio instance at https://localhost:5000 using default Supervisor:Supervisor credentials.
 
 - `crtcli app flush-redis` — Flushes Redis cache in Creatio '$CRTCLI_APP_URL'.
 
@@ -157,7 +161,7 @@ Unload packages from Creatio database into filesystem.
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i fs pull` — Pulls all packages from database into filesystem at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 -i fs pull` — Pulls all packages from database into filesystem at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
 - `crtcli app fs pull UsrPackage` — Pulls single package 'UsrPackage' from database into filesystem in Creatio '$CRTCLI_APP_URL'.
 
@@ -189,7 +193,7 @@ Print last package installation log.
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i install-log` — Gets last package installation log at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 -i install-log` — Gets last package installation log at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
 - `crtcli app install-log` — Gets last package installation log in Creatio '$CRTCLI_APP_URL'.
 
@@ -252,7 +256,7 @@ Downloads packages from the Creatio instance as a zip archive.
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg download UsrCustomPkg` — Downloads package 'UsrCustomPkg' from insecure Creatio 'https://localhost:5000' to current directory.
+- `crtcli app https://localhost:5000 -i pkg download UsrCustomPkg` — Downloads package 'UsrCustomPkg', from insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials, to current directory.
 
 - `crtcli app pkg download -o /backups/MyPackage.zip` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' to '/backups' folder with filename 'MyPackage.zip'.
 
@@ -329,7 +333,7 @@ crtcli app pkg compile "{package_name}" -r
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder inside in Creatio (FSD mode enabled).
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg fs push` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) at insecure 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 -i pkg fs push` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) at insecure 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
 - `crtcli app pkg fs push -cr` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL', compiles it after successfully push, and restarts Creatio application if compilation was successful.
 
@@ -434,7 +438,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg install /repo/UsrPackage-latest.zip` — Installs package archive '/repo/UsrPackage-latest.zip' at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 Supervisor Supervisor -i --net-framework pkg install /repo/UsrPackage-latest.zip` — Installs package archive '/repo/UsrPackage-latest.zip' at insecure Creatio 'https://localhost:5000' using .NET Framework (IIS) compatibility.
 
 - `crtcli app pkg install UsrPackage.gz -fcr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL', compiles package and restarts Creatio after successful installation.
 
@@ -455,7 +459,7 @@ Print installed package information by Package UId.
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg get-uid ae8519c2-2aac-4a00-aa61-b0ffaac99ea3` — Prints information about package 'ae8519c2-2aac-4a00-aa61-b0ffaac99ea3' at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 -i pkg get-uid ae8519c2-2aac-4a00-aa61-b0ffaac99ea3` — Prints information about package 'ae8519c2-2aac-4a00-aa61-b0ffaac99ea3' at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
   stdout:
   ```
@@ -535,7 +539,7 @@ Here you can use transforms from [pkg apply](#pkg-apply) command.
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg pull UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage' from insecure Creatio 'https://localhost:5000' and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
+- `crtcli app https://localhost:5000 -i pkg pull UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage', from insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials, and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
 
 - `crtcli app pkg pull` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
 
@@ -605,7 +609,7 @@ WHERE "Name" = '{package_name}';
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg unlock UsrCustomPackage` — Unlocks package 'UsrCustomPackage' at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 -i pkg unlock UsrCustomPackage` — Unlocks package 'UsrCustomPackage' at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
 - `crtcli app pkg unlock` — Unlocks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL'.
 
@@ -646,7 +650,7 @@ Important: If your Creatio instance is running on .NET Framework (IIS), you must
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i restart` — Restarts Creatio application at insecure 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 -i --net-framework restart` — Restarts Creatio application at insecure 'https://localhost:5000' using Supervisor:Supervisor credentials and .NET Framework (IIS) compatibility.
 
 - `crtcli app restart` — Restarts Creatio application '$CRTCLI_APP_URL'.
 
@@ -731,7 +735,7 @@ _Beta: this command is still under development._
 
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i sql 'SELECT COUNT(*) FROM "SysPackage"'` — Executes SQL query 'SELECT COUNT(*) FROM "SysPackage"' at insecure Creatio 'https://localhost:5000' with automatically detected sql runner.
+- `crtcli app https://localhost:5000 -i sql 'SELECT COUNT(*) FROM "SysPackage"'` — Executes SQL query 'SELECT COUNT(*) FROM "SysPackage"' at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials with automatically detected sql runner.
 
   stdout:
   ```json

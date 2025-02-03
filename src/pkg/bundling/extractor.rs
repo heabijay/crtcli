@@ -279,7 +279,7 @@ pub fn extract_gzip_package_to_folder(
             FilesAlreadyExistsInFolderStrategy::SmartMerge => {
                 let result = std::fs::read(destination_path)
                     .ok()
-                    .map_or(false, |exists_content| exists_content != *content);
+                    .is_some_and(|exists_content| exists_content != *content);
 
                 if result && config.print_merge_log {
                     eprintln!("\tmodified:\t{relative_path}");
