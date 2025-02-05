@@ -12,7 +12,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Self(client)
     }
 
-    pub fn build(&self) -> Result<BuildResponse, CrtClientError> {
+    pub async fn build(&self) -> Result<BuildResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -20,13 +20,14 @@ impl<'c> WorkspaceExplorerService<'c> {
                 "0/ServiceModel/WorkspaceExplorerService.svc/Build",
             )
             .header(reqwest::header::CONTENT_LENGTH, "0")
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        Ok(response.json()?)
+        Ok(response.json().await?)
     }
 
-    pub fn rebuild(&self) -> Result<BuildResponse, CrtClientError> {
+    pub async fn rebuild(&self) -> Result<BuildResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -34,13 +35,14 @@ impl<'c> WorkspaceExplorerService<'c> {
                 "0/ServiceModel/WorkspaceExplorerService.svc/Rebuild",
             )
             .header(reqwest::header::CONTENT_LENGTH, "0")
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        Ok(response.json()?)
+        Ok(response.json().await?)
     }
 
-    pub fn build_package(&self, package_name: &str) -> Result<BuildResponse, CrtClientError> {
+    pub async fn build_package(&self, package_name: &str) -> Result<BuildResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -50,13 +52,14 @@ impl<'c> WorkspaceExplorerService<'c> {
             .json(&json!({
                 "packageName": package_name
             }))
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        Ok(response.json()?)
+        Ok(response.json().await?)
     }
 
-    pub fn get_packages(&self) -> Result<Vec<GetPackagesResponseItem>, CrtClientError> {
+    pub async fn get_packages(&self) -> Result<Vec<GetPackagesResponseItem>, CrtClientError> {
         let response = self
             .0
             .request(
@@ -64,13 +67,14 @@ impl<'c> WorkspaceExplorerService<'c> {
                 "0/ServiceModel/WorkspaceExplorerService.svc/GetPackages",
             )
             .header(reqwest::header::CONTENT_LENGTH, "0")
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        response.json::<GetPackagesResponse>()?.into_result()
+        response.json::<GetPackagesResponse>().await?.into_result()
     }
 
-    pub fn get_is_file_system_development_mode(&self) -> Result<bool, CrtClientError> {
+    pub async fn get_is_file_system_development_mode(&self) -> Result<bool, CrtClientError> {
         let response = self
             .0
             .request(
@@ -78,11 +82,13 @@ impl<'c> WorkspaceExplorerService<'c> {
                 "0/ServiceModel/WorkspaceExplorerService.svc/GetIsFileDesignMode",
             )
             .header(reqwest::header::CONTENT_LENGTH, "0")
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
         response
-            .json::<GetIsFileDesignModeResponse>()?
+            .json::<GetIsFileDesignModeResponse>()
+            .await?
             .into_result()
     }
 }

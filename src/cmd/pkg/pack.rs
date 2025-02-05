@@ -1,7 +1,6 @@
-use crate::cmd::cli::CliCommand;
+use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::bundling::packer::*;
 use clap::{Args, ValueEnum};
-use std::error::Error;
 use std::path::PathBuf;
 use thiserror::Error;
 use zip::CompressionMethod;
@@ -53,7 +52,7 @@ enum PackCommandError {
 }
 
 impl CliCommand for PackCommand {
-    fn run(self) -> Result<(), Box<dyn Error>> {
+    fn run(self) -> CommandResult {
         let output_path = match &self.output {
             Some(output_path) => output_path,
             None => &PathBuf::from("."),

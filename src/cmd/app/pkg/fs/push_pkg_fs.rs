@@ -1,10 +1,11 @@
 use crate::app::CrtClient;
 use crate::cmd::app::pkg::fs::prepare_pkg_fs_folder;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use crate::pkg::utils::get_package_name_from_folder;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -24,8 +25,9 @@ pub struct PushPkgFsCommand {
     restart_app_after_compile: bool,
 }
 
+#[async_trait]
 impl AppCommand for PushPkgFsCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let destination_folder = match &self.package_folder {
             Some(package_folder) => package_folder,
             None => &PathBuf::from("."),
@@ -38,7 +40,8 @@ impl AppCommand for PushPkgFsCommand {
         crate::cmd::app::fs::push_fs::PushFsCommand {
             packages: vec![package_name.clone()],
         }
-        .run(Arc::clone(&client))?;
+        .run(Arc::clone(&client))
+        .await?;
 
         eprintln!(
             "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully pushed from filesystem to {green_bold}{url}{green_bold:#}{green}!{green:#}",
@@ -52,7 +55,8 @@ impl AppCommand for PushPkgFsCommand {
                 package_name: Some(package_name),
                 restart: self.restart_app_after_compile,
             }
-            .run(client)?;
+            .run(client)
+            .await?;
         }
 
         Ok(())

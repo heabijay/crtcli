@@ -1,9 +1,10 @@
 use crate::app::CrtClient;
 use crate::cmd::app::fs::print_fs_sync_result;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use anstyle::Style;
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::sync::Arc;
 
 #[derive(Args, Debug)]
@@ -13,8 +14,9 @@ pub struct PullFsCommand {
     pub packages: Vec<String>,
 }
 
+#[async_trait]
 impl AppCommand for PullFsCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let bold = Style::new().bold();
 
         let pull_target_str = match &self.packages.len() {
@@ -28,13 +30,13 @@ impl AppCommand for PullFsCommand {
             url = client.base_url()
         );
 
-        let result =
-            client
-                .app_installer_service()
-                .load_packages_to_fs(match &self.packages.len() {
-                    0 => None,
-                    _ => Some(&self.packages),
-                })?;
+        let result = client
+            .app_installer_service()
+            .load_packages_to_fs(match &self.packages.len() {
+                0 => None,
+                _ => Some(&self.packages),
+            })
+            .await?;
 
         progress.finish_and_clear();
 

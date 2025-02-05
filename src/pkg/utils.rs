@@ -3,6 +3,7 @@ use flate2::read::GzDecoder;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
 use walkdir::WalkDir;
 use zip::unstable::LittleEndianReadExt;
 use zip::ZipArchive;
@@ -77,6 +78,16 @@ pub fn is_gzip_stream(reader: &mut (impl Read + Seek)) -> std::io::Result<bool> 
     let format = reader.read_u16_le()?;
 
     reader.seek_relative(-2)?;
+
+    Ok(format == 0x8b1f)
+}
+
+pub async fn is_gzip_async_stream(
+    reader: &mut (impl AsyncRead + AsyncSeek + Unpin),
+) -> std::io::Result<bool> {
+    let format = reader.read_u16_le().await?;
+
+    reader.seek(SeekFrom::Current(-2)).await?;
 
     Ok(format == 0x8b1f)
 }

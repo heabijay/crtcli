@@ -1,8 +1,9 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use anstyle::Style;
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::sync::Arc;
 
 #[derive(Args, Debug)]
@@ -12,9 +13,10 @@ pub struct PkgsCommand {
     json: bool,
 }
 
+#[async_trait]
 impl AppCommand for PkgsCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
-        let packages = client.workspace_explorer_service().get_packages()?;
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
+        let packages = client.workspace_explorer_service().get_packages().await?;
 
         match self.json {
             true => println!("{}", serde_json::json!(packages)),

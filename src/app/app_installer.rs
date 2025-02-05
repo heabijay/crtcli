@@ -11,7 +11,7 @@ impl<'c> AppInstallerService<'c> {
         Self(client)
     }
 
-    pub fn restart_app(&self) -> Result<(), CrtClientError> {
+    pub async fn restart_app(&self) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(
@@ -22,13 +22,17 @@ impl<'c> AppInstallerService<'c> {
                 },
             )
             .header(reqwest::header::CONTENT_LENGTH, "0")
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
+        Ok(response
+            .json::<StandardServiceResponse>()
+            .await?
+            .into_result()?)
     }
 
-    pub fn clear_redis_db(&self) -> Result<(), CrtClientError> {
+    pub async fn clear_redis_db(&self) -> Result<(), CrtClientError> {
         let response = self
             .0
             .request(
@@ -36,14 +40,18 @@ impl<'c> AppInstallerService<'c> {
                 "0/ServiceModel/AppInstallerService.svc/ClearRedisDb",
             )
             .header(reqwest::header::CONTENT_LENGTH, "0")
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
+        Ok(response
+            .json::<StandardServiceResponse>()
+            .await?
+            .into_result()?)
     }
 
     #[allow(dead_code)]
-    pub fn install_app_from_file(
+    pub async fn install_app_from_file(
         &self,
         code: &str,
         name: &str,
@@ -60,13 +68,17 @@ impl<'c> AppInstallerService<'c> {
                 "Name": name,
                 "ZipPackageName": package_filename
             }))
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
-        Ok(response.json::<StandardServiceResponse>()?.into_result()?)
+        Ok(response
+            .json::<StandardServiceResponse>()
+            .await?
+            .into_result()?)
     }
 
-    pub fn load_packages_to_db<StrArr, Str>(
+    pub async fn load_packages_to_db<StrArr, Str>(
         &self,
         package_names: Option<StrArr>,
     ) -> Result<FileSystemSynchronizationResultResponse, CrtClientError>
@@ -81,15 +93,17 @@ impl<'c> AppInstallerService<'c> {
                 "0/ServiceModel/AppInstallerService.svc/LoadPackagesToDB",
             )
             .json(&json!(package_names))
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
         Ok(response
-            .json::<FileSystemSynchronizationResultResponse>()?
+            .json::<FileSystemSynchronizationResultResponse>()
+            .await?
             .into_result()?)
     }
 
-    pub fn load_packages_to_fs<StrArr, Str>(
+    pub async fn load_packages_to_fs<StrArr, Str>(
         &self,
         package_names: Option<StrArr>,
     ) -> Result<FileSystemSynchronizationResultResponse, CrtClientError>
@@ -104,11 +118,13 @@ impl<'c> AppInstallerService<'c> {
                 "0/ServiceModel/AppInstallerService.svc/LoadPackagesToFileSystem",
             )
             .json(&json!(package_names))
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
         Ok(response
-            .json::<FileSystemSynchronizationResultResponse>()?
+            .json::<FileSystemSynchronizationResultResponse>()
+            .await?
             .into_result()?)
     }
 }

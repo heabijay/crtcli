@@ -1,7 +1,8 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::sync::Arc;
 
 #[derive(Args, Debug)]
@@ -15,11 +16,13 @@ pub struct GetUidPkgCommand {
     json: bool,
 }
 
+#[async_trait]
 impl AppCommand for GetUidPkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let package = client
             .package_service()
-            .get_package_properties(&self.package_uid)?;
+            .get_package_properties(&self.package_uid)
+            .await?;
 
         match &self.json {
             true => println!("{}", serde_json::json!(package)),

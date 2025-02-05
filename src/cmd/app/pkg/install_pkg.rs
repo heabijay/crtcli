@@ -1,14 +1,15 @@
-use crate::app::{CrtClient, CrtClientError, InstallLogWatcher, InstallLogWatcherEvent};
+use crate::app::{CrtClient, CrtClientError, InstallLogWatcherBuilder, InstallLogWatcherEvent};
 use crate::cmd::app::restart::print_app_restart_requested;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
-use std::fs::File;
-use std::io::{Read, Seek};
+use std::io::Cursor;
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 #[derive(Args, Debug)]
 pub struct InstallPkgCommand {
@@ -65,40 +66,47 @@ pub enum InstallPkgCommandError {
     Install(#[source] CrtClientError),
 
     #[error("failed to compile package: {0}")]
-    PkgCompile(#[source] Box<dyn Error>),
+    PkgCompile(#[source] CommandDynError),
 
     #[error("failed to restart app: {0}")]
     AppRestart(#[source] CrtClientError),
 }
 
+#[async_trait]
 impl AppCommand for InstallPkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
+        let package_content = std::fs::read(&self.filepath)?;
+
         install_package_from_stream_command(
             client,
-            File::open(&self.filepath)?,
+            Cursor::new(package_content),
             self.filepath
                 .file_name()
                 .ok_or("unable to get filename of specified path")?
                 .to_str()
                 .ok_or("unable to get filename str of specified path")?,
             &self.install_pkg_options,
-        )?;
+        )
+        .await?;
 
         Ok(())
     }
 }
 
-pub fn install_package_from_stream_command(
+pub async fn install_package_from_stream_command<R>(
     client: Arc<CrtClient>,
-    mut package_reader: impl Read + Send + Seek + 'static,
+    mut package_reader: R,
     package_name: &str,
     options: &InstallPkgCommandOptions,
-) -> Result<(), InstallPkgCommandError> {
+) -> Result<(), InstallPkgCommandError>
+where
+    R: AsyncReadExt + AsyncSeekExt + std::io::Read + std::io::Seek + Send + Sync + Unpin + 'static,
+{
     let descriptors =
         crate::pkg::utils::get_package_descriptors_from_package_reader(&mut package_reader)
             .map_err(InstallPkgCommandError::ReadDescriptor)?;
 
-    apply_options_before_install(&client, options, &descriptors)?;
+    apply_options_before_install(&client, options, &descriptors).await?;
 
     let progress = spinner_precise!(
         "Installing {bold}{package_name}{bold:#} package archive at {bold}{url}{bold:#}",
@@ -111,6 +119,7 @@ pub fn install_package_from_stream_command(
     client
         .package_installer_service()
         .upload_package(package_reader, package_name.to_owned())
+        .await
         .map_err(InstallPkgCommandError::Upload)?;
 
     let log_watcher = (!options.disable_install_log_pooling).then(|| {
@@ -120,9 +129,9 @@ pub fn install_package_from_stream_command(
         // Instead, it appears that Creatio blocks the log request until package installation is finished.
         // The reason for this is unknown, but hopefully, this could help.
         if client.is_net_framework() {
-            InstallLogWatcher::new_with_new_session(&client).unwrap()
+            InstallLogWatcherBuilder::new_with_new_session(&client).unwrap()
         } else {
-            InstallLogWatcher::new(Arc::clone(&client))
+            InstallLogWatcherBuilder::new(Arc::clone(&client))
         }
         .fetch_last_log_on_stop(true)
         .start(move |event| match event {
@@ -136,11 +145,12 @@ pub fn install_package_from_stream_command(
     let install_result = client
         .package_installer_service()
         .install_package(package_name)
+        .await
         .map_err(InstallPkgCommandError::Install);
 
     if let Some(log_watcher) = log_watcher {
         log_watcher.stop();
-        log_watcher.wait_until_stopped();
+        log_watcher.wait_until_stopped().await;
     }
 
     progress.finish_with_message(
@@ -171,6 +181,7 @@ pub fn install_package_from_stream_command(
                     restart: options.restart,
                 }
                 .run(client)
+                .await
                 .map_err(InstallPkgCommandError::PkgCompile)?
             }
             _ => crate::cmd::app::compile::CompileCommand {
@@ -178,12 +189,14 @@ pub fn install_package_from_stream_command(
                 force_rebuild: false,
             }
             .run(client)
+            .await
             .map_err(InstallPkgCommandError::PkgCompile)?,
         }
     } else if options.restart {
         client
             .app_installer_service()
             .restart_app()
+            .await
             .map_err(InstallPkgCommandError::AppRestart)?;
 
         print_app_restart_requested(&client);
@@ -191,7 +204,7 @@ pub fn install_package_from_stream_command(
 
     return Ok(());
 
-    fn apply_options_before_install(
+    async fn apply_options_before_install(
         client: &Arc<CrtClient>,
         options: &InstallPkgCommandOptions,
         descriptors: &Vec<crate::pkg::json_wrappers::PkgPackageDescriptorJsonWrapper>,
@@ -205,6 +218,7 @@ pub fn install_package_from_stream_command(
                             .uid()
                             .ok_or(InstallPkgCommandError::PackageUidValueNull)?,
                     )
+                    .await
                     .map_err(InstallPkgCommandError::SqlBeforePackage)?;
 
                 eprintln!(
@@ -224,6 +238,7 @@ pub fn install_package_from_stream_command(
                             .uid()
                             .ok_or(InstallPkgCommandError::PackageUidValueNull)?,
                     )
+                    .await
                     .map_err(InstallPkgCommandError::SqlBeforePackage)?;
 
                 eprintln!(
@@ -243,6 +258,7 @@ pub fn install_package_from_stream_command(
                             .uid()
                             .ok_or(InstallPkgCommandError::PackageUidValueNull)?,
                     )
+                    .await
                     .map_err(InstallPkgCommandError::SqlBeforePackage)?;
 
                 eprintln!(

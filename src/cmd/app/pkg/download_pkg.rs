@@ -1,9 +1,9 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use anstyle::Style;
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
-use std::fs::File;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -23,8 +23,9 @@ pub struct DownloadPkgCommand {
     output: Option<PathBuf>,
 }
 
+#[async_trait]
 impl AppCommand for DownloadPkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let output_path = match &self.output {
             Some(output_path) => output_path,
             None => &PathBuf::from("."),
@@ -60,11 +61,12 @@ impl AppCommand for DownloadPkgCommand {
 
         let mut result = client
             .package_installer_service()
-            .get_zip_packages(&packages)?;
+            .get_zip_packages(&packages)
+            .await?;
 
-        let mut file = File::create(output_path)?;
+        let mut file = tokio::fs::File::create(output_path).await?;
 
-        std::io::copy(&mut result, &mut file)?;
+        tokio::io::copy(&mut result, &mut file).await?;
 
         progress.finish_and_clear();
 

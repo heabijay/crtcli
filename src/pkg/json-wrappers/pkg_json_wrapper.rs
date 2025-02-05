@@ -9,7 +9,8 @@ use thiserror::Error;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PkgJsonWrapper {
     is_bom: bool,
-    pub(crate) value: Value,
+
+    pub value: Value,
 }
 
 #[derive(Error, Debug)]

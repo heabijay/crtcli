@@ -1,11 +1,13 @@
 use crate::app::{CrtClient, CrtClientError, CrtRequestBuilderExt};
+use async_trait::async_trait;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 use thiserror::Error;
 
+#[async_trait]
 pub trait SqlRunner: Send + Sync {
-    fn sql(&self, client: &CrtClient, sql: &str) -> Result<SqlRunnerResult, SqlRunnerError>;
+    async fn sql(&self, client: &CrtClient, sql: &str) -> Result<SqlRunnerResult, SqlRunnerError>;
 }
 
 #[derive(Debug)]
@@ -29,13 +31,15 @@ pub enum SqlRunnerError {
     Execution { err: String },
 
     #[error("failed to execute sql: {0}")]
-    Other(#[source] Box<dyn std::error::Error>),
+    Other(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
+#[derive(Debug, Clone)]
 pub struct ClioGateSqlRunner;
 
+#[async_trait]
 impl SqlRunner for ClioGateSqlRunner {
-    fn sql(&self, client: &CrtClient, sql: &str) -> Result<SqlRunnerResult, SqlRunnerError> {
+    async fn sql(&self, client: &CrtClient, sql: &str) -> Result<SqlRunnerResult, SqlRunnerError> {
         let response = client
             .request(
                 reqwest::Method::POST,
@@ -44,14 +48,18 @@ impl SqlRunner for ClioGateSqlRunner {
             .json(&json!({
                 "script": sql
             }))
-            .send_with_session(client)?;
+            .send_with_session(client)
+            .await?;
 
         if response.status() == StatusCode::NOT_FOUND {
             return Err(SqlRunnerError::NotFound);
         }
 
         if response.status() == StatusCode::BAD_REQUEST {
-            let response_text = response.text().map_err(CrtClientError::ReqwestError)?;
+            let response_text = response
+                .text()
+                .await
+                .map_err(CrtClientError::ReqwestError)?;
 
             return Err(SqlRunnerError::Execution { err: response_text });
         }
@@ -60,6 +68,7 @@ impl SqlRunner for ClioGateSqlRunner {
             .error_for_status()
             .map_err(CrtClientError::ReqwestError)?
             .json()
+            .await
             .map_err(CrtClientError::ReqwestError)?;
 
         let response_body = response_body.as_str().ok_or_else(|| {
@@ -85,10 +94,12 @@ impl SqlRunner for ClioGateSqlRunner {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct SqlConsoleSqlRunner;
 
+#[async_trait]
 impl SqlRunner for SqlConsoleSqlRunner {
-    fn sql(&self, client: &CrtClient, sql: &str) -> Result<SqlRunnerResult, SqlRunnerError> {
+    async fn sql(&self, client: &CrtClient, sql: &str) -> Result<SqlRunnerResult, SqlRunnerError> {
         let response = client
             .request(
                 reqwest::Method::POST,
@@ -97,7 +108,8 @@ impl SqlRunner for SqlConsoleSqlRunner {
             .json(&json!({
                 "sqlScript": sql
             }))
-            .send_with_session(client)?;
+            .send_with_session(client)
+            .await?;
 
         if response.status() == StatusCode::NOT_FOUND {
             return Err(SqlRunnerError::NotFound);
@@ -107,6 +119,7 @@ impl SqlRunner for SqlConsoleSqlRunner {
             .error_for_status()
             .map_err(CrtClientError::ReqwestError)?
             .json()
+            .await
             .map_err(CrtClientError::ReqwestError)?;
 
         let response_body = response_body.execute_sql_script_result_root;
@@ -193,13 +206,13 @@ pub struct AutodetectSqlRunner;
 
 macro_rules! next_if_not_found {
     ($client:expr, $sql: expr, $left_runner: expr, $next_runner: expr) => {
-        match $left_runner.sql($client, $sql) {
+        match $left_runner.sql($client, $sql).await {
             Err(SqlRunnerError::NotFound) => $next_runner,
             r => return Some((Box::new($left_runner), r)),
         }
     };
     ($client:expr, $sql: expr, $left_runner: expr) => {
-        match $left_runner.sql($client, $sql) {
+        match $left_runner.sql($client, $sql).await {
             Err(SqlRunnerError::NotFound) => return None,
             r => return Some((Box::new($left_runner), r)),
         }
@@ -207,7 +220,7 @@ macro_rules! next_if_not_found {
 }
 
 impl AutodetectSqlRunner {
-    pub fn detect_and_run_sql(
+    pub async fn detect_and_run_sql(
         client: &CrtClient,
         sql: &str,
     ) -> Option<(Box<dyn SqlRunner>, Result<SqlRunnerResult, SqlRunnerError>)> {

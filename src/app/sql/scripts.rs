@@ -7,8 +7,11 @@ impl<'c> SqlScripts<'c> {
         Self(client)
     }
 
-    pub fn mark_package_as_not_changed(&self, package_uid: &str) -> Result<u64, CrtClientError> {
-        let query = match self.0.db_type()? {
+    pub async fn mark_package_as_not_changed(
+        &self,
+        package_uid: &str,
+    ) -> Result<u64, CrtClientError> {
+        let query = match self.0.db_type().await? {
             CrtDbType::MsSql => format!(
                 r#"UPDATE "SysSchema" 
                 SET "IsChanged" = 0, "IsLocked" = 0 
@@ -47,11 +50,14 @@ impl<'c> SqlScripts<'c> {
             ),
         };
 
-        Ok(self.0.sql(&query)?.rows_affected)
+        Ok(self.0.sql(&query).await?.rows_affected)
     }
 
-    pub fn delete_package_localizations(&self, package_uid: &str) -> Result<u64, CrtClientError> {
-        let query = match self.0.db_type()? {
+    pub async fn delete_package_localizations(
+        &self,
+        package_uid: &str,
+    ) -> Result<u64, CrtClientError> {
+        let query = match self.0.db_type().await? {
             _ => &format!(
                 r#"DELETE FROM "SysLocalizableValue" 
                 WHERE "SysPackageId" IN (
@@ -77,39 +83,39 @@ impl<'c> SqlScripts<'c> {
             ),
         };
 
-        Ok(self.0.sql(query)?.rows_affected)
+        Ok(self.0.sql(query).await?.rows_affected)
     }
 
-    pub fn reset_schema_content(&self, package_uid: &str) -> Result<u64, CrtClientError> {
-        let query = match self.0.db_type()? {
+    pub async fn reset_schema_content(&self, package_uid: &str) -> Result<u64, CrtClientError> {
+        let query = match self.0.db_type().await? {
             _ => &format!(
                 r#"DELETE FROM "SysSchemaContent" WHERE "SysSchemaId" IN (
                     SELECT "Id" FROM "SysSchema" WHERE "SysPackageId" IN (
                         SELECT "Id" FROM "SysPackage" WHERE "UId" = '{package_uid}'
                     )
-                )
+                );
                 
                 UPDATE "SysSchema"
                 SET "Checksum" = '',
-                "MetaData" = NULL,
-                "Descriptor" = NULL,
-                "CreatedOn" = NULL,
-                "ModifiedById" = NULL,
-                "CreatedById" = NULL,
-                "ModifiedOn" = NULL,
-                "ClientContentModifiedOn" = NULL
+                    "MetaData" = NULL,
+                    "Descriptor" = NULL,
+                    "CreatedOn" = NULL,
+                    "ModifiedById" = NULL,
+                    "CreatedById" = NULL,
+                    "ModifiedOn" = NULL,
+                    "ClientContentModifiedOn" = NULL
                 WHERE "SysPackageId" IN (
                     SELECT "Id" FROM "SysPackage" WHERE "UId" = '{package_uid}'
-                )
+                );
                 "#
             ),
         };
 
-        Ok(self.0.sql(query)?.rows_affected)
+        Ok(self.0.sql(query).await?.rows_affected)
     }
 
-    pub fn lock_package(&self, package_name: &str) -> Result<u64, CrtClientError> {
-        let query = match self.0.db_type()? {
+    pub async fn lock_package(&self, package_name: &str) -> Result<u64, CrtClientError> {
+        let query = match self.0.db_type().await? {
             CrtDbType::MsSql => &format!(
                 r#"UPDATE "SysPackage" 
                 SET "InstallType" = 1, "IsLocked" = 0, "IsChanged" = 0
@@ -124,11 +130,11 @@ impl<'c> SqlScripts<'c> {
             ),
         };
 
-        Ok(self.0.sql(query)?.rows_affected)
+        Ok(self.0.sql(query).await?.rows_affected)
     }
 
-    pub fn unlock_package(&self, package_name: &str) -> Result<u64, CrtClientError> {
-        let query = match self.0.db_type()? {
+    pub async fn unlock_package(&self, package_name: &str) -> Result<u64, CrtClientError> {
+        let query = match self.0.db_type().await? {
             CrtDbType::MsSql => &format!(
                 r#"UPDATE "SysPackage" 
                 SET "InstallType" = 0, "IsLocked" = 1, "IsChanged" = 1
@@ -143,6 +149,6 @@ impl<'c> SqlScripts<'c> {
             ),
         };
 
-        Ok(self.0.sql(query)?.rows_affected)
+        Ok(self.0.sql(query).await?.rows_affected)
     }
 }

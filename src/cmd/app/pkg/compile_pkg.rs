@@ -1,7 +1,9 @@
 use crate::app::CrtClient;
 use crate::cmd::app;
 use crate::cmd::app::{print_build_response, AppCommand};
+use crate::cmd::cli::CommandResult;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::Args;
 use std::error::Error;
 use std::sync::Arc;
@@ -21,11 +23,12 @@ pub struct CompilePkgCommand {
 #[derive(Debug, Error)]
 pub enum CompilePkgCommandError {
     #[error("App restart error: {0}")]
-    AppRestart(#[source] Box<dyn Error>),
+    AppRestart(#[source] Box<dyn Error + Send + Sync>),
 }
 
+#[async_trait]
 impl AppCommand for CompilePkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let package_name = detect_target_package_name!(&self.package_name);
 
         let progress = spinner_precise!(
@@ -36,7 +39,8 @@ impl AppCommand for CompilePkgCommand {
 
         let response = client
             .workspace_explorer_service()
-            .build_package(package_name)?;
+            .build_package(package_name)
+            .await?;
 
         progress.finish_and_clear();
 
@@ -52,6 +56,7 @@ impl AppCommand for CompilePkgCommand {
         if self.restart {
             app::restart::RestartCommand
                 .run(client)
+                .await
                 .map_err(CompilePkgCommandError::AppRestart)?;
         }
 

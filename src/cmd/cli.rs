@@ -1,8 +1,7 @@
-use crate::cmd::app::AppCommandArgs;
+use crate::cmd::app::{AppCommandArgs, AppCommands};
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use regex::Regex;
 use std::borrow::Cow;
-use std::error::Error;
 use std::io::Write;
 use std::process::exit;
 
@@ -26,7 +25,7 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn run(self) -> Result<(), Box<dyn Error>> {
+    pub fn run(self) -> CommandResult {
         if let Some(completions) = self.completions {
             return run_completions_command(completions);
         }
@@ -48,8 +47,12 @@ impl Cli {
 }
 
 pub trait CliCommand {
-    fn run(self) -> Result<(), Box<dyn std::error::Error>>;
+    fn run(self) -> CommandResult;
 }
+
+pub type CommandDynError = Box<dyn std::error::Error + Send + Sync>;
+
+pub type CommandResult = Result<(), CommandDynError>;
 
 #[derive(Debug, Subcommand)]
 enum Commands {
@@ -86,12 +89,17 @@ enum Commands {
 }
 
 impl CliCommand for Commands {
-    fn run(self) -> Result<(), Box<dyn Error>> {
+    fn run(self) -> CommandResult {
         match self {
-            Commands::App { args, command } => command.run(&args),
+            Commands::App { args, command } => run_app_command(args, command),
             Commands::Pkg { command } => command.run(),
         }
     }
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn run_app_command(args: AppCommandArgs, command: AppCommands) -> CommandResult {
+    command.run(&args).await
 }
 
 fn print_completions(shell: clap_complete::Shell, cmd: &mut Command) {
@@ -148,9 +156,7 @@ fn print_fish_completions(cmd: &mut Command) {
     }
 }
 
-fn run_completions_command(
-    completions: Option<clap_complete::Shell>,
-) -> Result<(), Box<dyn Error>> {
+fn run_completions_command(completions: Option<clap_complete::Shell>) -> CommandResult {
     let shell = completions.or_else(clap_complete::Shell::from_env);
 
     if let Some(shell) = shell {

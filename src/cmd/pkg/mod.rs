@@ -1,6 +1,5 @@
-use crate::cmd::cli::CliCommand;
+use crate::cmd::cli::{CliCommand, CommandResult};
 use clap::Subcommand;
-use std::error::Error;
 
 pub mod apply;
 pub mod config_file;
@@ -26,7 +25,7 @@ pub enum PkgCommands {
 }
 
 impl CliCommand for PkgCommands {
-    fn run(self) -> Result<(), Box<dyn Error>> {
+    fn run(self) -> CommandResult {
         match self {
             PkgCommands::Apply(command) => command.run(),
             PkgCommands::Pack(command) => command.run(),

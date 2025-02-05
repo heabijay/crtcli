@@ -7,8 +7,8 @@ pub use scripts::*;
 use crate::app::{CrtClient, CrtClientError, CrtDbType};
 use std::ops::Deref;
 
-pub fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientError> {
-    return match client.sql("SELECT version();") {
+pub async fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientError> {
+    return match client.sql("SELECT version();").await {
         Ok(r) => {
             let output = r.table.ok_or_else(get_unexpected_output_error)?;
 

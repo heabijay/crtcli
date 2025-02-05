@@ -1,9 +1,8 @@
-use crate::cmd::cli::CliCommand;
+use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::cmd::pkg::apply::PkgApplyFeatures;
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling::extractor::*;
 use clap::Args;
-use std::error::Error;
 use std::io::{Seek, SeekFrom};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -57,7 +56,7 @@ enum UnpackCommandError {
 }
 
 impl CliCommand for UnpackCommand {
-    fn run(self) -> Result<(), Box<dyn Error>> {
+    fn run(self) -> CommandResult {
         let destination_folder = match self.destination_folder {
             Some(folder) => folder,
             None => {

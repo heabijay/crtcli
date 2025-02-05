@@ -1,4 +1,4 @@
-use crate::cmd::cli::CliCommand;
+use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling;
 use crate::pkg::converters::*;
@@ -8,7 +8,6 @@ use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::error::Error;
 use std::io::Write;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -98,7 +97,7 @@ enum ApplyCommandError {
 }
 
 impl CliCommand for ApplyCommand {
-    fn run(self) -> Result<(), Box<dyn Error>> {
+    fn run(self) -> CommandResult {
         let pkg_config = CrtCliPkgConfig::from_package_folder(&self.package_folder)?;
 
         let apply_features = combine_apply_features_from_args_and_config(
@@ -142,7 +141,7 @@ impl CliCommand for ApplyCommand {
             mut stdout: impl Write,
             converter: &CombinedPkgFileConverter,
             file_path: PathBuf,
-        ) -> Result<(), Box<dyn Error>> {
+        ) -> CommandResult {
             let relative_path = file_path
                 .strip_prefix(&_self.package_folder)
                 .unwrap_or(&file_path);

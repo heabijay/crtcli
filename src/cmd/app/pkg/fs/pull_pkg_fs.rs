@@ -1,11 +1,11 @@
 use crate::app::CrtClient;
 use crate::cmd::app::pkg::fs::prepare_pkg_fs_folder;
 use crate::cmd::app::AppCommand;
-use crate::cmd::cli::CliCommand;
+use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::utils::get_package_name_from_folder;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -20,8 +20,9 @@ pub struct PullPkgFsCommand {
     apply_features: Option<crate::cmd::pkg::PkgApplyFeatures>,
 }
 
+#[async_trait]
 impl AppCommand for PullPkgFsCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let package_folder = match &self.package_folder {
             Some(package_folder) => package_folder,
             None => &PathBuf::from("."),
@@ -34,7 +35,8 @@ impl AppCommand for PullPkgFsCommand {
         crate::cmd::app::fs::pull_fs::PullFsCommand {
             packages: vec![package_name.clone()],
         }
-        .run(Arc::clone(&client))?;
+        .run(Arc::clone(&client))
+        .await?;
 
         eprintln!(
             "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully pulled to filesystem from {green_bold}{url}{green_bold:#}{green}!{green:#}",

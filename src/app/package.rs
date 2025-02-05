@@ -10,7 +10,7 @@ impl<'c> PackageService<'c> {
         Self(client)
     }
 
-    pub fn get_package_properties(
+    pub async fn get_package_properties(
         &self,
         package_uid: &str,
     ) -> Result<GetPackagePropertiesModel, CrtClientError> {
@@ -21,11 +21,13 @@ impl<'c> PackageService<'c> {
                 "0/ServiceModel/PackageService.svc/GetPackageProperties",
             )
             .json(&json!(package_uid))
-            .send_with_session(self.0)?
+            .send_with_session(self.0)
+            .await?
             .error_for_status()?;
 
         response
-            .json::<GetPackagePropertiesResponse>()?
+            .json::<GetPackagePropertiesResponse>()
+            .await?
             .into_result()
     }
 }
