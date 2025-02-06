@@ -10,11 +10,10 @@ use crate::app::session_cache::{
 use crate::app::utils::iter_set_cookies;
 use crate::app::workspace_explorer::WorkspaceExplorerService;
 use crate::app::{auth, sql};
-use reqwest::blocking::{RequestBuilder, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 use thiserror::Error;
 
 const CRTCLI_CLIENT_USER_AGENT: &str =
@@ -36,7 +35,7 @@ pub struct CrtClientBuilder {
     flags: CrtClientFlags,
     session: Option<CrtSession>,
     session_cache: Box<dyn CrtSessionCache>,
-    inner_client_builder: reqwest::blocking::ClientBuilder,
+    inner_client_builder: reqwest::ClientBuilder,
 }
 
 impl CrtClientBuilder {
@@ -46,7 +45,7 @@ impl CrtClientBuilder {
             flags: Default::default(),
             session: None,
             session_cache: create_default_session_cache(),
-            inner_client_builder: reqwest::blocking::ClientBuilder::new()
+            inner_client_builder: reqwest::ClientBuilder::new()
                 .user_agent(CRTCLI_CLIENT_USER_AGENT)
                 .timeout(std::time::Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
                 .redirect(reqwest::redirect::Policy::custom(|attempt| {
@@ -120,10 +119,10 @@ impl CrtClientBuilder {
 pub struct CrtClient {
     credentials: CrtCredentials,
     flags: CrtClientFlags,
-    inner_client: reqwest::blocking::Client,
+    inner_client: reqwest::Client,
     session: RwLock<Option<CrtSession>>,
     session_cache: Box<dyn CrtSessionCache>,
-    sql_runner: RwLock<Option<Box<dyn sql::SqlRunner>>>,
+    sql_runner: RwLock<Option<Arc<Box<dyn sql::SqlRunner>>>>,
     db_type: RwLock<Option<CrtDbType>>,
 }
 
@@ -161,7 +160,7 @@ impl CrtClient {
         self.flags.insecure
     }
 
-    pub fn request(&self, method: reqwest::Method, relative_url: &str) -> RequestBuilder {
+    pub fn request(&self, method: reqwest::Method, relative_url: &str) -> reqwest::RequestBuilder {
         self.inner_client
             .request(method, format!("{}/{}", self.base_url(), relative_url))
     }
@@ -190,13 +189,13 @@ impl CrtClient {
         sql::SqlScripts::new(self)
     }
 
-    pub fn db_type(&self) -> Result<CrtDbType, CrtClientError> {
+    pub async fn db_type(&self) -> Result<CrtDbType, CrtClientError> {
         let db_type = *self.db_type.read().unwrap();
 
         if let Some(db_type) = db_type {
             Ok(db_type)
         } else {
-            let db_type = sql::detect_db_type(self)?;
+            let db_type = sql::detect_db_type(self).await?;
 
             self.db_type.write().unwrap().replace(db_type);
 
@@ -204,31 +203,30 @@ impl CrtClient {
         }
     }
 
-    pub fn sql(&self, sql: &str) -> Result<sql::SqlRunnerResult, CrtClientError> {
-        let result = self
-            .sql_runner
-            .read()
-            .unwrap()
-            .as_ref()
-            .map(|sql_runner| sql_runner.sql(self, sql));
+    pub async fn sql(&self, sql: &str) -> Result<sql::SqlRunnerResult, CrtClientError> {
+        let result = self.sql_runner.read().unwrap().clone();
 
         if let Some(result) = result {
-            Ok(result?)
+            Ok(result.sql(self, sql).await?)
         } else {
             let (sql_runner, result) = sql::AutodetectSqlRunner::detect_and_run_sql(self, sql)
+                .await
                 .ok_or(sql::SqlRunnerError::NotFound)?;
 
-            self.sql_runner.write().unwrap().replace(sql_runner);
+            self.sql_runner
+                .write()
+                .unwrap()
+                .replace(Arc::new(sql_runner));
 
             Ok(result?)
         }
     }
 
-    fn send_request_with_session(
+    async fn send_request_with_session(
         &self,
-        builder: RequestBuilder,
-    ) -> Result<Response, CrtClientError> {
-        self.ensure_session()?;
+        builder: reqwest::RequestBuilder,
+    ) -> Result<reqwest::Response, CrtClientError> {
+        self.ensure_session().await?;
 
         let builder = {
             let session = self.session.read().unwrap();
@@ -238,11 +236,11 @@ impl CrtClient {
                 .header("BPMCSRF", session.as_ref().unwrap().bpmcsrf())
         };
 
-        let result = builder.send();
+        let result = builder.send().await;
 
         match result {
             result if Self::is_unauthorized_response_result(&result) => {
-                self.authenticate_and_store_session()?;
+                self.authenticate_and_store_session().await?;
 
                 Err(CrtClientError::Unauthorized)
             }
@@ -255,22 +253,23 @@ impl CrtClient {
         }
     }
 
-    fn ensure_session(&self) -> Result<(), CrtClientError> {
+    async fn ensure_session(&self) -> Result<(), CrtClientError> {
         if self.session.read().unwrap().is_none() {
             if let Some(session) = self.session_cache.get_entry(&self.credentials) {
                 self.session.write().unwrap().replace(session);
             } else {
-                self.authenticate_and_store_session()?;
+                self.authenticate_and_store_session().await?;
             }
         }
 
         Ok(())
     }
 
-    fn authenticate_and_store_session(&self) -> Result<(), CrtClientError> {
+    async fn authenticate_and_store_session(&self) -> Result<(), CrtClientError> {
         let new_session = self
             .auth_service()
-            .login(self.credentials.username(), self.credentials.password())?;
+            .login(self.credentials.username(), self.credentials.password())
+            .await?;
 
         self.session.write().unwrap().replace(new_session.clone());
         self.session_cache.set_entry(&self.credentials, new_session);
@@ -278,7 +277,7 @@ impl CrtClient {
         Ok(())
     }
 
-    fn update_session_from_response(&self, response: &Response) {
+    fn update_session_from_response(&self, response: &reqwest::Response) {
         let set_session_id = iter_set_cookies(response)
             .filter_map(|x| x.ok())
             .find(|&x| x.0 == "BPMSESSIONID");
@@ -304,7 +303,7 @@ impl CrtClient {
             })
     }
 
-    fn is_unauthorized_response_result(result: &Result<Response, reqwest::Error>) -> bool {
+    fn is_unauthorized_response_result(result: &Result<reqwest::Response, reqwest::Error>) -> bool {
         result
             .as_ref()
             .is_ok_and(|r| r.status() == reqwest::StatusCode::UNAUTHORIZED)
@@ -315,12 +314,18 @@ impl CrtClient {
 }
 
 pub trait CrtRequestBuilderExt {
-    fn send_with_session(self, client: &CrtClient) -> Result<Response, CrtClientError>;
+    async fn send_with_session(
+        self,
+        client: &CrtClient,
+    ) -> Result<reqwest::Response, CrtClientError>;
 }
 
-impl CrtRequestBuilderExt for RequestBuilder {
-    fn send_with_session(self, client: &CrtClient) -> Result<Response, CrtClientError> {
-        client.send_request_with_session(self)
+impl CrtRequestBuilderExt for reqwest::RequestBuilder {
+    async fn send_with_session(
+        self,
+        client: &CrtClient,
+    ) -> Result<reqwest::Response, CrtClientError> {
+        client.send_request_with_session(self).await
     }
 }
 

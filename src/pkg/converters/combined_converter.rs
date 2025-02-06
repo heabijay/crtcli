@@ -50,7 +50,9 @@ impl Debug for CombinedPkgFileConverter {
 }
 
 #[derive(Debug)]
-pub struct CombinedPkgFileConverterError(Box<dyn std::error::Error>);
+pub struct CombinedPkgFileConverterError(Box<dyn std::error::Error + Send + Sync>);
+
+type CombinedPkgFileConverterErrorInnerType = dyn std::error::Error + Send + Sync;
 
 impl Display for CombinedPkgFileConverterError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -60,14 +62,14 @@ impl Display for CombinedPkgFileConverterError {
 
 impl std::error::Error for CombinedPkgFileConverterError {}
 
-impl From<Box<dyn std::error::Error>> for CombinedPkgFileConverterError {
-    fn from(error: Box<dyn std::error::Error>) -> Self {
+impl From<Box<CombinedPkgFileConverterErrorInnerType>> for CombinedPkgFileConverterError {
+    fn from(error: Box<CombinedPkgFileConverterErrorInnerType>) -> Self {
         Self(error)
     }
 }
 
 impl Deref for CombinedPkgFileConverterError {
-    type Target = Box<dyn std::error::Error>;
+    type Target = Box<CombinedPkgFileConverterErrorInnerType>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -79,19 +81,20 @@ trait CombinedPkgFileConverterAdapter {
         &self,
         filename: &str,
         content: Vec<u8>,
-    ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>>;
+    ) -> Result<Option<Vec<u8>>, Box<CombinedPkgFileConverterErrorInnerType>>;
 
     fn is_applicable(&self, filename: &str) -> bool;
 }
 
-impl<E: std::error::Error + 'static> CombinedPkgFileConverterAdapter
-    for dyn PkgFileConverter<Error = E>
+impl<E> CombinedPkgFileConverterAdapter for dyn PkgFileConverter<Error = E>
+where
+    E: std::error::Error + Send + Sync + 'static,
 {
     fn convert(
         &self,
         filename: &str,
         content: Vec<u8>,
-    ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<Vec<u8>>, Box<CombinedPkgFileConverterErrorInnerType>> {
         self.convert(filename, content).map_err(|err| err.into())
     }
 
@@ -109,7 +112,7 @@ impl<C: PkgFileConverter> CombinedPkgFileConverterAdapter
         &self,
         filename: &str,
         content: Vec<u8>,
-    ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<Vec<u8>>, Box<CombinedPkgFileConverterErrorInnerType>> {
         Ok(self.0.convert(filename, content)?)
     }
 

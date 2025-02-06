@@ -8,29 +8,33 @@ repository = "https://github.com/heabijay/crtcli"
 license = "MIT"
 
 [dependencies]
-anstyle = "1.0.10"
 anstream = "0.6.18"
+anstyle = "1.0.10"
+async-trait = "0.1.86"
 bincode = "1.3.3"
-clap = { version = "4.5.27", features = ["derive", "env", "suggestions", "usage"] }
-clap_complete = "4.5.42"
+clap = { version = "4.5.22", features = ["derive", "env", "suggestions", "usage"] }
+clap_complete = "4.5.44"
 dotenvy = "0.15.7"
 flate2 = "1.0.35"
+futures = "0.3.31"
 hyper-util = "0.1.10"
-indicatif = "0.17.9"
+indicatif = "0.17.11"
 quick-xml = "0.37.2"
 regex = "1.11.1"
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = { version = "1.0.135", features = ["preserve_order"] }
+serde_json = { version = "1.0.138", features = ["preserve_order"] }
 thiserror = "2.0.11"
 time = { version = "0.3.37", features = ["formatting", "local-offset", "macros"] }
-toml = "0.8.19"
+tokio = { version =  "1.43.0", features = ["macros"] }
+tokio-util = { version = "0.7.13", features = ["io", "io-util"] }
+toml = "0.8.20"
 walkdir = "2.5.0"
 zip = "2.2.2"
 
 [dependencies.reqwest]
 version = "0.12.12"
 default-features = false
-features = ["charset", "blocking", "http2", "macos-system-configuration", "json", "multipart", "rustls-tls"]
+features = ["charset", "http2", "macos-system-configuration", "json", "multipart", "stream", "rustls-tls"]
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

@@ -1,7 +1,8 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
+use async_trait::async_trait;
 use clap::Subcommand;
-use std::error::Error;
 use std::path::Path;
 use std::sync::Arc;
 use thiserror::Error;
@@ -20,11 +21,12 @@ pub enum PkgFsCommands {
     Push(push_pkg_fs::PushPkgFsCommand),
 }
 
+#[async_trait]
 impl AppCommand for PkgFsCommands {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         match self {
-            PkgFsCommands::Pull(command) => command.run(client),
-            PkgFsCommands::Push(command) => command.run(client),
+            PkgFsCommands::Pull(command) => command.run(client).await,
+            PkgFsCommands::Push(command) => command.run(client).await,
         }
     }
 }

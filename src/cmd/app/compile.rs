@@ -2,10 +2,11 @@ use crate::app::workspace_explorer::{BuildPackageError, BuildResponse};
 use crate::app::CrtClient;
 use crate::cmd::app;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::io::Write;
 use std::sync::Arc;
 use thiserror::Error;
@@ -24,11 +25,12 @@ pub struct CompileCommand {
 #[derive(Debug, Error)]
 pub enum CompileCommandError {
     #[error("App restart error: {0}")]
-    AppRestart(#[source] Box<dyn Error>),
+    AppRestart(#[source] CommandDynError),
 }
 
+#[async_trait]
 impl AppCommand for CompileCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let progress = spinner_precise!(
             "{operation_str} Creatio application at {bold}{url}{bold:#}",
             bold = Style::new().bold(),
@@ -40,8 +42,8 @@ impl AppCommand for CompileCommand {
         );
 
         let response = match self.force_rebuild {
-            true => client.workspace_explorer_service().rebuild()?,
-            false => client.workspace_explorer_service().build()?,
+            true => client.workspace_explorer_service().rebuild().await?,
+            false => client.workspace_explorer_service().build().await?,
         };
 
         progress.suspend(|| print_build_response(&response))?;
@@ -60,6 +62,7 @@ impl AppCommand for CompileCommand {
         if self.restart {
             app::restart::RestartCommand
                 .run(client)
+                .await
                 .map_err(CompileCommandError::AppRestart)?;
         }
 
@@ -67,7 +70,7 @@ impl AppCommand for CompileCommand {
     }
 }
 
-pub fn print_build_response(response: &BuildResponse) -> Result<(), Box<dyn Error>> {
+pub fn print_build_response(response: &BuildResponse) -> CommandResult {
     let warn_printer = BuildPackageErrorPrinter::new_for_warning();
     let error_printer = BuildPackageErrorPrinter::new_for_error();
 

@@ -14,8 +14,8 @@ impl<'c> AuthService<'c> {
         Self(client)
     }
 
-    pub fn login(&self, username: &str, password: &str) -> Result<CrtSession, LoginError> {
-        let mut response = self
+    pub async fn login(&self, username: &str, password: &str) -> Result<CrtSession, LoginError> {
+        let response = self
             .0
             .request(Method::POST, "ServiceModel/AuthService.svc/Login")
             .header("ForceUseSession", "true")
@@ -23,12 +23,17 @@ impl<'c> AuthService<'c> {
                 "UserName": username,
                 "UserPassword": password
             }))
-            .send()?
+            .send()
+            .await?
             .error_for_status()?;
 
-        read_login_response(&mut response)?.into_result()?;
-
         let set_cookies = collect_set_cookies(&response)?;
+
+        response
+            .json::<LoginResponse>()
+            .await
+            .map_err(LoginError::ResponseRead)?
+            .into_result()?;
 
         let aspxauth = find_cookie_by_name(&set_cookies, ".ASPXAUTH")
             .ok_or_else(|| LoginError::CookieNotFound(".ASPXAUTH"))?;
@@ -38,18 +43,7 @@ impl<'c> AuthService<'c> {
 
         let csrftoken = find_cookie_by_name(&set_cookies, "CsrfToken");
 
-        return Ok(CrtSession::new(aspxauth, bpmcrsf, csrftoken, None));
-
-        fn read_login_response(
-            response: &mut impl std::io::Read,
-        ) -> Result<LoginResponse, LoginError> {
-            let mut body = vec![];
-
-            response.read_to_end(&mut body)?;
-
-            serde_json::from_slice(&body)
-                .map_err(|err| LoginError::ResponseParse { body, source: err })
-        }
+        Ok(CrtSession::new(aspxauth, bpmcrsf, csrftoken, None))
     }
 }
 
@@ -59,15 +53,7 @@ pub enum LoginError {
     Request(#[from] CrtClientError),
 
     #[error("response read error: {0}")]
-    ResponseRead(#[from] std::io::Error),
-
-    #[error("response parse error: {source}")]
-    ResponseParse {
-        body: Vec<u8>,
-
-        #[source]
-        source: serde_json::Error,
-    },
+    ResponseRead(#[source] reqwest::Error),
 
     #[error("login response error: {0}")]
     ResponseError(#[from] LoginResponse),

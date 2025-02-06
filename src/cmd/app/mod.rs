@@ -29,9 +29,10 @@ mod restart;
 mod sql;
 
 use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
+use crate::cmd::cli::CommandResult;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::{Args, Subcommand};
-use std::error::Error;
 use std::sync::Arc;
 
 const DEFAULT_APP_USERNAME: &str = "Supervisor";
@@ -63,8 +64,9 @@ pub struct AppCommandArgs {
     net_framework: bool,
 }
 
+#[async_trait]
 pub trait AppCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>>;
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult;
 }
 
 #[derive(Debug, Subcommand)]
@@ -104,19 +106,19 @@ pub enum AppCommands {
 }
 
 impl AppCommands {
-    pub fn run(&self, args: &AppCommandArgs) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&self, args: &AppCommandArgs) -> CommandResult {
         let client = Arc::new(Self::build_client(args)?);
 
         match self {
-            AppCommands::Compile(command) => command.run(client),
-            AppCommands::FlushRedis(command) => command.run(client),
-            AppCommands::Fs { command } => command.run(client),
-            AppCommands::InstallLog(command) => command.run(client),
-            AppCommands::Pkg { command } => command.run(client),
-            AppCommands::Pkgs(command) => command.run(client),
-            AppCommands::Restart(command) => command.run(client),
-            AppCommands::Request(command) => command.run(client),
-            AppCommands::Sql(command) => command.run(client),
+            AppCommands::Compile(command) => command.run(client).await,
+            AppCommands::FlushRedis(command) => command.run(client).await,
+            AppCommands::Fs { command } => command.run(client).await,
+            AppCommands::InstallLog(command) => command.run(client).await,
+            AppCommands::Pkg { command } => command.run(client).await,
+            AppCommands::Pkgs(command) => command.run(client).await,
+            AppCommands::Restart(command) => command.run(client).await,
+            AppCommands::Request(command) => command.run(client).await,
+            AppCommands::Sql(command) => command.run(client).await,
         }
     }
 

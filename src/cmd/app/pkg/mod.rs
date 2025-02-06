@@ -1,8 +1,9 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use crate::pkg::utils::GetPackageNameFromFolderError;
+use async_trait::async_trait;
 use clap::Subcommand;
-use std::error::Error;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -57,18 +58,19 @@ pub enum PkgCommands {
     Unlock(unlock_pkg::UnlockPkgCommand),
 }
 
+#[async_trait]
 impl AppCommand for PkgCommands {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         match self {
-            PkgCommands::Compile(command) => command.run(client),
-            PkgCommands::Download(command) => command.run(client),
-            PkgCommands::Fs { command } => command.run(client),
-            PkgCommands::Install(command) => command.run(client),
-            PkgCommands::GetUid(command) => command.run(client),
-            PkgCommands::Lock(command) => command.run(client),
-            PkgCommands::Pull(command) => command.run(client),
-            PkgCommands::Push(command) => command.run(client),
-            PkgCommands::Unlock(command) => command.run(client),
+            PkgCommands::Compile(command) => command.run(client).await,
+            PkgCommands::Download(command) => command.run(client).await,
+            PkgCommands::Fs { command } => command.run(client).await,
+            PkgCommands::Install(command) => command.run(client).await,
+            PkgCommands::GetUid(command) => command.run(client).await,
+            PkgCommands::Lock(command) => command.run(client).await,
+            PkgCommands::Pull(command) => command.run(client).await,
+            PkgCommands::Push(command) => command.run(client).await,
+            PkgCommands::Unlock(command) => command.run(client).await,
         }
     }
 }

@@ -1,18 +1,18 @@
 use crate::app::{CrtClient, CrtClientError, CrtRequestBuilderExt};
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use anstream::{stderr, stdout};
 use anstyle::Style;
+use async_trait::async_trait;
 use clap::builder::{ValueParser, ValueParserFactory};
 use clap::Args;
-use reqwest::blocking::Response;
 use reqwest::header::{HeaderName, HeaderValue};
 use reqwest::Method;
-use std::error::Error;
-use std::fs::File;
-use std::io::{stdin, ErrorKind, IsTerminal, Read, Write};
+use std::io::{stdin, IsTerminal, Read, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Args, Debug)]
 pub struct RequestCommand {
@@ -83,8 +83,9 @@ impl ValueParserFactory for HeaderArg {
     }
 }
 
+#[async_trait]
 impl AppCommand for RequestCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let url = self
             .url
             .strip_prefix(client.base_url())
@@ -116,9 +117,10 @@ impl AppCommand for RequestCommand {
         }
 
         let mut response = match self.anonymous {
-            true => request.send().map_err(CrtClientError::from)?,
+            true => request.send().await.map_err(CrtClientError::from)?,
             false => request
                 .send_with_session(&client)
+                .await
                 .map_err(CrtClientError::from)?,
         };
 
@@ -126,9 +128,13 @@ impl AppCommand for RequestCommand {
 
         match &self.output_file {
             Some(output_file) => {
-                std::io::copy(&mut response, &mut File::create(output_file)?)?;
+                let mut file = tokio::fs::File::create(output_file).await?;
+
+                while let Some(data) = response.chunk().await? {
+                    file.write_all(&data).await?;
+                }
             }
-            None => try_read_response_to_stdout(&mut response)?,
+            None => try_read_response_to_stdout(response).await?,
         }
 
         return Ok(());
@@ -162,7 +168,7 @@ impl AppCommand for RequestCommand {
             Ok(data)
         }
 
-        fn print_response_headers(response: &Response) {
+        fn print_response_headers(response: &reqwest::Response) {
             let key_style = Style::new().bold();
             let header_style = Style::new().bold().underline();
             let mut stderr = stderr().lock();
@@ -224,14 +230,8 @@ impl AppCommand for RequestCommand {
             }
         }
 
-        fn try_read_response_to_stdout(response: &mut Response) -> Result<(), Box<dyn Error>> {
-            let mut response_str = String::new();
-
-            match response.read_to_string(&mut response_str) {
-                Ok(_) => {},
-                Err(err) if err.kind() == ErrorKind::InvalidData => return Err("response body seems like not valid utf8 string, consider to use --output-file <path> parameter to save response body to file".into()),
-                Err(err) => return Err(err.into()),
-            }
+        async fn try_read_response_to_stdout(response: reqwest::Response) -> CommandResult {
+            let response_str = response.text().await?;
 
             if response_str.is_empty() {
                 return Ok(());

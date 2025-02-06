@@ -1,20 +1,23 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::Args;
-use std::error::Error;
 use std::io::Write;
 use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct CheckFsCommand;
 
+#[async_trait]
 impl AppCommand for CheckFsCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let result = client
             .workspace_explorer_service()
-            .get_is_file_system_development_mode()?;
+            .get_is_file_system_development_mode()
+            .await?;
 
         let mut stdout = stdout().lock();
 

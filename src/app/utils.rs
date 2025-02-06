@@ -1,4 +1,3 @@
-use reqwest::blocking::Response;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -6,7 +5,7 @@ use thiserror::Error;
 pub struct CookieParsingError;
 
 pub fn iter_set_cookies(
-    response: &Response,
+    response: &reqwest::Response,
 ) -> impl Iterator<Item = Result<(&str, &str), CookieParsingError>> {
     response
         .headers()
@@ -24,13 +23,17 @@ pub fn iter_set_cookies(
         })
 }
 
-pub fn collect_set_cookies(response: &Response) -> Result<Vec<(&str, &str)>, CookieParsingError> {
-    iter_set_cookies(response).collect::<Result<Vec<_>, CookieParsingError>>()
+pub fn collect_set_cookies(
+    response: &reqwest::Response,
+) -> Result<Vec<(String, String)>, CookieParsingError> {
+    iter_set_cookies(response)
+        .map(|x| x.map(|(name, value)| (name.to_owned(), value.to_owned())))
+        .collect::<Result<Vec<_>, CookieParsingError>>()
 }
 
-pub fn find_cookie_by_name(set_cookies: &[(&str, &str)], name: &str) -> Option<String> {
+pub fn find_cookie_by_name(set_cookies: &[(String, String)], name: &str) -> Option<String> {
     set_cookies
         .iter()
         .find(|(cookie_name, _)| *cookie_name == name)
-        .map(|(_, value)| (*value).to_owned())
+        .map(|(_, value)| value.to_owned())
 }

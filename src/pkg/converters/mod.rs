@@ -8,7 +8,7 @@ mod localization_cleanup;
 pub use localization_cleanup::*;
 
 pub trait PkgFileConverter {
-    type Error: std::error::Error + 'static;
+    type Error: std::error::Error + Send + Sync + 'static;
 
     fn convert(&self, filename: &str, content: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error>;
 

@@ -2,10 +2,11 @@ use crate::app::CrtClient;
 use crate::cmd::app::pkg::install_pkg::*;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::{CommandDynError, CommandResult};
 use crate::pkg::bundling::packer::*;
+use async_trait::async_trait;
 use clap::Args;
 use flate2::Compression;
-use std::error::Error;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -36,8 +37,9 @@ pub enum PushPkgCommandError {
     InstallPackage(#[from] InstallPkgCommandError),
 }
 
+#[async_trait]
 impl AppCommand for PushPkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let source_folder: &[PathBuf] = if self.source_folders.is_empty() {
             &[PathBuf::from(".")]
         } else {
@@ -55,11 +57,14 @@ impl AppCommand for PushPkgCommand {
             &package_filename,
             &self.install_pkg_options,
         )
+        .await
         .map_err(PushPkgCommandError::InstallPackage)?;
 
         return Ok(());
 
-        fn pack_folder_as_gzip(folder: &Path) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+        fn pack_folder_as_gzip(
+            folder: &Path,
+        ) -> Result<(String, Vec<u8>), CommandDynError> {
             let package_name = detect_target_package_name!(None, folder);
             let mut package_gzip = vec![];
 
@@ -77,7 +82,7 @@ impl AppCommand for PushPkgCommand {
 
         fn pack_folders_as_zip(
             source_folders: &[PathBuf],
-        ) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+        ) -> Result<(String, Vec<u8>), CommandDynError> {
             let mut package_zip_cursor = Cursor::new(vec![]);
 
             pack_zip_package_from_folders(

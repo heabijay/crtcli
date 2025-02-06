@@ -1,16 +1,17 @@
 use crate::app::{CrtClient, CrtClientError};
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use crate::cmd::pkg::config_file::{combine_apply_features_from_args_and_config, CrtCliPkgConfig};
 use crate::pkg::bundling::extractor::*;
 use anstyle::{AnsiColor, Color, Style};
+use async_trait::async_trait;
 use clap::builder::{ValueParser, ValueParserFactory};
 use clap::Args;
-use std::error::Error;
-use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::io::AsyncReadExt;
 
 #[derive(Args, Debug)]
 pub struct PullPkgCommand {
@@ -99,8 +100,9 @@ impl ValueParserFactory for PackageDestinationArg {
     }
 }
 
+#[async_trait]
 impl AppCommand for PullPkgCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let current_folder = PathBuf::from(".");
 
         let packages_map: &[_] = if self.packages_map.is_empty() {
@@ -142,11 +144,12 @@ impl AppCommand for PullPkgCommand {
                     .map(|p| p.package_name.as_str())
                     .collect::<Vec<_>>(),
             )
+            .await
             .map_err(PullPkgCommandError::DownloadPackage)?;
 
         let mut package_data = vec![];
 
-        packages.read_to_end(&mut package_data)?;
+        packages.read_to_end(&mut package_data).await?;
 
         progress.finish_and_clear();
 

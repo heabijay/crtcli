@@ -53,6 +53,7 @@ pub enum ExtractSingleZipPackageError {
     #[error("unable to extract gzip package ({filename}): {source}")]
     ExtractGZipPackage {
         filename: String,
+
         #[source]
         source: ExtractGzipPackageError,
     },
@@ -130,9 +131,13 @@ impl SmartMergeContext {
         destination_folder: &Path,
         config: &PackageToFolderExtractorConfig,
     ) -> Option<Self> {
-        (config.files_already_exists_in_folder_strategy
-            == FilesAlreadyExistsInFolderStrategy::SmartMerge)
-            .then(|| Self::new(destination_folder.to_path_buf()))
+        if config.files_already_exists_in_folder_strategy
+            == FilesAlreadyExistsInFolderStrategy::SmartMerge
+        {
+            Some(Self::new(destination_folder.to_path_buf()))
+        } else {
+            None
+        }
     }
 
     pub fn execute(self, config: &PackageToFolderExtractorConfig) -> Result<(), std::io::Error> {

@@ -1,10 +1,11 @@
 use crate::app::sql::SqlRunner;
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
+use crate::cmd::cli::CommandResult;
 use anstyle::Style;
+use async_trait::async_trait;
 use clap::{Args, ValueEnum};
 use serde::Serialize;
-use std::error::Error;
 use std::io::{stdin, IsTerminal, Read};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -34,8 +35,9 @@ enum SqlRunnerSelect {
     SqlConsole,
 }
 
+#[async_trait]
 impl AppCommand for SqlCommand {
-    fn run(&self, client: Arc<CrtClient>) -> Result<(), Box<dyn Error>> {
+    async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let sql = match (self.sql.as_ref(), self.file.as_ref()) {
             (Some(_), Some(_)) => return Err("sql command and --file argument cannot be specified at the same time, consider to remove one of them".into()),
             (Some(sql), None) => sql,
@@ -50,12 +52,14 @@ impl AppCommand for SqlCommand {
         );
 
         let result = match &self.runner {
-            None => client.sql(sql)?,
+            None => client.sql(sql).await?,
             Some(SqlRunnerSelect::Cliogate) => {
-                crate::app::sql::ClioGateSqlRunner.sql(&client, sql)?
+                crate::app::sql::ClioGateSqlRunner.sql(&client, sql).await?
             }
             Some(SqlRunnerSelect::SqlConsole) => {
-                crate::app::sql::SqlConsoleSqlRunner.sql(&client, sql)?
+                crate::app::sql::SqlConsoleSqlRunner
+                    .sql(&client, sql)
+                    .await?
             }
         };
 
