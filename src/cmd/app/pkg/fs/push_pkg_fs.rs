@@ -18,11 +18,11 @@ pub struct PushPkgFsCommand {
 
     /// Compile package in Creatio after successful push
     #[arg(short, long)]
-    compile_package_after_push: bool,
+    compile_package: bool,
 
-    /// Restart application after successful package compilation in Creatio
+    /// Restart application after successful push (and package compilation in Creatio)
     #[arg(short, long)]
-    restart_app_after_compile: bool,
+    restart: bool,
 }
 
 #[async_trait]
@@ -50,13 +50,15 @@ impl AppCommand for PushPkgFsCommand {
             url=client.base_url(),
         );
 
-        if self.compile_package_after_push {
+        if self.compile_package {
             crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
                 package_name: Some(package_name),
-                restart: self.restart_app_after_compile,
+                restart: self.restart,
             }
             .run(client)
             .await?;
+        } else if self.restart {
+            client.app_installer_service().restart_app().await?;
         }
 
         Ok(())

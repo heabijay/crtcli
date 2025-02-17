@@ -325,9 +325,9 @@ crtcli app pkg compile "{package_name}" -r
 
   Sample: <Creatio_Dir>/Terrasoft.Configuration/Pkg/<Package_Name>
 
-- `--compile-package-after-push | -c` — Compile package after successful push.
+- `--compile-package | -c` — Compile package in Creatio after successful push.
 
-- `--restart-app-after-compile | -r` — Restart the Creatio application after successful compilation.
+- `--restart | -r` — Restart the Creatio application after successful push (and package compilation in Creatio).
 
 **Examples:**
 
@@ -414,20 +414,20 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
     SELECT "Id" FROM "SysSchema" WHERE "SysPackageId" IN (
         SELECT "Id" FROM "SysPackage" WHERE "UId" = '{package_uid}'
     )
-  )
+  );
   
   UPDATE "SysSchema"
   SET "Checksum" = '',
-  "MetaData" = NULL,
-  "Descriptor" = NULL,
-  "CreatedOn" = NULL,
-  "ModifiedById" = NULL,
-  "CreatedById" = NULL,
-  "ModifiedOn" = NULL,
-  "ClientContentModifiedOn" = NULL
+      "MetaData" = NULL,
+      "Descriptor" = NULL,
+      "CreatedOn" = NULL,
+      "ModifiedById" = NULL,
+      "CreatedById" = NULL,
+      "ModifiedOn" = NULL,
+      "ClientContentModifiedOn" = NULL
   WHERE "SysPackageId" IN (
       SELECT "Id" FROM "SysPackage" WHERE "UId" = '{package_uid}'
-  )
+  );
   ```
   
 - `--disable-install-log-pooling` — Disables the display of the installation log.

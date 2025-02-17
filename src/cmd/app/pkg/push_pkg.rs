@@ -62,9 +62,7 @@ impl AppCommand for PushPkgCommand {
 
         return Ok(());
 
-        fn pack_folder_as_gzip(
-            folder: &Path,
-        ) -> Result<(String, Vec<u8>), CommandDynError> {
+        fn pack_folder_as_gzip(folder: &Path) -> Result<(String, Vec<u8>), CommandDynError> {
             let package_name = detect_target_package_name!(None, folder);
             let mut package_gzip = vec![];
 

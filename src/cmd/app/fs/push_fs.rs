@@ -42,6 +42,8 @@ impl AppCommand for PushFsCommand {
 
         print_fs_sync_result(&result);
 
+        result.into_result()?;
+
         Ok(())
     }
 }
