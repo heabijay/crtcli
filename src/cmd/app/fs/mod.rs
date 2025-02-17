@@ -100,11 +100,6 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
     }
 
     if !result.errors.is_empty() {
-        if !result.changes.is_empty() {
-            writeln!(stdout).unwrap();
-            writeln!(stdout).unwrap();
-        }
-
         writeln!(stdout, "{red}Errors ({}):{red:#}", result.errors.len()).unwrap();
 
         for error in &result.errors {
