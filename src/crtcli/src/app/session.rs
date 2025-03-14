@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use bincode::{Decode, Encode};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
 pub struct CrtSession {
     aspxauth: String,
     bpmcsrf: String,

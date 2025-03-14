@@ -1,5 +1,5 @@
 use crate::app::{CrtCredentials, CrtSession};
-use serde::{Deserialize, Serialize};
+use bincode::{Decode, Encode};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env::temp_dir;
@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::RwLock;
 use time::OffsetDateTime;
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Encode, Decode, Clone)]
 struct CrtSessionCacheEntry {
     created_timestamp: i64,
     value: CrtSession,
@@ -29,15 +29,19 @@ impl CrtSessionCacheStorage for BinaryFileCrtSessionCacheStorage {
     fn get(&self) -> Cow<HashMap<u64, CrtSessionCacheEntry>> {
         let cache: HashMap<u64, CrtSessionCacheEntry> = File::open(&self.filepath)
             .ok()
-            .and_then(|f| bincode::deserialize_from(f).ok())
+            .and_then(|mut f| {
+                bincode::decode_from_std_read(&mut f, bincode::config::standard()).ok()
+            })
             .unwrap_or_default();
 
         Cow::Owned(cache)
     }
 
     fn set(&self, value: Cow<HashMap<u64, CrtSessionCacheEntry>>) {
-        let _ = File::create(&self.filepath)
-            .is_ok_and(|file| bincode::serialize_into(file, value.as_ref()).is_ok());
+        let _ = File::create(&self.filepath).is_ok_and(|mut file| {
+            bincode::encode_into_std_write(value.as_ref(), &mut file, bincode::config::standard())
+                .is_ok()
+        });
     }
 }
 

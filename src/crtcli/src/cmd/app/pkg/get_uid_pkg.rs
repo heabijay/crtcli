@@ -3,8 +3,8 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use async_trait::async_trait;
 use clap::Args;
-use std::sync::Arc;
 use serde_json::json;
+use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct GetUidPkgCommand {
