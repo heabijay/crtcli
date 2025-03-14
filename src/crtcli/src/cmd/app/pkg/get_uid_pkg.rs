@@ -4,6 +4,7 @@ use crate::cmd::cli::CommandResult;
 use async_trait::async_trait;
 use clap::Args;
 use std::sync::Arc;
+use serde_json::json;
 
 #[derive(Args, Debug)]
 pub struct GetUidPkgCommand {
@@ -25,7 +26,7 @@ impl AppCommand for GetUidPkgCommand {
             .await?;
 
         match &self.json {
-            true => println!("{}", serde_json::json!(package)),
+            true => println!("{}", json!(package)),
             false => {
                 println!("{} ({})", package.name, package.uid);
                 println!("| Id: {}", package.id);

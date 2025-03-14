@@ -178,14 +178,15 @@ impl AppCommand for PullPkgCommand {
             .map_err(PullPkgCommandError::ExtractPackage)?;
         }
 
-        eprintln!(
-            "{green}✔ Package{packages_suffix} {green_bold}{packages_str}{green_bold:#}{green} successfully pulled from {green_bold}{url}{green_bold:#}{green}!{green:#}",
+        spinner!(
+            finished_in = progress.elapsed(),
+            "{green}Package{packages_suffix} {green_bold}{packages_str}{green_bold:#}{green} successfully pulled from {green_bold}{url}{green_bold:#}{green}!{green:#}",
             green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
             green_bold = Style::new()
                 .fg_color(Some(Color::Ansi(AnsiColor::Green)))
                 .bold(),
             packages_suffix = if packages_map.len() > 1 { "s" } else { "" },
-            url = client.base_url(),
+            url = client.base_url()
         );
 
         Ok(())

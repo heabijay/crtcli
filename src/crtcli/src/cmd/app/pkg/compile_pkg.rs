@@ -42,18 +42,16 @@ impl AppCommand for CompilePkgCommand {
             .build_package(package_name)
             .await?;
 
-        progress.finish_and_clear();
+        progress.suspend(|| print_build_response(&response))?;
 
-        print_build_response(&response)?;
-
-        eprintln!(
-            "{green}✔ Package {green_bold}{package_name}{green_bold:#}{green} successfully compiled at {green_bold}{url}{green_bold:#}{green}!{green:#}",
+        progress.finish_with_message(format!(
+            "{green}Package {green_bold}{package_name}{green_bold:#}{green} successfully compiled at {green_bold}{url}{green_bold:#}{green}!{green:#}",
             green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
             green_bold = Style::new()
                 .fg_color(Some(Color::Ansi(AnsiColor::Green)))
                 .bold(),
             url = client.base_url(),
-        );
+        ));
 
         if self.restart {
             app::restart::RestartCommand

@@ -18,6 +18,20 @@ macro_rules! spinner_precise {
 }
 
 macro_rules! spinner {
+    (finished_in = $elapsed:expr, $($arg:tt)*) => {
+        {
+            use indicatif::{ProgressBar, ProgressStyle};
+
+            ProgressBar::new_spinner()
+                .with_style(
+                    ProgressStyle::with_template("{spinner} {msg} — {elapsed}")
+                        .unwrap()
+                        .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏✔"))
+                .with_message(format!($($arg)*))
+                .with_elapsed($elapsed)
+                .finish();
+        }
+    };
     ($($arg:tt)*) => {
         {
             use indicatif::{ProgressBar, ProgressStyle};
@@ -33,7 +47,7 @@ macro_rules! spinner {
 
             progress
         }
-    }
+    };
 }
 
 macro_rules! output_has_filename_or {
