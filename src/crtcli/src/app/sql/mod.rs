@@ -31,7 +31,7 @@ pub async fn detect_db_type(client: &CrtClient) -> Result<CrtDbType, CrtClientEr
             };
         }
         Err(CrtClientError::SqlRunner(sql_err))
-            if { matches!(sql_err.deref(), SqlRunnerError::NotFound) } =>
+            if { !matches!(sql_err.deref(), SqlRunnerError::Request(_)) } =>
         {
             Ok(CrtDbType::MsSql)
         }

@@ -685,7 +685,7 @@ Sends authenticated HTTP requests to the Creatio instance, similar to curl.
 
   stdin & stdout:
   ```shell
-  Enter request data below: (Press Ctrl+D twice to finish)
+  Enter request data below: (Press Ctrl+D to finish)
   -=-=- -=-=- -=-=- -=-=- -=-=-
   
   {"date":"2025-01-01"}
@@ -712,14 +712,14 @@ _Beta: this command is still under development._
 
 **Supported SQL packages:**
 
-- [cliogate](https://raw.githubusercontent.com/Advance-Technologies-Foundation/clio/refs/heads/master/cliogate.gz)
+- cliogate (Version [1.1.1.2](assets/packages/cliogate_1.1.1.2.zip) or greater)
 - SqlConsole
 
 **Arguments:**
 
 - `[SQL]` — SQL query to execute.
 
-  Defaults: If omitted and the --file option is not used, crtcli will prompt you to enter the query from standard input (press Ctrl+D twice to finish).
+  Defaults: If omitted and the --file option is not used, crtcli will prompt you to enter the query from standard input (press Ctrl+D to finish).
 
 **Options:**
 
@@ -750,7 +750,7 @@ _Beta: this command is still under development._
 
   stdin & stdout:
   ```shell
-  Enter SQL query below: (Press Ctrl+D twice to finish)
+  Enter SQL query below: (Press Ctrl+D to finish)
   -=-=- -=-=- -=-=- -=-=- -=-=-
   
   select count(*) from "Contact"

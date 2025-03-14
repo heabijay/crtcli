@@ -142,7 +142,7 @@ impl AppCommand for RequestCommand {
             let stdin_terminal = stdin().is_terminal();
 
             if stdin_terminal {
-                eprintln!("Enter request data below: (Press Ctrl+D twice to finish)");
+                eprintln!("Enter request data below: (Press Ctrl+D to finish)");
                 eprintln!("{dimmed}-=-=- -=-=- -=-=- -=-=- -=-=-{dimmed:#}");
                 eprintln!("{italic}");
             }
