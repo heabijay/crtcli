@@ -4,7 +4,14 @@
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $ProgressPreference = 'SilentlyContinue'
-$release = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/heabijay/crtcli/releases/latest"
+
+if ($env:CRTCLI_INSTALL_VERSION_TAG) {
+    $releaseUrl = "https://api.github.com/repos/heabijay/crtcli/releases/tags/$($env:CRTCLI_INSTALL_VERSION_TAG)"
+} else {
+    $releaseUrl = "https://api.github.com/repos/heabijay/crtcli/releases/latest"
+}
+
+$release = Invoke-RestMethod -Method Get -Uri $releaseUrl
 $asset = $release.assets | Where-Object name -like *x86_64-pc-windows*.zip
 $destdir = "$env:LOCALAPPDATA\crtcli"
 $zipfile = "$env:TEMP\$( $asset.name )"
