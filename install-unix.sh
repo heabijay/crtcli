@@ -34,10 +34,23 @@ detect_os() {
 }
 
 fetch_target_url() {
-  releases=$(fetch https://api.github.com/repos/heabijay/crtcli/releases/latest)
+  if [ -n "$CRTCLI_INSTALL_VERSION_TAG" ]; then
+    tag="$CRTCLI_INSTALL_VERSION_TAG"
+    releases_url="https://api.github.com/repos/heabijay/crtcli/releases/tags/$tag"
+  else
+    releases_url="https://api.github.com/repos/heabijay/crtcli/releases/latest"
+  fi
+
+  releases=$(fetch "$releases_url")
+
   url=$(echo "$releases" | grep -wo -m1 "https://.*$target.tar.gz" || true)
+
   if ! test "$url"; then
-    echo "Error: Cannot find release info for $target."
+    if [ -n "$CRTCLI_INSTALL_VERSION_TAG" ]; then
+      echo "Error: Cannot find release info for $target with tag $tag."
+    else
+      echo "Error: Cannot find release info for $target."
+    fi
     exit 1
   fi
 }
