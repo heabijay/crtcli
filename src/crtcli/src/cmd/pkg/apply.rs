@@ -1,5 +1,7 @@
 use crate::cmd::cli::{CliCommand, CommandResult};
-use crate::cmd::pkg::config_file::{CrtCliPkgConfig, combine_apply_features_from_args_and_config};
+use crate::cmd::pkg::package_config::{
+    CrtCliPkgConfig, combine_apply_features_from_args_and_config,
+};
 use crate::pkg::bundling;
 use crate::pkg::converters::*;
 use crate::pkg::utils::{WalkOverPackageFilesContentError, walk_over_package_files};

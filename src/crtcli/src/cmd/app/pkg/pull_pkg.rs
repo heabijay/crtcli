@@ -2,7 +2,9 @@ use crate::app::{CrtClient, CrtClientError};
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::cli::CommandResult;
-use crate::cmd::pkg::config_file::{CrtCliPkgConfig, combine_apply_features_from_args_and_config};
+use crate::cmd::pkg::package_config::{
+    CrtCliPkgConfig, combine_apply_features_from_args_and_config,
+};
 use crate::pkg::bundling::extractor::*;
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
