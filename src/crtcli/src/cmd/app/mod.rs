@@ -17,7 +17,9 @@ macro_rules! detect_target_package_name {
 }
 
 mod compile;
+
 pub use compile::print_build_response;
+use std::process::ExitCode;
 
 mod flush_redis;
 mod fs;
@@ -28,8 +30,10 @@ mod request;
 mod restart;
 mod sql;
 
+use crate::CommandHandledError;
 use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
-use crate::cmd::cli::CommandResult;
+use crate::cmd::cli::{CommandDynError, CommandResult};
+use crate::cmd::workspace_config::{WorkspaceAppConfig, WorkspaceConfig};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
@@ -38,10 +42,17 @@ use std::sync::Arc;
 const DEFAULT_APP_USERNAME: &str = "Supervisor";
 const DEFAULT_APP_PASSWORD: &str = "Supervisor";
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 pub struct AppCommandArgs {
-    /// Creatio Base URL
-    #[arg(value_hint = clap::ValueHint::Url, env = "CRTCLI_APP_URL")]
+    /// Creatio Base URL or App Alias
+    ///
+    /// Check workspace.crtcli.toml in docs for more information about app aliases
+    #[arg(
+        verbatim_doc_comment,
+        value_name = "URL/APP",
+        value_hint = clap::ValueHint::Url,
+        env = "CRTCLI_APP_URL"
+    )]
     url: String,
 
     /// Creatio Username [default: Supervisor]
@@ -106,8 +117,9 @@ pub enum AppCommands {
 }
 
 impl AppCommands {
-    pub async fn run(&self, args: &AppCommandArgs) -> CommandResult {
-        let client = Arc::new(Self::build_client(args)?);
+    pub async fn run(&self, args: AppCommandArgs) -> CommandResult {
+        let args = Self::load_and_apply_workspace_config(args)?;
+        let client = Arc::new(Self::build_client(&args)?);
 
         match self {
             AppCommands::Compile(command) => command.run(client).await,
@@ -183,5 +195,93 @@ impl AppCommands {
 
             None
         }
+    }
+
+    fn is_http_url_address(url: &str) -> bool {
+        let url_lowercase = url.to_lowercase();
+
+        url_lowercase.starts_with("http://") || url_lowercase.starts_with("https://")
+    }
+
+    fn load_and_apply_workspace_config(
+        mut args: AppCommandArgs,
+    ) -> Result<AppCommandArgs, CommandDynError> {
+        if Self::is_http_url_address(&args.url) {
+            return Ok(args);
+        }
+
+        let workspace_config = WorkspaceConfig::load_from_current_dir()?;
+        let workspace_app_config = workspace_config.apps().get(&args.url);
+
+        return if let Some(app_config) = workspace_app_config {
+            args.merge_from_workspace_app_config(app_config.to_owned());
+
+            Ok(args)
+        } else {
+            print_app_aliases_not_found(workspace_config, &args.url);
+
+            Err(CommandHandledError(ExitCode::FAILURE).into())
+        };
+
+        fn print_app_aliases_not_found(workspace_config: WorkspaceConfig, alias: &str) {
+            let bold = Style::new().bold();
+            let bold_underline = Style::new().bold().underline();
+            let max_key_len = workspace_config
+                .apps()
+                .keys()
+                .map(|k| k.len())
+                .max()
+                .unwrap_or(0);
+
+            eprintln!(
+                "{red_bold}error:{red_bold:#} unrecognized app alias '{orange}{alias}{orange:#}' or it is not valid http(s) Creatio Base URL",
+                red_bold = Style::new()
+                    .fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                    .bold(),
+                orange = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow))),
+            );
+
+            eprintln!();
+
+            let sorted_apps = {
+                let mut apps: Vec<_> = workspace_config.apps().iter().collect();
+                apps.sort_by(|k1, k2| k1.0.cmp(k2.0));
+                apps
+            };
+
+            eprintln!("{bold_underline}Apps:{bold_underline:#}");
+
+            for app in &sorted_apps {
+                eprintln!(
+                    "  {bold}{alias:<max_key_len$}{bold:#}  {url}",
+                    alias = app.0,
+                    url = app.1.url,
+                );
+            }
+
+            if sorted_apps.is_empty() {
+                eprintln!(
+                    "  {italic}[No apps defined along workspace.crtcli.toml files]{italic:#}",
+                    italic = Style::new().italic(),
+                );
+            }
+
+            eprintln!();
+            eprintln!(
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> [COMMAND]"
+            );
+            eprintln!();
+            eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
+        }
+    }
+}
+
+impl AppCommandArgs {
+    pub fn merge_from_workspace_app_config(&mut self, app_config: WorkspaceAppConfig) {
+        self.url = app_config.url;
+        self.username = app_config.username;
+        self.password = app_config.password;
+        self.insecure = app_config.insecure.unwrap_or_default();
+        self.net_framework = app_config.net_framework.unwrap_or_default();
     }
 }

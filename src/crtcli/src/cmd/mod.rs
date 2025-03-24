@@ -72,3 +72,4 @@ mod app;
 mod pkg;
 
 mod utils;
+mod workspace_config;

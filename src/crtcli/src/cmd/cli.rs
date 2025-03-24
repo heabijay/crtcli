@@ -59,10 +59,15 @@ enum Commands {
     /// Commands to interact with Creatio application instance
     ///
     /// This is the collection of subcommands that are related to concrete Creatio instance.
-    /// You should specify Creatio connection parameters like URL, USERNAME, PASSWORD through command arguments or you could set ENV variables (as well as create .env file) for better UX.
+    /// You should specify Creatio connection parameters like URL, USERNAME, PASSWORD through command arguments
+    /// or you could set ENV variables (as well as create .env file) for better UX.
+    ///
+    /// You can also use app aliases defined in workspace.crtcli.toml config file by specifying
+    /// the alias name as the URL parameter. For example: `crtcli app dev restart`
     ///
     /// Example use cases:
-    /// `crtcli app restart` -- Restarts Creatio instance.
+    /// `crtcli app https://localhost:5000 restart` -- Restarts Creatio instance.
+    /// `crtcli app dev restart` -- Restarts Creatio instance using the 'dev' app alias.
     /// `crtcli app pkg download CrtBase,CrtCore` -- Downloads CrtBase and CrtCore packages from Creatio to single zip file.
     /// `crtcli app pkg push` -- Immediate packs current folder as package and installs it to Creatio instance.
     #[clap(verbatim_doc_comment)]
@@ -99,7 +104,7 @@ impl CliCommand for Commands {
 
 #[tokio::main(flavor = "current_thread")]
 async fn run_app_command(args: AppCommandArgs, command: AppCommands) -> CommandResult {
-    command.run(&args).await
+    command.run(args).await
 }
 
 fn print_completions(shell: clap_complete::Shell, cmd: &mut Command) {

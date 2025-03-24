@@ -1,6 +1,8 @@
 use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::cmd::pkg::apply::PkgApplyFeatures;
-use crate::cmd::pkg::config_file::{CrtCliPkgConfig, combine_apply_features_from_args_and_config};
+use crate::cmd::pkg::package_config::{
+    CrtCliPkgConfig, combine_apply_features_from_args_and_config,
+};
 use crate::pkg::bundling::extractor::*;
 use clap::Args;
 use std::io::{Seek, SeekFrom};

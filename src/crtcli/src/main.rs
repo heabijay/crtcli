@@ -3,12 +3,24 @@ extern crate anstream;
 
 use anstyle::{AnsiColor, Color, Style};
 use clap::Parser;
+use std::fmt::{Debug, Display, Formatter};
 use std::process::ExitCode;
 
 mod app;
 mod cmd;
 mod pkg;
 mod utils;
+
+#[derive(Debug)]
+struct CommandHandledError(ExitCode);
+
+impl Display for CommandHandledError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Command finished with exit code: {:?}", self.0)
+    }
+}
+
+impl std::error::Error for CommandHandledError {}
 
 fn main() -> ExitCode {
     load_envs();
@@ -18,6 +30,11 @@ fn main() -> ExitCode {
 
     match cli.run() {
         Ok(_) => ExitCode::SUCCESS,
+        Err(err) if err.is::<CommandHandledError>() => {
+            let err = err.downcast_ref::<CommandHandledError>().unwrap();
+
+            err.0
+        }
         Err(err) => {
             eprintln!(
                 "{style}Error: {err:#}{style:#}",

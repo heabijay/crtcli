@@ -82,11 +82,13 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
 
 Commands to interact with Creatio application instance.
 
-Please check [dotenv (.env) files](#dotenv-env-files) for simplified commands usage.
+Please check [dotenv (.env) files](#dotenv-env-files) and [workspace.crtcli.toml](#workspacecrtclitoml) for simplified commands usage.
 
 **Arguments:**
 
-- `<URL>` (required) (env: `CRTCLI_APP_URL`) —  The base URL of Creatio instance.
+- `<URL>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [workspace.crtcli.toml](#workspacecrtclitoml). 
+  - If the value starts with "http://" or "https://", it is treated as a direct URL
+  - Otherwise, it is treated as an alias name
 
 - `[USERNAME]` (env: `CRTCLI_APP_USERNAME`) — Creatio Username.
 
@@ -119,6 +121,8 @@ Compiles the Creatio application (equivalent to the "Build" or "Rebuild" action 
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i compile` — Compiles the Creatio instance at insecure https://localhost:5000.
 
+- `crtcli app dev compile -r` — Compiles the Creatio instance specified by the 'dev' alias from workspace.crtcli.toml and restarting afterward.
+
 - `crtcli app compile -fr` — Compiles the Creatio instance specified by the $CRTCLI_APP_URL environment variable, using a forced rebuild and restarting afterward.
 
 
@@ -146,7 +150,7 @@ Print if File System Development mode is enabled for the Creatio instance.
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i fs check` — Check is File System Development mode status for the insecure Creatio 'https://localhost:5000'. (True/False)
 
-- `crtcli app fs check` — Check is File System Development mode enabled in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app fs check` — Check is File System Development mode enabled in Creatio instance specified by the $CRTCLI_APP_URL environment variable.
 
 
 ### app fs pull
@@ -582,7 +586,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg push -Fcr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' with executing sql scripts to mark package schemas as unchanged, schema localization cleanup, compiles package and restarts application after install. 
 
-- `crtcli app pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into Creatio '$CRTCLI_APP_URL' at once. 
+- `crtcli app prod pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into prod (alias) Creatio instance at once. Check [workspace.crtcli.toml](#workspacecrtclitoml)
 
 
 ### app pkg unlock
@@ -652,7 +656,9 @@ Important: If your Creatio instance is running on .NET Framework (IIS), you must
 
 - `crtcli app https://localhost:5000 -i --net-framework restart` — Restarts Creatio application at insecure 'https://localhost:5000' using Supervisor:Supervisor credentials and .NET Framework (IIS) compatibility.
 
-- `crtcli app restart` — Restarts Creatio application '$CRTCLI_APP_URL'.
+- `crtcli app dev restart` — Restarts Creatio application using the 'dev' alias from workspace.crtcli.toml.
+
+- `crtcli app restart` — Restarts Creatio application specified by the $CRTCLI_APP_URL environment variable.
 
 
 ### app request
@@ -1023,6 +1029,71 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
     - `crtcli app pkg pull` —  Will download UsrPackage, unpack it, and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
 
     - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
+
+
+### workspace.crtcli.toml
+
+The workspace.crtcli.toml file is an optional configuration file that allows you to configure crtcli's for use across multiple nested folders.
+
+Location: workspace.crtcli.toml in the current directory or any parent directory.
+
+Check [toml syntax here](https://toml.io/en/v1.0.0).
+
+**Parameters:**
+
+- `apps.<alias>.url` — The base URL of the Creatio instance.
+- `apps.<alias>.username` — (Optional) The username for authentication.
+- `apps.<alias>.password` — (Optional) The password for authentication.
+- `apps.<alias>.insecure` — (Optional) Set to `true` to disable SSL certificate validation.
+- `apps.<alias>.net_framework` — (Optional) Set to `true` if your Creatio instance is running on .NET Framework (IIS).
+
+**Examples:**
+
+1. For example, if the current folder is `/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage`, which represents a package folder in Creatio, you could have the following files with the specified content:
+
+   - _/Creatio_8.1.5.2176/Terrasoft.Configuration/workspace.crtcli.toml_:
+
+        ```toml
+        [apps.dev]
+        url = "https://development.creatio.com"
+        username = "Supervisor"
+        password = "Supervisor@1"
+        insecure = true
+        net_framework = true
+        ```
+
+   - _/Creatio_8.1.5.2176/workspace.crtcli.toml_:
+
+        ```toml
+        [apps.dev]
+        url = "https://development-old.creatio.com"
+        username = "Supervisor"
+        password = "Supervisor@1"
+        insecure = true
+        
+        [apps.prod]
+        url = "https://production.creatio.com"
+        username = "Supervisor"
+        password = "StrongPassword123!!!"
+        ```
+   - _/Creatio_8.1.5.2176/.env_:
+
+        ```shell
+        CRTCLI_APP_URL=https://local.creatio.com
+        CRTCLI_APP_USERNAME=Supervisor
+        CRTCLI_APP_PASSWORD=12345
+        CRTCLI_APP_INSECURE=true
+        ```
+
+   With this configuration, you can use the defined aliases directly as the URL parameter:
+    
+   - `crtcli app pkgs` - Lists packages from the insecure `https://local.creatio.com` Creatio instance using the `Supervisor:12345` credentials (defined in the `.env` file).
+
+   - `crtcli app http://localhost:81 compile` — Compiles the `http://localhost:81` Creatio instance using the default `Supervisor:Supervisor` credentials.
+
+   - `crtcli app dev restart` — Restarts the development Creatio instance (insecure .NET Framework based `https://development.creatio.com` with `Supervisor:Supervisor@1` credentials).
+   
+   - `crtcli app prod pkg download CrtBase` — Downloads the `CrtBase` package from the production Creatio instance (`https://production.creatio.com` with `Supervisor:StrongPassword123!!!` credentials).
 
 ---
 

@@ -2,8 +2,8 @@ use crate::cmd::cli::{CliCommand, CommandResult};
 use clap::Subcommand;
 
 pub mod apply;
-pub mod config_file;
 mod pack;
+pub mod package_config;
 mod unpack;
 mod unpack_all;
 
