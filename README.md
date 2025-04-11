@@ -56,6 +56,7 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
     - [x] [restart](#app-restart)
     - [x] [request](#app-request)
     - [x] [sql](#app-sql)
+    - [x] [tunnel](#app-tunnel)
 - [x] [pkg](#pkg)
     - [x] [apply](#pkg-apply)
     - [x] [pack](#pkg-pack)
@@ -752,7 +753,7 @@ _Beta: this command is still under development._
   ]
   ```
   
-- `crtcli app sql'` — Executes SQL query from stdin in Creatio '$CRTCLI_APP_URL' with automatically detected sql runner.
+- `crtcli app sql` — Executes SQL query from stdin in Creatio '$CRTCLI_APP_URL' with automatically detected sql runner.
 
   stdin & stdout:
   ```shell
@@ -771,6 +772,81 @@ _Beta: this command is still under development._
   ```
   
 - `crtcli app sql -r sql-console -f query.sql'` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' with sql-console runner.
+
+
+### app tunnel
+
+Establishes TCP tunnels via the Creatio instance to access internal services, such as database or Redis connections.
+
+**Requires the crtcli.tunneling package to be installed.**
+
+> This feature is primarily a proof of concept (PoC) and is provided mainly for demonstration purposes. Exercise caution when using it, as we cannot guarantee its complete security, stability, or reliability. By using it, you acknowledge that there may be potential risks, such as security risks, data issues, or unexpected behavior, and you agree to proceed at your own risk.
+
+**Options:**
+
+- `--connection-strings` — Print defined connection strings in the Creatio configuration and exit. (ConnectionStrings.config file configuration)
+
+- `-L <[bind_address:]port:host:host_port>` — Local port forwarding rule(s) in the format [bind_address:]port:host:host_port. (SSH like format)
+
+**Examples:**
+
+1. **Use case:** You want to connect to the Creatio database from your local machine using DataGrip, DBeaver, or any other database client.
+
+    _For this example, we assume that you already have the crtcli app credentials configuration, so we will omit app command arguments to focus on the tunnel command._
+
+    **Step 1.** Download the crtcli.tunneling package from the link above, install it, and restart the Creatio instance.
+
+    ```shell
+    crtcli app pkg install crtcli.tunneling.zip -r
+    ```
+
+    **Step 2:** List all configured connection strings at the Creatio instance.
+
+    ```shell
+    crtcli app tunnel --connection-strings
+    ```
+   
+    ```
+    Listing connection strings at https://localhost:99:
+    db
+    Server=db;Port=5432;Database=creatio;User ID=postgres;password=postgres;Timeout=500; CommandTimeout=400;MaxPoolSize=1024;
+    
+    redis
+    host=redis;db=0;port=6379
+    ...
+    ```
+   
+    **Step 3:** Start a TCP tunnel to the Creatio database using crtcli.
+
+    In Step 2, we also received the "db" connection string, which is the Creatio database connection string. From that string, we can extract:
+
+    ```
+    db_host=db
+    db_port=5432
+    db_database=creatio
+    db_user=postgres
+    db_password=postgres
+    ```
+
+    Therefore, we need to create a tunnel to db:5432.
+
+    ```shell
+    crtcli app tunnel -L 2222:db:5432
+    ```
+
+    **Step 4:** Connect to the Creatio database using DataGrip, DBeaver, or any other database client.
+
+    Because we specified in Step 3 that we want to map the local port 2222 to the Creatio database port 5432, we can connect to the Creatio database from our local machine using the address "localhost:2222".
+
+    So, the connection parameters look like this:
+
+    ```
+    db_host=localhost
+    db_port=2222
+    db_database=creatio
+    db_user=postgres
+    db_password=postgres
+    ```
 
 
 ### pkg
