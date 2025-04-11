@@ -782,6 +782,8 @@ Establishes TCP tunnels via the Creatio instance to access internal services, su
 
 > This feature is primarily a proof of concept (PoC) and is provided mainly for demonstration purposes. Exercise caution when using it, as we cannot guarantee its complete security, stability, or reliability. By using it, you acknowledge that there may be potential risks, such as security risks, data issues, or unexpected behavior, and you agree to proceed at your own risk.
 
+https://github.com/user-attachments/assets/fa55b89e-2d71-46e9-9c20-de4a300f28e7
+
 **Options:**
 
 - `--connection-strings` — Print defined connection strings in the Creatio configuration and exit. (ConnectionStrings.config file configuration)
