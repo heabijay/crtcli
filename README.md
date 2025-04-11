@@ -771,7 +771,7 @@ _Beta: this command is still under development._
   ]
   ```
   
-- `crtcli app sql -r sql-console -f query.sql'` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' with sql-console runner.
+- `crtcli app sql -r sql-console -f query.sql` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' with sql-console runner.
 
 
 ### app tunnel
@@ -779,6 +779,8 @@ _Beta: this command is still under development._
 Establishes TCP tunnels via the Creatio instance to access internal services, such as database or Redis connections.
 
 **Requires the crtcli.tunneling package to be installed.**
+
+[Download crtcli.tunneling_v0.1.0.zip](https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip)
 
 > This feature is primarily a proof of concept (PoC) and is provided mainly for demonstration purposes. Exercise caution when using it, as we cannot guarantee its complete security, stability, or reliability. By using it, you acknowledge that there may be potential risks, such as security risks, data issues, or unexpected behavior, and you agree to proceed at your own risk.
 
