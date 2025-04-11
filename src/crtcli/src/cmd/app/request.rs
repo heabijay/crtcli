@@ -28,7 +28,7 @@ pub struct RequestCommand {
     #[arg(short, long)]
     anonymous: bool,
 
-    /// Request body data (for methods like POST) (Use '-' value to read data from standard input)
+    /// Request body data (for methods like POST) (Use '@-' or '-' value to read data from standard input)
     #[arg(short, long, value_hint = clap::ValueHint::Other)]
     data: Option<String>,
 
@@ -94,7 +94,7 @@ impl AppCommand for RequestCommand {
 
         let data = match &self.data {
             None => None,
-            Some(str) if str == "-" => Some(read_data_from_stdin()?),
+            Some(str) if str == "@-" || str == "-" => Some(read_data_from_stdin()?),
             Some(str) => Some(str.clone()),
         };
 

@@ -676,7 +676,7 @@ Sends authenticated HTTP requests to the Creatio instance, similar to curl.
 
 - `--anonymous | -a` — Send the request without authentication.
 
-- `--data | -d <DATA>` — Request body data (for methods like POST). Use '-' value to read data from standard input.
+- `--data | -d <DATA>` — Request body data (for methods like POST). Use '@-' or '-' value to read data from standard input.
 
 - `--header | -H <HEADER>` — Add a custom header to the request (format: Key: Value). The default Content-Type is application/json.
 
@@ -778,7 +778,7 @@ _Beta: this command is still under development._
 
 Establishes TCP tunnels via the Creatio instance to access internal services, such as database or Redis connections.
 
-**Requires the crtcli.tunneling package to be installed.**
+**Requires crtcli.tunneling package installed** and "CanManageSolution" operation permission for the user in Creatio.
 
 [Download crtcli.tunneling_v0.1.0.zip](https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip)
 
