@@ -1,5 +1,12 @@
 # crtcli Changelog
 
+## [Unreleased](https://github.com/heabijay/crtcli/compare/v0.1.3...HEAD)
+
+### Added
+
+ - Added `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#20](https://github.com/heabijay/crtcli/pull/21))
+
+
 ## [0.1.3](https://github.com/heabijay/crtcli/releases/tag/v0.1.3) (2025-03-25)
 
 ### Added
