@@ -56,20 +56,17 @@ impl SqlRunner for ClioGateSqlRunner {
         }
 
         if response.status() == StatusCode::BAD_REQUEST {
-            let response_text = response
-                .text()
-                .await
-                .map_err(CrtClientError::ReqwestError)?;
+            let response_text = response.text().await.map_err(CrtClientError::Reqwest)?;
 
             return Err(SqlRunnerError::Execution { err: response_text });
         }
 
         let response_body: serde_json::Value = response
             .error_for_status()
-            .map_err(CrtClientError::ReqwestError)?
+            .map_err(CrtClientError::Reqwest)?
             .json()
             .await
-            .map_err(CrtClientError::ReqwestError)?;
+            .map_err(CrtClientError::Reqwest)?;
 
         let response_body = response_body.as_str().ok_or_else(|| {
             SqlRunnerError::Other("failed to parse response body as json string".into())
@@ -117,10 +114,10 @@ impl SqlRunner for SqlConsoleSqlRunner {
 
         let response_body: SqlConsoleResponse = response
             .error_for_status()
-            .map_err(CrtClientError::ReqwestError)?
+            .map_err(CrtClientError::Reqwest)?
             .json()
             .await
-            .map_err(CrtClientError::ReqwestError)?;
+            .map_err(CrtClientError::Reqwest)?;
 
         let response_body = response_body.execute_sql_script_result_root;
 

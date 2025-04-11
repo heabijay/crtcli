@@ -1,8 +1,18 @@
 use thiserror::Error;
+use tokio_tungstenite::tungstenite::handshake::client::Response;
 
 #[derive(Error, Debug)]
 #[error("response cookie has invalid format, parsing failed")]
 pub struct CookieParsingError;
+
+fn parse_set_cookie_value(value: &str) -> Result<(&str, &str), CookieParsingError> {
+    value
+        .split_once(";")
+        .ok_or(CookieParsingError)?
+        .0
+        .split_once("=")
+        .ok_or(CookieParsingError)
+}
 
 pub fn iter_set_cookies(
     response: &reqwest::Response,
@@ -11,16 +21,17 @@ pub fn iter_set_cookies(
         .headers()
         .iter()
         .filter(|(name, _)| *name == "set-cookie")
-        .map(|(_, value)| {
-            value
-                .to_str()
-                .map_err(|_| CookieParsingError)?
-                .split_once(";")
-                .ok_or(CookieParsingError)?
-                .0
-                .split_once("=")
-                .ok_or(CookieParsingError)
-        })
+        .map(|(_, value)| parse_set_cookie_value(value.to_str().map_err(|_| CookieParsingError)?))
+}
+
+pub fn iter_set_cookies_in_websocket_response(
+    response: &Response,
+) -> impl Iterator<Item = Result<(&str, &str), CookieParsingError>> {
+    response
+        .headers()
+        .get_all("set-cookie")
+        .iter()
+        .map(|value| parse_set_cookie_value(value.to_str().map_err(|_| CookieParsingError)?))
 }
 
 pub fn collect_set_cookies(

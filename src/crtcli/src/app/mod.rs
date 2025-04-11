@@ -27,4 +27,5 @@ pub mod session_cache;
 
 pub mod sql;
 
+mod tunneling;
 mod utils;

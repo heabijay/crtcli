@@ -12,25 +12,30 @@ anstream = "0.6.18"
 anstyle = "1.0.10"
 async-trait = "0.1.88"
 bincode = "2.0.1"
+crossterm = { version = "0.28.1", features = ["event-stream"] }
 clap_complete = "4.5.47"
 dotenvy = "0.15.7"
-flate2 = "1.1.0"
+flate2 = "1.1.1"
 futures = "0.3.31"
-hyper-util = "0.1.10"
+hyper-util = "0.1.11"
+indexmap = { version =  "2.9.0", features = ["serde"] }
 indicatif = "0.17.11"
-quick-xml = "0.37.2"
+quick-xml = "0.37.4"
+rustls = { version = "0.23.25", features = ["ring"] }
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140", features = ["preserve_order"] }
 thiserror = "2.0.12"
 tokio = { version = "1.44.1", features = ["macros"] }
+tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"] }
 tokio-util = { version = "0.7.14", features = ["io", "io-util"] }
 toml = "0.8.20"
+urlencoding = "2.1.3"
 walkdir = "2.5.0"
-zip = "2.5"
+zip = "2.6.1"
 
 [dependencies.clap]
-version = "4.5.32"
+version = "4.5.35"
 features = ["derive", "env", "suggestions", "usage"]
 
 [dependencies.time]

@@ -1,5 +1,12 @@
 # crtcli Changelog
 
+## [Unreleased](https://github.com/heabijay/crtcli/compare/v0.1.3...HEAD)
+
+### Added
+
+ - Added `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#20](https://github.com/heabijay/crtcli/pull/21))
+
+
 ## [0.1.3](https://github.com/heabijay/crtcli/releases/tag/v0.1.3) (2025-03-25)
 
 ### Added
@@ -12,7 +19,7 @@
 
 ### Changed
 
- - Replaced the `--output` option with the `--output-folder` and `--output-filename` options in the `app pkg download` and `pkg pack` commands ([#14](https://github.com/heabijay/crtcli/pull/14))
+ - Replaced `--output-folder` and `--output-filename` options with the `--output` option in the `app pkg download` and `pkg pack` commands ([#14](https://github.com/heabijay/crtcli/pull/14))
 
  - Replaced the `--data-stdin | -D` option with the '-' value of the `--data | -d` option in the `app request` command ([#14](https://github.com/heabijay/crtcli/pull/14))
 

@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 use time::macros::format_description;
 
 pub fn get_next_filename_if_exists(path_buf: PathBuf) -> PathBuf {
@@ -48,4 +49,31 @@ pub fn generate_zip_package_filename(package_name: &str) -> String {
         .expect("failed to format current time");
 
     format!("{package_name}_{now_str}.zip")
+}
+
+pub fn humanize_bytes(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = 1024 * KB;
+    const GB: u64 = 1024 * MB;
+
+    if bytes >= GB {
+        format!("{:.2} GB", bytes as f64 / GB as f64)
+    } else if bytes >= MB {
+        format!("{:.2} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.2} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+pub fn humanize_duration_time_precise(duration: Duration) -> String {
+    let secs = duration.as_secs();
+
+    format!(
+        "{:02}:{:02}:{:02}",
+        secs / 3600,
+        (secs % 3600) / 60,
+        secs % 60
+    )
 }

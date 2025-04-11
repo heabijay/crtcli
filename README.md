@@ -56,6 +56,7 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
     - [x] [restart](#app-restart)
     - [x] [request](#app-request)
     - [x] [sql](#app-sql)
+    - [x] [tunnel](#app-tunnel)
 - [x] [pkg](#pkg)
     - [x] [apply](#pkg-apply)
     - [x] [pack](#pkg-pack)
@@ -752,7 +753,7 @@ _Beta: this command is still under development._
   ]
   ```
   
-- `crtcli app sql'` — Executes SQL query from stdin in Creatio '$CRTCLI_APP_URL' with automatically detected sql runner.
+- `crtcli app sql` — Executes SQL query from stdin in Creatio '$CRTCLI_APP_URL' with automatically detected sql runner.
 
   stdin & stdout:
   ```shell
@@ -770,7 +771,86 @@ _Beta: this command is still under development._
   ]
   ```
   
-- `crtcli app sql -r sql-console -f query.sql'` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' with sql-console runner.
+- `crtcli app sql -r sql-console -f query.sql` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' with sql-console runner.
+
+
+### app tunnel
+
+Establishes TCP tunnels via the Creatio instance to access internal services, such as database or Redis connections.
+
+**Requires the crtcli.tunneling package to be installed.**
+
+[Download crtcli.tunneling_v0.1.0.zip](https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip)
+
+> This feature is primarily a proof of concept (PoC) and is provided mainly for demonstration purposes. Exercise caution when using it, as we cannot guarantee its complete security, stability, or reliability. By using it, you acknowledge that there may be potential risks, such as security risks, data issues, or unexpected behavior, and you agree to proceed at your own risk.
+
+https://github.com/user-attachments/assets/fa55b89e-2d71-46e9-9c20-de4a300f28e7
+
+**Options:**
+
+- `--connection-strings` — Print defined connection strings in the Creatio configuration and exit. (ConnectionStrings.config file configuration)
+
+- `-L <[bind_address:]port:host:host_port>` — Local port forwarding rule(s) in the format [bind_address:]port:host:host_port. (SSH like format)
+
+**Examples:**
+
+1. **Use case:** You want to connect to the Creatio database from your local machine using DataGrip, DBeaver, or any other database client.
+
+    _For this example, we assume that you already have the crtcli app credentials configuration, so we will omit app command arguments to focus on the tunnel command._
+
+    **Step 1.** Download the crtcli.tunneling package from the link above, install it, and restart the Creatio instance.
+
+    ```shell
+    crtcli app pkg install crtcli.tunneling.zip -r
+    ```
+
+    **Step 2:** List all configured connection strings at the Creatio instance.
+
+    ```shell
+    crtcli app tunnel --connection-strings
+    ```
+   
+    ```
+    Listing connection strings at https://localhost:99:
+    db
+    Server=db;Port=5432;Database=creatio;User ID=postgres;password=postgres;Timeout=500; CommandTimeout=400;MaxPoolSize=1024;
+    
+    redis
+    host=redis;db=0;port=6379
+    ...
+    ```
+   
+    **Step 3:** Start a TCP tunnel to the Creatio database using crtcli.
+
+    In Step 2, we also received the "db" connection string, which is the Creatio database connection string. From that string, we can extract:
+
+    ```
+    db_host=db
+    db_port=5432
+    db_database=creatio
+    db_user=postgres
+    db_password=postgres
+    ```
+
+    Therefore, we need to create a tunnel to db:5432.
+
+    ```shell
+    crtcli app tunnel -L 2222:db:5432
+    ```
+
+    **Step 4:** Connect to the Creatio database using DataGrip, DBeaver, or any other database client.
+
+    Because we specified in Step 3 that we want to map the local port 2222 to the Creatio database port 5432, we can connect to the Creatio database from our local machine using the address "localhost:2222".
+
+    So, the connection parameters look like this:
+
+    ```
+    db_host=localhost
+    db_port=2222
+    db_database=creatio
+    db_user=postgres
+    db_password=postgres
+    ```
 
 
 ### pkg
@@ -873,9 +953,9 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli pkg pack /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3 --format gzip --compression best` — Packs folders '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3' as package archive and outputs package file 'Packages_2024-12-01_21-00-00.zip' to current directory.
 
-- `crtcli pkg pack . -f /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
+- `crtcli pkg pack . -o /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
 
-- `crtcli pkg pack . -f /backups/ -n 'UsrPackage-latest.zip'` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
+- `crtcli pkg pack . -o /backups/UsrPackage-latest.zip` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
 
 
 ### pkg unpack
