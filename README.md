@@ -87,7 +87,7 @@ Please check [dotenv (.env) files](#dotenv-env-files) and [workspace.crtcli.toml
 
 **Arguments:**
 
-- `<URL>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [workspace.crtcli.toml](#workspacecrtclitoml). 
+- `<URL/APP>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [workspace.crtcli.toml](#workspacecrtclitoml). 
   - If the value starts with "http://" or "https://", it is treated as a direct URL
   - Otherwise, it is treated as an alias name
 
@@ -719,7 +719,7 @@ _Beta: this command is still under development._
 
 **Supported SQL packages:**
 
-- cliogate (Version [1.1.1.2](assets/packages/cliogate_1.1.1.2.zip) or greater)
+- cliogate (Version [1.1.1.2](https://github.com/user-attachments/files/19712683/cliogate_1.1.1.2.zip) or greater)
 - SqlConsole
 
 **Arguments:**
