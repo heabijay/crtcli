@@ -4,7 +4,9 @@
 
 ### Added
 
- - Added `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#20](https://github.com/heabijay/crtcli/pull/21))
+ - Added `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#21](https://github.com/heabijay/crtcli/pull/21))
+
+ - Added stdin option to `app pkg install` using '@-' or '-' as filename ([#22](https://github.com/heabijay/crtcli/pull/22))
 
 
 ## [0.1.3](https://github.com/heabijay/crtcli/releases/tag/v0.1.3) (2025-03-25)

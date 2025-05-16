@@ -349,7 +349,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 **Arguments:**
 
-- `<FILEPATH>` (required) — Path to the package archive file.
+- `<FILEPATH>` (required) — Path to the package archive file. (Use '@-' or '-' value to read data from standard input)
 
 **Options:**
 
