@@ -5,7 +5,7 @@ use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::Args;
-use std::io::Cursor;
+use std::io::{Cursor, Read, Seek, stdin};
 use std::path::PathBuf;
 use std::sync::Arc;
 use thiserror::Error;
@@ -13,7 +13,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 #[derive(Args, Debug)]
 pub struct InstallPkgCommand {
-    /// Path to the package archive file
+    /// Path to the package archive file (Use '@-' or '-' value to read data from standard input)
     #[arg(value_hint = clap::ValueHint::FilePath)]
     filepath: PathBuf,
 
@@ -75,21 +75,58 @@ pub enum InstallPkgCommandError {
 #[async_trait]
 impl AppCommand for InstallPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
-        let package_content = std::fs::read(&self.filepath)?;
+        let (package_content, package_name) = match &self.filepath.to_str() {
+            Some("@-") | Some("-") => {
+                let mut data = vec![];
+
+                stdin().read_to_end(&mut data)?;
+
+                let mut reader = Cursor::new(data);
+                let filename = get_filename_for_package_reader(&mut reader)?;
+
+                (reader.into_inner(), filename)
+            }
+            _ => (
+                std::fs::read(&self.filepath)?,
+                self.filepath
+                    .file_name()
+                    .ok_or("unable to get filename of specified path")?
+                    .to_str()
+                    .ok_or("unable to get filename str of specified path")?
+                    .to_string(),
+            ),
+        };
 
         install_package_from_stream_command(
             client,
             Cursor::new(package_content),
-            self.filepath
-                .file_name()
-                .ok_or("unable to get filename of specified path")?
-                .to_str()
-                .ok_or("unable to get filename str of specified path")?,
+            &package_name,
             &self.install_pkg_options,
         )
         .await?;
 
         Ok(())
+    }
+}
+
+fn get_filename_for_package_reader(
+    mut reader: impl Read + Seek,
+) -> Result<String, CommandDynError> {
+    let extension = if crate::pkg::utils::is_gzip_stream(&mut reader)? {
+        ".gz"
+    } else {
+        ".zip"
+    };
+
+    let descriptors = crate::pkg::utils::get_package_descriptors_from_package_reader(&mut reader)?;
+
+    if descriptors.len() == 1 {
+        Ok(format!(
+            "{name}{extension}",
+            name = descriptors[0].name().unwrap_or("Package"),
+        ))
+    } else {
+        Ok(format!("Packages{extension}"))
     }
 }
 
