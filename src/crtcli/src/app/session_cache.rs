@@ -70,6 +70,8 @@ pub trait CrtSessionCache: Send + Sync {
     fn get_entry(&self, credentials: &CrtCredentials) -> Option<CrtSession>;
 
     fn set_entry(&self, credentials: &CrtCredentials, session: CrtSession);
+
+    fn remove_entry(&self, credentials: &CrtCredentials);
 }
 
 struct DefaultCrtSessionCache<S>
@@ -111,7 +113,8 @@ where
 
     fn set_entry(&self, credentials: &CrtCredentials, session: CrtSession) {
         let hash = Self::hash_credentials(credentials);
-        let outdated_since = Self::get_outdated_since_timestamp();
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+        let default_outdated_since = Self::get_outdated_since_timestamp();
 
         let mut cache = self.storage.get().into_owned();
 
@@ -123,7 +126,21 @@ where
             },
         );
 
-        cache.retain(|_, x| x.created_timestamp > outdated_since);
+        cache.retain(|_, x| match &x.value {
+            CrtSession::OAuthSession(oauth_session) => {
+                x.created_timestamp + oauth_session.expires_in() >= now
+            }
+            _ => x.created_timestamp > default_outdated_since,
+        });
+
+        self.storage.set(Cow::Owned(cache));
+    }
+
+    fn remove_entry(&self, credentials: &CrtCredentials) {
+        let hash = Self::hash_credentials(credentials);
+        let mut cache = self.storage.get().into_owned();
+
+        cache.remove(&hash);
 
         self.storage.set(Cow::Owned(cache));
     }
