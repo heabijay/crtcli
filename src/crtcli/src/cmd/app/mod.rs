@@ -52,28 +52,26 @@ pub struct AppCommandArgs {
     url: String,
 
     /// Creatio Username [default: Supervisor]
-    #[arg(short, long, value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_USERNAME")]
+    #[arg(value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_USERNAME")]
     username: Option<String>,
 
     /// Creatio Password [default: Supervisor]
     #[arg(
-        short,
-        long,
         value_hint = clap::ValueHint::Other,
         env = "CRTCLI_APP_PASSWORD",
         hide_env_values = true
     )]
     password: Option<String>,
 
-    /// (OAuth) Creatio OAuth URL
+    /// (OAuth 2.0) Creatio OAuth URL (Identity Server)
     #[arg(long, value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_OAUTH_URL")]
     oauth_url: Option<String>,
 
-    /// (OAuth) Creatio OAuth Client ID
+    /// (OAuth 2.0) Creatio OAuth Client ID
     #[arg(long, value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_OAUTH_CLIENT_ID")]
     oauth_client_id: Option<String>,
 
-    /// (OAuth) Creatio OAuth Client Secret
+    /// (OAuth 2.0) Creatio OAuth Client Secret
     #[arg(
         long,
         value_hint = clap::ValueHint::Other,
@@ -93,7 +91,7 @@ pub struct AppCommandArgs {
     #[arg(long = "net-framework", env = "CRTCLI_APP_NETFRAMEWORK")]
     net_framework: bool,
 
-    /// Revoke the cached session to force a new one
+    /// Forcefully revoke the cached session and use a new one
     #[arg(long = "force-new-session")]
     force_new_session: bool,
 }
