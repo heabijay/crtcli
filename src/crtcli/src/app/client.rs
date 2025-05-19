@@ -521,7 +521,7 @@ pub enum CrtClientError {
     Reqwest(#[source] reqwest::Error),
 
     #[error("websocket error: {0}")]
-    WebSocket(#[from] tokio_tungstenite::tungstenite::Error),
+    WebSocket(#[from] Box<tokio_tungstenite::tungstenite::Error>),
 
     #[error("login failed: {0}")]
     Login(#[from] Box<auth::LoginError>),
@@ -551,6 +551,12 @@ pub enum CrtClientError {
 
     #[error("crtcli tunneling package not installed, please check docs for more information")]
     CrtCliTunnelingPackageNotInstalled,
+}
+
+impl From<tokio_tungstenite::tungstenite::Error> for CrtClientError {
+    fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
+        CrtClientError::WebSocket(Box::new(value))
+    }
 }
 
 impl From<auth::LoginError> for CrtClientError {

@@ -48,9 +48,9 @@ impl<'c> PackageInstallerService<'c> {
             .await?
             .error_for_status()?;
 
-        Ok(StreamReader::new(response.bytes_stream().map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::Other, e)
-        })))
+        Ok(StreamReader::new(
+            response.bytes_stream().map_err(std::io::Error::other),
+        ))
     }
 
     pub async fn upload_package<R>(

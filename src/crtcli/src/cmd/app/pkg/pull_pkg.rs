@@ -80,10 +80,11 @@ impl TryFrom<&str> for PackageDestinationArg {
             Some(package_name.to_owned())
         };
 
-        let destination_folder = destination_folder
-            .is_empty()
-            .then_some(PathBuf::from("."))
-            .unwrap_or_else(|| PathBuf::from(destination_folder));
+        let destination_folder = if destination_folder.is_empty() {
+            PathBuf::from(".")
+        } else {
+            PathBuf::from(destination_folder)
+        };
 
         let package_name = detect_target_package_name!(package_name, &destination_folder);
 

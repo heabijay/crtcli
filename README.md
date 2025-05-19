@@ -747,6 +747,25 @@ _Beta: this command is still under development._
 **Supported SQL packages:**
 
 - cliogate (Version [1.1.1.2](https://github.com/user-attachments/files/19712683/cliogate_1.1.1.2.zip) or greater)
+
+  <details>
+  <summary>
+  Install using the one-line command
+  </summary>
+
+  Shell:
+
+  ```sh
+  curl -sfL https://github.com/user-attachments/files/19712683/cliogate_1.1.1.2.zip | crtcli app pkg install @- -r
+  ```
+
+  PowerShell:
+
+  ```powershell
+  (iwr -useb https://github.com/user-attachments/files/19712683/cliogate_1.1.1.2.zip).Content | crtcli app pkg install - -r
+  ```
+  </details>
+
 - SqlConsole
 
 **Arguments:**
@@ -808,6 +827,24 @@ Establishes TCP tunnels via the Creatio instance to access internal services, su
 **Requires crtcli.tunneling package installed** and "CanManageSolution" operation permission for the user in Creatio.
 
 [Download crtcli.tunneling_v0.1.0.zip](https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip)
+
+<details>
+<summary>
+Install using the one-line command
+</summary>
+
+Shell:
+
+```sh
+curl -sfL https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip | crtcli app pkg install @- -r
+```
+
+PowerShell:
+
+```powershell
+(iwr -useb https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip).Content | crtcli app pkg install - -r
+```
+</details>
 
 > This feature is primarily a proof of concept (PoC) and is provided mainly for demonstration purposes. Exercise caution when using it, as we cannot guarantee its complete security, stability, or reliability. By using it, you acknowledge that there may be potential risks, such as security risks, data issues, or unexpected behavior, and you agree to proceed at your own risk.
 

@@ -2,6 +2,7 @@ use crate::app::{CrtClient, CrtClientError, CrtRequestBuilderExt};
 use indexmap::IndexMap;
 use reqwest::Method;
 use serde::Deserialize;
+use std::ops::Deref;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
@@ -60,12 +61,11 @@ impl<'c> CrtCliTunnelingService<'c> {
             ))
             .await;
 
-        if let Err(CrtClientError::WebSocket(tokio_tungstenite::tungstenite::Error::Http(
-            response,
-        ))) = &result
-        {
-            if response.status().as_u16() == 404 {
-                return Err(CrtClientError::CrtCliTunnelingPackageNotInstalled);
+        if let Err(CrtClientError::WebSocket(websocket_err)) = &result {
+            if let tokio_tungstenite::tungstenite::Error::Http(response) = websocket_err.deref() {
+                if response.status().as_u16() == 404 {
+                    return Err(CrtClientError::CrtCliTunnelingPackageNotInstalled);
+                }
             }
         }
 
