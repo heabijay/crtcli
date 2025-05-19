@@ -9,7 +9,7 @@ use crate::app::session_cache::{
 };
 use crate::app::utils::{iter_set_cookies, iter_set_cookies_in_websocket_response};
 use crate::app::workspace_explorer::WorkspaceExplorerService;
-use crate::app::{auth, sql, tunneling};
+use crate::app::{auth, oauth, sql, tunneling};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::*;
 use rustls::{ClientConfig, DigitallySignedStruct, SignatureScheme};
@@ -206,6 +206,14 @@ impl CrtClient {
         AuthService::new(self)
     }
 
+    pub fn oauth_service(&self) -> oauth::OAuthService<'_> {
+        if let CrtCredentials::OAuth { oauth_url, .. } = &self.credentials {
+            oauth::OAuthService::new(&self.inner_client, oauth_url)
+        } else {
+            panic!("cannot use oauth service with non-oauth credentials");
+        }
+    }
+
     pub fn app_installer_service(&self) -> AppInstallerService<'_> {
         AppInstallerService::new(self)
     }
@@ -267,28 +275,54 @@ impl CrtClient {
     ) -> Result<reqwest::Response, CrtClientError> {
         self.ensure_session().await?;
 
-        let builder = {
-            let session = self.session.read().unwrap();
-
-            builder
-                .header("Cookie", session.as_ref().unwrap().to_cookie_value())
-                .header("BPMCSRF", session.as_ref().unwrap().bpmcsrf())
-        };
+        let builder = apply_session_to_request(self, builder);
 
         let result = builder.send().await;
 
-        match result {
+        return match result {
             result if Self::is_unauthorized_response_result(&result) => {
                 self.authenticate_and_store_session().await?;
 
                 Err(CrtClientError::Unauthorized)
             }
             Ok(response) => {
-                self.update_session_from_response(&response);
+                update_session_from_response(self, &response);
 
                 Ok(response)
             }
             Err(err) => Err(CrtClientError::Reqwest(err)),
+        };
+
+        fn apply_session_to_request(
+            _self: &CrtClient,
+            builder: reqwest::RequestBuilder,
+        ) -> reqwest::RequestBuilder {
+            let session_lock = _self.session.read().unwrap();
+            let session = session_lock.as_ref().unwrap();
+
+            match session {
+                CrtSession::Cookie(cookie) => builder
+                    .header("Cookie", cookie.to_cookie_value())
+                    .header("BPMCSRF", cookie.bpmcsrf()),
+                CrtSession::OAuthSession(oauth_session) => builder.header(
+                    reqwest::header::AUTHORIZATION,
+                    format!(
+                        "{} {}",
+                        oauth_session.token_type(),
+                        oauth_session.access_token()
+                    ),
+                ),
+            }
+        }
+
+        fn update_session_from_response(_self: &CrtClient, response: &reqwest::Response) {
+            let set_session_id = iter_set_cookies(response)
+                .filter_map(|x| x.ok())
+                .find(|&x| x.0 == "BPMSESSIONID");
+
+            if let Some((_, set_session_id)) = set_session_id {
+                _self.update_session_bpmsessionid(set_session_id);
+            }
         }
     }
 
@@ -302,13 +336,7 @@ impl CrtClient {
             let uri = Uri::from_str(&format!("{}/{relative_url}", self.base_websocket_url()))
                 .map_err(|_| CrtClientError::InvalidBaseUrl(self.base_websocket_url()))?;
 
-            let builder = {
-                let session = self.session.read().unwrap();
-
-                ClientRequestBuilder::new(uri)
-                    .with_header("Cookie", session.as_ref().unwrap().to_cookie_value())
-                    .with_header("BPMCSRF", session.as_ref().unwrap().bpmcsrf())
-            };
+            let builder = apply_session_to_websocket_request(self, ClientRequestBuilder::new(uri));
 
             let (stream, response) = {
                 let result = tokio_tungstenite::connect_async_tls_with_config(
@@ -332,12 +360,44 @@ impl CrtClient {
                 result?
             };
 
-            self.update_session_from_websocket_response(&response);
+            update_session_from_websocket_response(self, &response);
 
             return Ok((stream, response));
         }
 
         panic!("too many login attempts");
+
+        fn apply_session_to_websocket_request(
+            _self: &CrtClient,
+            builder: ClientRequestBuilder,
+        ) -> ClientRequestBuilder {
+            let session_lock = _self.session.read().unwrap();
+            let session = session_lock.as_ref().unwrap();
+
+            match session {
+                CrtSession::Cookie(cookie) => builder
+                    .with_header("Cookie", cookie.to_cookie_value())
+                    .with_header("BPMCSRF", cookie.bpmcsrf()),
+                CrtSession::OAuthSession(oauth_session) => builder.with_header(
+                    reqwest::header::AUTHORIZATION.as_str(),
+                    format!(
+                        "{} {}",
+                        oauth_session.token_type(),
+                        oauth_session.access_token()
+                    ),
+                ),
+            }
+        }
+
+        fn update_session_from_websocket_response(_self: &CrtClient, response: &Response) {
+            let set_session_id = iter_set_cookies_in_websocket_response(response)
+                .filter_map(|x| x.ok())
+                .find(|&x| x.0 == "BPMSESSIONID");
+
+            if let Some((_, set_session_id)) = set_session_id {
+                _self.update_session_bpmsessionid(set_session_id);
+            }
+        }
     }
 
     async fn ensure_session(&self) -> Result<(), CrtClientError> {
@@ -353,46 +413,52 @@ impl CrtClient {
     }
 
     async fn authenticate_and_store_session(&self) -> Result<(), CrtClientError> {
-        let new_session = self
-            .auth_service()
-            .login(self.credentials.username(), self.credentials.password())
-            .await?;
+        let session = match &self.credentials {
+            CrtCredentials::Basic {
+                url: _,
+                username,
+                password,
+            } => CrtSession::Cookie(self.auth_service().login(username, password).await?),
+            CrtCredentials::OAuth {
+                oauth_client_id,
+                oauth_client_secret,
+                ..
+            } => CrtSession::OAuthSession(
+                self.oauth_service()
+                    .connect_token(oauth_client_id.to_owned(), oauth_client_secret.to_owned())
+                    .await?,
+            ),
+        };
 
-        self.session.write().unwrap().replace(new_session.clone());
-        self.session_cache.set_entry(&self.credentials, new_session);
+        self.session.write().unwrap().replace(session.clone());
+        self.session_cache.set_entry(&self.credentials, session);
 
         Ok(())
     }
 
-    fn update_session_bmpsessionid(&self, bpmsessionid: &str) {
+    fn update_session_bpmsessionid(&self, bpmsessionid: &str) {
+        if has_same_bpmsessionid(self, bpmsessionid) {
+            return;
+        }
+
         let mut session_lock = self.session.write().unwrap();
         let session = session_lock.as_mut().unwrap();
 
-        if session.bpmsessionid() != Some(bpmsessionid) {
-            session.set_bpmsessionid(Some(bpmsessionid.to_owned()));
+        if let CrtSession::Cookie(cookie_session) = session {
+            cookie_session.set_bpmsessionid(Some(bpmsessionid.to_owned()));
+
+            self.session_cache
+                .set_entry(&self.credentials, session.clone());
         }
 
-        self.session_cache
-            .set_entry(&self.credentials, session.clone());
-    }
+        fn has_same_bpmsessionid(_self: &CrtClient, bpmsessionid: &str) -> bool {
+            let session_lock = _self.session.read().unwrap();
 
-    fn update_session_from_response(&self, response: &reqwest::Response) {
-        let set_session_id = iter_set_cookies(response)
-            .filter_map(|x| x.ok())
-            .find(|&x| x.0 == "BPMSESSIONID");
+            if let Some(CrtSession::Cookie(cookie_session)) = session_lock.as_ref() {
+                return cookie_session.bpmsessionid() == Some(bpmsessionid);
+            }
 
-        if let Some((_, set_session_id)) = set_session_id {
-            self.update_session_bmpsessionid(set_session_id);
-        }
-    }
-
-    fn update_session_from_websocket_response(&self, response: &Response) {
-        let set_session_id = iter_set_cookies_in_websocket_response(response)
-            .filter_map(|x| x.ok())
-            .find(|&x| x.0 == "BPMSESSIONID");
-
-        if let Some((_, set_session_id)) = set_session_id {
-            self.update_session_bmpsessionid(set_session_id);
+            false
         }
     }
 
@@ -460,6 +526,9 @@ pub enum CrtClientError {
     #[error("login failed: {0}")]
     Login(#[from] Box<auth::LoginError>),
 
+    #[error("oauth login failed: {0}")]
+    OAuthLogin(#[from] Box<oauth::OAuthLoginError>),
+
     #[error("request connection error: {inner_message}")]
     Connection {
         #[source]
@@ -487,6 +556,12 @@ pub enum CrtClientError {
 impl From<auth::LoginError> for CrtClientError {
     fn from(value: auth::LoginError) -> Self {
         CrtClientError::Login(Box::new(value))
+    }
+}
+
+impl From<oauth::OAuthLoginError> for CrtClientError {
+    fn from(value: oauth::OAuthLoginError) -> Self {
+        CrtClientError::OAuthLogin(Box::new(value))
     }
 }
 

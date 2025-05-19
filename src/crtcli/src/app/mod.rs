@@ -1,4 +1,5 @@
 mod auth;
+mod oauth;
 
 mod client;
 pub use client::*;

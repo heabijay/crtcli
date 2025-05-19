@@ -107,6 +107,35 @@ Please check [dotenv (.env) files](#dotenv-env-files) and [workspace.crtcli.toml
 
   By default, crtcli primary uses .NET Core / .NET (Kestrel) API routes to operate with remote. However, some features like "app restart" works by different API routes in both platforms.
 
+- `--force-new-session` — Forcefully revoke the cached session and use a new one. Use if you need to log out and log in.
+
+For OAuth 2.0 authentication (instead of username and password):
+
+- `--oauth-url` (env: `CRTCLI_APP_OAUTH_URL`) — (OAuth 2.0) Creatio OAuth URL (Identity Server).
+
+- `--oauth-client-id` (env: `CRTCLI_APP_OAUTH_CLIENT_ID`) — (OAuth 2.0) Creatio OAuth Client ID.
+
+- `--oauth-client-secret` (env: `CRTCLI_APP_OAUTH_CLIENT_SECRET`) — (OAuth 2.0) Creatio OAuth Client Secret.
+
+**Examples:**
+
+- `crtcli app https://localhost:5000 Supervisor Supervisor1 -i <COMMAND>` — Executes the specified \<COMMAND\> on an insecure Creatio instance at `https://localhost:5000` using the `Supervisor` username and `Supervisor1` password.
+
+-
+  ```sh
+  crtcli app https://production.creatio.com \
+    --oauth-url https://production-is.creatio.com \
+    --oauth-client-id A3F4C1B0E2D5F8A7B6C9D0E1F2A3B4C5 \
+    --oauth-client-secret 8F3C7E1B0D6A5F9E2C4B7D0A1E3F6C9B5A8D7E6F1C0B3A2D5E7F9C1B0D6A5F9E \
+    --net-framework \
+    <COMMAND>
+  ```
+  — Executes the specified \<COMMAND\> on the `https://production.creatio.com` Creatio instance, using .NET Framework (IIS) compatibility and OAuth 2.0 authentication via the `https://production-is.creatio.com` Identity Server, with Client ID `_A3F4C..._` and Client Secret `_8F3C7..._`.
+
+- `crtcli app <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured via [environment variables / .env file](#dotenv-env-files).
+
+- `crtcli app prod <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured with the `prod` alias in [workspace.crtcli.toml](#workspacecrtclitoml).
+
 
 ### app compile
 
@@ -121,8 +150,6 @@ Compiles the Creatio application (equivalent to the "Build" or "Rebuild" action 
 **Examples:**
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i compile` — Compiles the Creatio instance at insecure https://localhost:5000.
-
-- `crtcli app dev compile -r` — Compiles the Creatio instance specified by the 'dev' alias from workspace.crtcli.toml and restarting afterward.
 
 - `crtcli app compile -fr` — Compiles the Creatio instance specified by the $CRTCLI_APP_URL environment variable, using a forced rebuild and restarting afterward.
 
@@ -1047,6 +1074,12 @@ Locations: '.env', '.crtcli.env' in current directory or any parent folders.
 
 - `CRTCLI_APP_NETFRAMEWORK` — Set to 'true' if your Creatio instance is running on .NET Framework (IIS) by default.
 
+For OAuth 2.0 authentication (instead of username and password):
+
+- `CRTCLI_APP_OAUTH_URL` — The OAuth URL (Identity Server).
+- `CRTCLI_APP_OAUTH_CLIENT_ID` — The OAuth Client ID.
+- `CRTCLI_APP_OAUTH_CLIENT_SECRET` — The OAuth Client Secret.
+
 **Examples:**
 
 For example, current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder inside in Creatio. 
@@ -1127,6 +1160,12 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 - `apps.<alias>.insecure` — (Optional) Set to `true` to disable SSL certificate validation.
 - `apps.<alias>.net_framework` — (Optional) Set to `true` if your Creatio instance is running on .NET Framework (IIS).
 
+For OAuth 2.0 authentication (instead of username and password):
+
+- `apps.<alias>.oauth_url` — The OAuth URL (Identity Server).
+- `apps.<alias>.oauth_client_id` — The OAuth Client ID.
+- `apps.<alias>.oauth_client_secret` — The OAuth Client Secret.
+
 **Examples:**
 
 1. For example, if the current folder is `/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage`, which represents a package folder in Creatio, you could have the following files with the specified content:
@@ -1153,8 +1192,9 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
         
         [apps.prod]
         url = "https://production.creatio.com"
-        username = "Supervisor"
-        password = "StrongPassword123!!!"
+        oauth_url = "https://production-is.creatio.com"
+        oauth_client_id = "my-client-id"
+        oauth_client_secret = "my-client-secret"
         ```
    - _/Creatio_8.1.5.2176/.env_:
 
@@ -1173,7 +1213,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
    - `crtcli app dev restart` — Restarts the development Creatio instance (insecure .NET Framework based `https://development.creatio.com` with `Supervisor:Supervisor@1` credentials).
    
-   - `crtcli app prod pkg download CrtBase` — Downloads the `CrtBase` package from the production Creatio instance (`https://production.creatio.com` with `Supervisor:StrongPassword123!!!` credentials).
+   - `crtcli app prod pkg download CrtBase` — Downloads the `CrtBase` package from the production Creatio instance using OAuth 2.0 authentication (with the `https://production-is.creatio.com` Identity Server, Client ID `my-client-id`, and Client Secret `my-client-secret`).
 
 ---
 

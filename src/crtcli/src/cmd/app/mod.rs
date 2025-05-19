@@ -56,8 +56,29 @@ pub struct AppCommandArgs {
     username: Option<String>,
 
     /// Creatio Password [default: Supervisor]
-    #[arg(value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_PASSWORD")]
+    #[arg(
+        value_hint = clap::ValueHint::Other,
+        env = "CRTCLI_APP_PASSWORD",
+        hide_env_values = true
+    )]
     password: Option<String>,
+
+    /// (OAuth 2.0) Creatio OAuth URL (Identity Server)
+    #[arg(long, value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_OAUTH_URL")]
+    oauth_url: Option<String>,
+
+    /// (OAuth 2.0) Creatio OAuth Client ID
+    #[arg(long, value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_OAUTH_CLIENT_ID")]
+    oauth_client_id: Option<String>,
+
+    /// (OAuth 2.0) Creatio OAuth Client Secret
+    #[arg(
+        long,
+        value_hint = clap::ValueHint::Other,
+        env = "CRTCLI_APP_OAUTH_CLIENT_SECRET", 
+        hide_env_values = true
+    )]
+    oauth_client_secret: Option<String>,
 
     /// Ignore SSL certificate errors
     #[arg(long, short, env = "CRTCLI_APP_INSECURE")]
@@ -69,6 +90,10 @@ pub struct AppCommandArgs {
     /// However, some features like "app restart" works by different API routes in both platforms.
     #[arg(long = "net-framework", env = "CRTCLI_APP_NETFRAMEWORK")]
     net_framework: bool,
+
+    /// Forcefully revoke the cached session and use a new one
+    #[arg(long = "force-new-session")]
+    force_new_session: bool,
 }
 
 #[async_trait]
@@ -130,7 +155,8 @@ impl AppCommands {
             .expect("failed to install rustls crypto provider");
 
         let args = Self::load_and_apply_workspace_config(args)?;
-        let client = Arc::new(Self::build_client(&args)?);
+        let credentials = args.get_credentials()?;
+        let client = Arc::new(Self::build_client(credentials, &args)?);
 
         match self {
             AppCommands::Compile(command) => command.run(client).await,
@@ -146,20 +172,10 @@ impl AppCommands {
         }
     }
 
-    fn build_client(args: &AppCommandArgs) -> Result<CrtClient, CrtClientError> {
-        let username = if let Some(username) = &args.username {
-            username
-        } else {
-            DEFAULT_APP_USERNAME
-        };
-
-        let password = if let Some(password) = &args.password {
-            password
-        } else {
-            DEFAULT_APP_PASSWORD
-        };
-
-        let credentials = CrtCredentials::new(&args.url, username, password);
+    fn build_client(
+        credentials: CrtCredentials,
+        args: &AppCommandArgs,
+    ) -> Result<CrtClient, CrtClientError> {
         let session = check_default_credentials_in_cache(&credentials, args);
 
         return CrtClient::builder(credentials)
@@ -172,14 +188,19 @@ impl AppCommands {
             credentials: &CrtCredentials,
             args: &AppCommandArgs,
         ) -> Option<CrtSession> {
-            let session =
-                crate::app::session_cache::create_default_session_cache().get_entry(credentials);
+            let cache = crate::app::session_cache::create_default_session_cache();
+
+            if args.force_new_session {
+                cache.remove_entry(credentials);
+            }
+
+            let session = cache.get_entry(credentials);
 
             if let Some(session) = session {
                 return Some(session);
             }
 
-            if args.username.is_none() {
+            if matches!(credentials, CrtCredentials::Basic { .. }) && args.username.is_none() {
                 eprintln!(
                     "{style}warning: Creatio username is not specified, using default:{style:#} {italic}{DEFAULT_APP_USERNAME}{italic:#}",
                     style = Style::new()
@@ -192,7 +213,7 @@ impl AppCommands {
                 );
             }
 
-            if args.password.is_none() {
+            if matches!(credentials, CrtCredentials::Basic { .. }) && args.password.is_none() {
                 eprintln!(
                     "{style}warning: Creatio password is not specified, using default:{style:#} {italic}{DEFAULT_APP_USERNAME}{italic:#}",
                     style = Style::new()
@@ -293,7 +314,91 @@ impl AppCommandArgs {
         self.url = app_config.url;
         self.username = app_config.username;
         self.password = app_config.password;
+        self.oauth_url = app_config.oauth_url;
+        self.oauth_client_id = app_config.oauth_client_id;
+        self.oauth_client_secret = app_config.oauth_client_secret;
         self.insecure = app_config.insecure.unwrap_or_default();
         self.net_framework = app_config.net_framework.unwrap_or_default();
+    }
+
+    pub fn get_credentials(&self) -> Result<CrtCredentials, CommandDynError> {
+        return match (self.username.is_some(), self.oauth_client_id.is_some()) {
+            (true, true) => {
+                eprintln!(
+                    "{style}warning: both username and oauth_client_id options are specified, continuing with username:password authentication",
+                    style = Style::new()
+                        .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                        .dimmed(),
+                );
+
+                get_basic_credentials(self)
+            }
+            (false, true) => get_oauth_credentials(self),
+            _ => get_basic_credentials(self),
+        };
+
+        fn get_basic_credentials(
+            _self: &AppCommandArgs,
+        ) -> Result<CrtCredentials, CommandDynError> {
+            let username = if let Some(username) = &_self.username {
+                username
+            } else {
+                DEFAULT_APP_USERNAME
+            };
+
+            let password = if let Some(password) = &_self.password {
+                password
+            } else {
+                DEFAULT_APP_PASSWORD
+            };
+
+            Ok(CrtCredentials::new(&_self.url, username, password))
+        }
+
+        fn get_oauth_credentials(
+            _self: &AppCommandArgs,
+        ) -> Result<CrtCredentials, CommandDynError> {
+            if _self.oauth_url.is_none() || _self.oauth_client_secret.is_none() {
+                let bold = Style::new().bold();
+                let bold_underline = Style::new().bold().underline();
+                let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
+
+                eprintln!(
+                    "{red_bold}error:{red_bold:#} the following required arguments were not provided:",
+                    red_bold = Style::new()
+                        .fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                        .bold(),
+                );
+
+                if _self.oauth_url.is_none() {
+                    eprintln!("  {green}--oauth-url <OAUTH_URL>{green:#}");
+                }
+
+                if _self.oauth_client_secret.is_none() {
+                    eprintln!("  {green}--oauth-client-secret <OAUTH_CLIENT_SECRET>{green:#}");
+                }
+
+                eprintln!();
+                eprintln!(
+                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> [COMMAND]"
+                );
+                eprintln!();
+                eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
+
+                return Err(CommandHandledError(ExitCode::FAILURE).into());
+            }
+
+            // Safe, should be checked in previous methods
+            let oauth_url = _self.oauth_url.as_ref().unwrap();
+            let client_id = _self.oauth_client_id.as_ref().unwrap();
+            let client_secret = _self.oauth_client_secret.as_ref().unwrap();
+
+            Ok(CrtCredentials::new_oauth(
+                &_self.url,
+                oauth_url,
+                client_id,
+                client_secret,
+            ))
+        }
     }
 }

@@ -1,7 +1,6 @@
-use crate::app::CrtClientError;
 use crate::app::client::CrtClient;
-use crate::app::session::CrtSession;
 use crate::app::utils::{CookieParsingError, collect_set_cookies, find_cookie_by_name};
+use crate::app::{CrtClientError, CrtSessionCookie};
 use reqwest::Method;
 use serde::Deserialize;
 use serde_json::json;
@@ -14,7 +13,11 @@ impl<'c> AuthService<'c> {
         Self(client)
     }
 
-    pub async fn login(&self, username: &str, password: &str) -> Result<CrtSession, LoginError> {
+    pub async fn login(
+        &self,
+        username: &str,
+        password: &str,
+    ) -> Result<CrtSessionCookie, LoginError> {
         let response = self
             .0
             .request(Method::POST, "ServiceModel/AuthService.svc/Login")
@@ -43,7 +46,7 @@ impl<'c> AuthService<'c> {
 
         let csrftoken = find_cookie_by_name(&set_cookies, "CsrfToken");
 
-        Ok(CrtSession::new(aspxauth, bpmcrsf, csrftoken, None))
+        Ok(CrtSessionCookie::new(aspxauth, bpmcrsf, csrftoken, None))
     }
 }
 

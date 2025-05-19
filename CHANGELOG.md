@@ -6,7 +6,11 @@
 
  - Added `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#21](https://github.com/heabijay/crtcli/pull/21))
 
- - Added stdin option to `app pkg install` using '@-' or '-' as filename ([#22](https://github.com/heabijay/crtcli/pull/22))
+ - Stdin option to `app pkg install` using '@-' or '-' as filename ([#22](https://github.com/heabijay/crtcli/pull/22))
+
+ - Implemented OAuth 2 authentication support to `crtcli app` commands ([#23](https://github.com/heabijay/crtcli/pull/23))
+
+ - Flag `--force-new-session` for `crtcli app` commands just in case you need to invalidate session cache before executing ([#23](https://github.com/heabijay/crtcli/pull/23))
 
 
 ## [0.1.3](https://github.com/heabijay/crtcli/releases/tag/v0.1.3) (2025-03-25)
