@@ -1,4 +1,3 @@
-use crate::cmd::app::{AppCommandArgs, AppCommands};
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use regex::Regex;
 use std::borrow::Cow;
@@ -70,10 +69,10 @@ enum Commands {
     /// `crtcli app dev restart` -- Restarts Creatio instance using the 'dev' app alias.
     /// `crtcli app pkg download CrtBase,CrtCore` -- Downloads CrtBase and CrtCore packages from Creatio to single zip file.
     /// `crtcli app pkg push` -- Immediate packs current folder as package and installs it to Creatio instance.
-    #[clap(verbatim_doc_comment)]
+    #[clap(verbatim_doc_comment, visible_alias = "a")]
     App {
         #[command(flatten)]
-        args: AppCommandArgs,
+        args: crate::cmd::app::AppCommandArgs,
 
         #[command(subcommand)]
         command: crate::cmd::app::AppCommands,
@@ -86,7 +85,7 @@ enum Commands {
     /// Example use cases:
     /// `crtcli pkg pack .` -- Packs current folder as package to single gzip/zip file.
     /// `crtcli pkg apply . --apply-localization-cleanup 'en-US'` -- Deletes all localization files in current folder as package except en-US.
-    #[clap(verbatim_doc_comment)]
+    #[clap(verbatim_doc_comment, visible_alias = "p")]
     Pkg {
         #[command(subcommand)]
         command: crate::cmd::pkg::PkgCommands,
@@ -103,7 +102,10 @@ impl CliCommand for Commands {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn run_app_command(args: AppCommandArgs, command: AppCommands) -> CommandResult {
+async fn run_app_command(
+    args: crate::cmd::app::AppCommandArgs,
+    command: crate::cmd::app::AppCommands,
+) -> CommandResult {
     command.run(args).await
 }
 

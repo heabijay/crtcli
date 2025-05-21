@@ -85,6 +85,8 @@ Commands to interact with Creatio application instance.
 
 Please check [dotenv (.env) files](#dotenv-env-files) and [workspace.crtcli.toml](#workspacecrtclitoml) for simplified commands usage.
 
+**Aliases:** `a` (full command: `crtcli a ...`)
+
 **Arguments:**
 
 - `<URL/APP>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [workspace.crtcli.toml](#workspacecrtclitoml). 
@@ -103,7 +105,7 @@ Please check [dotenv (.env) files](#dotenv-env-files) and [workspace.crtcli.toml
 
 - `--insecure | -i` (env: `CRTCLI_APP_INSECURE`) — Bypass SSL certificate verification. Use with caution, primarily for development or testing environments.
 
-- `--net-framework` (env: `CRTCLI_APP_NETFRAMEWORK`) — Use .NET Framework (IIS) Creatio compatibility 
+- `--net-framework | --nf` (env: `CRTCLI_APP_NETFRAMEWORK`) — Use .NET Framework (IIS) Creatio compatibility 
 
   By default, crtcli primary uses .NET Core / .NET (Kestrel) API routes to operate with remote. However, some features like "app restart" works by different API routes in both platforms.
 
@@ -236,6 +238,8 @@ Commands to manipulate with packages in Creatio.
 
 Many of these commands will attempt to infer the target package name from the current working directory if it's a package folder (contains a descriptor.json file).
 
+**Aliases:** `p` (full command: `crtcli app p ...` or `crtcli a p ...`)
+
 
 ### app pkg compile
 
@@ -263,6 +267,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 ### app pkg download
 
 Downloads packages from the Creatio instance as a zip archive.
+
+**Aliases:** `d`, `dl` (full command: `crtcli app pkg d ...` or `crtcli a p d ...`)
 
 **Arguments:**
 
@@ -373,6 +379,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 ### app pkg install
 
 Installs a package archive (.zip or .gz) into the Creatio instance.
+
+**Aliases:** `i` (full command: `crtcli app i ...` or `crtcli a i ...`)
 
 **Arguments:**
 
@@ -693,6 +701,8 @@ Important: If your Creatio instance is running on .NET Framework (IIS), you must
 
 Sends authenticated HTTP requests to the Creatio instance, similar to curl.
 
+**Aliases:** `req` (full command: `crtcli app req ...` or `crtcli a req ...`)
+
 **Arguments:**
 
 - `<METHOD>` (required) — HTTP method (e.g., GET, POST, PUT, DELETE, etc.).
@@ -921,6 +931,8 @@ https://github.com/user-attachments/assets/fa55b89e-2d71-46e9-9c20-de4a300f28e7
 
 Commands for working with Creatio package files (.zip, .gz) or package folders locally, without interacting with a Creatio instance.
 
+**Aliases:** `p` (full command: `crtcli p ...` or `crtcli p ...`)
+
 
 ### pkg apply
 
@@ -979,6 +991,8 @@ Included Paths:
 
 Excluded: Hidden folders and files (names starting with .).
 
+**Aliases:** `p` (full command: `crtcli pkg p ...` or `crtcli p p ...`)
+
 **Arguments:**
 
 - `<PACKAGE_FOLDERS>` (required) — Source folders containing the package files to be packaged.
@@ -999,7 +1013,7 @@ Excluded: Hidden folders and files (names starting with .).
 
 - `--format <FORMAT>` — Archive format.
 
-    Possible values: gzip, zip    
+    Possible values: gzip (gz), zip    
 
     Defaults: zip
 
@@ -1025,6 +1039,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 ### pkg unpack
 
 Extract a single package from a package archive (.zip or .gz). To extract multiple packages from a zip archive, use [pkg unpack-all](#pkg-unpack-all).
+
+**Aliases:** `u` (full command: `crtcli pkg u ...` or `crtcli p u ...`)
 
 **Arguments:**
 

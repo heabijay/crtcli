@@ -88,7 +88,11 @@ pub struct AppCommandArgs {
     ///
     /// By default, crtcli primary uses .NET Core / .NET (Kestrel) API routes to operate with remote.
     /// However, some features like "app restart" works by different API routes in both platforms.
-    #[arg(long = "net-framework", env = "CRTCLI_APP_NETFRAMEWORK")]
+    #[arg(
+        long = "net-framework",
+        visible_alias = "nf",
+        env = "CRTCLI_APP_NETFRAMEWORK"
+    )]
     net_framework: bool,
 
     /// Forcefully revoke the cached session and use a new one
@@ -119,6 +123,7 @@ pub enum AppCommands {
     InstallLog(install_log::InstallLogCommand),
 
     /// Commands to manipulate with packages in Creatio
+    #[clap(visible_alias = "p")]
     Pkg {
         #[command(subcommand)]
         command: pkg::PkgCommands,
@@ -130,6 +135,7 @@ pub enum AppCommands {
     /// Restarts the Creatio application
     Restart(restart::RestartCommand),
 
+    #[clap(visible_alias = "req")]
     /// Sends authenticated HTTP requests to the Creatio instance, similar to curl
     Request(request::RequestCommand),
 

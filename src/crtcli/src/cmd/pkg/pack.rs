@@ -29,6 +29,7 @@ pub struct PackCommand {
 
 #[derive(Debug, Clone, Eq, PartialEq, ValueEnum)]
 pub enum PackFormat {
+    #[value(alias = "gz")]
     Gzip,
     Zip,
 }
