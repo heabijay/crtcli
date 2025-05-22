@@ -1,5 +1,5 @@
 use crate::app::CrtClient;
-use crate::app::workspace_explorer::{BuildPackageError, BuildResponse};
+use crate::app::workspace_explorer::{BaseResponse, BuildPackageError};
 use crate::cmd::app;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::{CommandDynError, CommandResult};
@@ -34,16 +34,18 @@ impl AppCommand for CompileCommand {
         let progress = spinner_precise!(
             "{operation_str} Creatio application at {bold}{url}{bold:#}",
             bold = Style::new().bold(),
-            operation_str = match self.force_rebuild {
-                true => "Rebuilding",
-                false => "Compiling",
+            operation_str = if self.force_rebuild {
+                "Rebuilding"
+            } else {
+                "Compiling"
             },
             url = client.base_url()
         );
 
-        let response = match self.force_rebuild {
-            true => client.workspace_explorer_service().rebuild().await?,
-            false => client.workspace_explorer_service().build().await?,
+        let response = if self.force_rebuild {
+            client.workspace_explorer_service().rebuild().await?
+        } else {
+            client.workspace_explorer_service().build().await?
         };
 
         progress.suspend(|| print_build_response(&response))?;
@@ -52,11 +54,12 @@ impl AppCommand for CompileCommand {
             "{green}Creatio application {operation_str} successfully at {green_bold}{url}{green_bold:#}{green}!{green:#}",
             green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
             green_bold = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
-            operation_str = match self.force_rebuild {
-                true => "rebuilt",
-                false => "compiled",
+            operation_str = if self.force_rebuild {
+                "rebuilt" 
+            } else {
+                "compiled" 
             },
-            url=client.base_url(),
+            url = client.base_url(),
         ));
 
         if self.restart {
@@ -70,7 +73,7 @@ impl AppCommand for CompileCommand {
     }
 }
 
-pub fn print_build_response(response: &BuildResponse) -> CommandResult {
+pub fn print_build_response(response: &BaseResponse) -> CommandResult {
     let warn_printer = BuildPackageErrorPrinter::new_for_warning();
     let error_printer = BuildPackageErrorPrinter::new_for_error();
 

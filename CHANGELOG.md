@@ -4,26 +4,28 @@
 
 ### Added
 
- - Added `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#21](https://github.com/heabijay/crtcli/pull/21))
+ - `app tunnel` command which allows to establish TCP tunnels via the Creatio instance ([#21](https://github.com/heabijay/crtcli/pull/21))
 
- - Added stdin option to `app pkg install` using '@-' or '-' as filename ([#22](https://github.com/heabijay/crtcli/pull/22))
+ - Stdin option to `app pkg install` using '@-' or '-' as filename ([#22](https://github.com/heabijay/crtcli/pull/22))
 
- - Implemented OAuth 2 authentication support to `crtcli app` commands ([#23](https://github.com/heabijay/crtcli/pull/23))
+ - OAuth 2 authentication support to `crtcli app` commands ([#23](https://github.com/heabijay/crtcli/pull/23))
 
- - Added flag `--force-new-session` for `crtcli app` commands just in case you need to invalidate session cache before executing ([#23](https://github.com/heabijay/crtcli/pull/23))
+ - Flag `--force-new-session` for `crtcli app` commands just in case you need to invalidate session cache before executing ([#23](https://github.com/heabijay/crtcli/pull/23))
 
- - Added aliases for some commands, subcommands, and options (e.g., `crtcli a p d` instead of `crtcli app pkg download`) ([#24](https://github.com/heabijay/crtcli/pull/24))
+ - Aliases for some commands, subcommands, and options (e.g., `crtcli a p d` instead of `crtcli app pkg download`) ([#24](https://github.com/heabijay/crtcli/pull/24))
+
+ - Flag `--force-rebuild | -f` for `crtcli app pkg compile` command
 
 
 ## [0.1.3](https://github.com/heabijay/crtcli/releases/tag/v0.1.3) (2025-03-25)
 
 ### Added
 
- - Added default values for the username and password arguments in the `app` command [Supervisor:Supervisor] ([#15](https://github.com/heabijay/crtcli/pull/15))
+ - Default values for the username and password arguments in the `app` command [Supervisor:Supervisor] ([#15](https://github.com/heabijay/crtcli/pull/15))
 
- - Added `CRTCLI_INSTALL_VERSION_TAG` environment variable support in installation scripts to specify the version tag to install ([#18](https://github.com/heabijay/crtcli/pull/18))
+ - `CRTCLI_INSTALL_VERSION_TAG` environment variable support in installation scripts to specify the version tag to install ([#18](https://github.com/heabijay/crtcli/pull/18))
 
- - Added `workspace.crtcli.toml` configuration file support and application aliases in `app` commands ([#19](https://github.com/heabijay/crtcli/pull/19))
+ - `workspace.crtcli.toml` configuration file support and application aliases in `app` commands ([#19](https://github.com/heabijay/crtcli/pull/19))
 
 ### Changed
 
@@ -48,9 +50,9 @@
 
 ### Added
 
- - Added `--compile-package | -c` option to the `app pkg install` and `app pkg push` commands ([#9](https://github.com/heabijay/crtcli/pull/9))
+ - `--compile-package | -c` option to the `app pkg install` and `app pkg push` commands ([#9](https://github.com/heabijay/crtcli/pull/9))
 
- - Added `--check` option to the `pkg apply` command ([#10](https://github.com/heabijay/crtcli/pull/10))
+ - `--check` option to the `pkg apply` command ([#10](https://github.com/heabijay/crtcli/pull/10))
 
 ### Changed
 
@@ -65,11 +67,11 @@
 
  - Installation scripts for Linux, macOS, and Windows ([#1](https://github.com/heabijay/crtcli/pull/1))
 
- - Implemented progress bars (spinners) for long-running commands ([#3](https://github.com/heabijay/crtcli/pull/3))
+ - Progress bars (spinners) for long-running commands ([#3](https://github.com/heabijay/crtcli/pull/3))
 
- - Enabled support for multiple packages in the `app pkg push` command ([#4](https://github.com/heabijay/crtcli/pull/4))
+ - Support for multiple packages in the `app pkg push` command ([#4](https://github.com/heabijay/crtcli/pull/4))
 
- - Enabled support for multiple packages in the `pkg pack` command ([#6](https://github.com/heabijay/crtcli/pull/6))
+ - Support for multiple packages in the `pkg pack` command ([#6](https://github.com/heabijay/crtcli/pull/6))
 
 ### Changed
 

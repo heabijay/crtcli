@@ -253,13 +253,15 @@ Compiles a specific package within the Creatio instance.
 
 **Options:**
 
+- `--force-rebuild | -f` — Perform a rebuild package instead of a standard build package.
+
 - `--restart | -r` — Restart the Creatio application after successful package compilation.
 
 **Examples:**
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg compile UsrCustomPkg` — Compiles package 'UsrCustomPkg' at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg compile UsrCustomPkg -f` — Rebuilds package 'UsrCustomPkg' at insecure Creatio 'https://localhost:5000'.
 
 - `crtcli app pkg compile -r` — Compiles the UsrPackage (inferred from the current directory) in the Creatio instance defined by $CRTCLI_APP_URL and restarts the application.
 

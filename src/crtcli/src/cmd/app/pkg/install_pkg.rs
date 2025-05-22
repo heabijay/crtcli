@@ -215,6 +215,7 @@ where
             1 if descriptors.first().unwrap().name().is_some() => {
                 crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
                     package_name: Some(descriptors.first().unwrap().name().unwrap().to_owned()),
+                    force_rebuild: false,
                     restart: options.restart,
                 }
                 .run(client)

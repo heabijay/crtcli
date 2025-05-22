@@ -55,6 +55,7 @@ impl AppCommand for PushPkgFsCommand {
         if self.compile_package {
             crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
                 package_name: Some(package_name),
+                force_rebuild: false,
                 restart: self.restart,
             }
             .run(client)

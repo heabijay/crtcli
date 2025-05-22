@@ -12,7 +12,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Self(client)
     }
 
-    pub async fn build(&self) -> Result<BuildResponse, CrtClientError> {
+    pub async fn build(&self) -> Result<BaseResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -27,7 +27,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Ok(response.json().await?)
     }
 
-    pub async fn rebuild(&self) -> Result<BuildResponse, CrtClientError> {
+    pub async fn rebuild(&self) -> Result<BaseResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -42,7 +42,7 @@ impl<'c> WorkspaceExplorerService<'c> {
         Ok(response.json().await?)
     }
 
-    pub async fn build_package(&self, package_name: &str) -> Result<BuildResponse, CrtClientError> {
+    pub async fn build_package(&self, package_name: &str) -> Result<BaseResponse, CrtClientError> {
         let response = self
             .0
             .request(
@@ -52,6 +52,92 @@ impl<'c> WorkspaceExplorerService<'c> {
             .json(&json!({
                 "packageName": package_name
             }))
+            .send_with_session(self.0)
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
+    }
+
+    pub async fn rebuild_package(
+        &self,
+        package_name: &str,
+    ) -> Result<BaseResponse, CrtClientError> {
+        let response = self
+            .0
+            .request(
+                Method::POST,
+                "0/ServiceModel/WorkspaceExplorerService.svc/RebuildPackage",
+            )
+            .json(&json!({
+                "packageName": package_name
+            }))
+            .send_with_session(self.0)
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
+    }
+
+    #[allow(dead_code)]
+    pub async fn generate_modified_schema_sources(&self) -> Result<BaseResponse, CrtClientError> {
+        let response = self
+            .0
+            .request(
+                Method::POST,
+                "0/ServiceModel/WorkspaceExplorerService.svc/GenerateModifiedSchemasSources",
+            )
+            .header(reqwest::header::CONTENT_LENGTH, "0")
+            .send_with_session(self.0)
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
+    }
+
+    #[allow(dead_code)]
+    pub async fn generate_required_schemas_sources(&self) -> Result<BaseResponse, CrtClientError> {
+        let response = self
+            .0
+            .request(
+                Method::POST,
+                "0/ServiceModel/WorkspaceExplorerService.svc/GenerateRequiredSchemasSources",
+            )
+            .header(reqwest::header::CONTENT_LENGTH, "0")
+            .send_with_session(self.0)
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
+    }
+
+    #[allow(dead_code)]
+    pub async fn generate_all_schemas_sources(&self) -> Result<BaseResponse, CrtClientError> {
+        let response = self
+            .0
+            .request(
+                Method::POST,
+                "0/ServiceModel/WorkspaceExplorerService.svc/GenerateAllSchemasSources",
+            )
+            .header(reqwest::header::CONTENT_LENGTH, "0")
+            .send_with_session(self.0)
+            .await?
+            .error_for_status()?;
+
+        Ok(response.json().await?)
+    }
+
+    #[allow(dead_code)]
+    pub async fn generate_all_schemas_sources_background(
+        &self,
+    ) -> Result<BaseResponse, CrtClientError> {
+        let response = self
+            .0
+            .request(
+                Method::POST,
+                "0/ServiceModel/WorkspaceExplorerService.svc/GenerateAllSchemasSourcesInBackground",
+            )
+            .header(reqwest::header::CONTENT_LENGTH, "0")
             .send_with_session(self.0)
             .await?
             .error_for_status()?;
@@ -94,7 +180,7 @@ impl<'c> WorkspaceExplorerService<'c> {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct BuildResponse {
+pub struct BaseResponse {
     pub success: bool,
 
     // #[serde(rename = "buildResult")]
@@ -102,12 +188,12 @@ pub struct BuildResponse {
     pub message: Option<String>,
 
     #[serde(rename = "errorInfo")]
-    pub error_info: Option<BuildPackageErrorInfo>,
+    pub error_info: Option<BaseResponseErrorInfo>,
 
     pub errors: Option<Vec<BuildPackageError>>,
 }
 
-impl BuildResponse {
+impl BaseResponse {
     pub fn has_any_error(&self) -> bool {
         self.errors
             .as_ref()
@@ -132,7 +218,7 @@ pub struct BuildPackageError {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct BuildPackageErrorInfo {
+pub struct BaseResponseErrorInfo {
     pub message: String,
 }
 
