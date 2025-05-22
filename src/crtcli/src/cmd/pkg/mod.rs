@@ -15,9 +15,11 @@ pub enum PkgCommands {
     Apply(apply::ApplyCommand),
 
     /// Creates a package archive (.zip or .gz) from package folders
+    #[clap(visible_alias = "p")]
     Pack(pack::PackCommand),
 
     /// Extract a single package from a package archive (.zip or .gz)
+    #[clap(visible_alias = "u")]
     Unpack(unpack::UnpackCommand),
 
     /// Extract all packages from a zip archive

@@ -31,6 +31,7 @@ pub enum PkgCommands {
     Compile(compile_pkg::CompilePkgCommand),
 
     /// Downloads packages from the Creatio instance as a zip archive
+    #[clap(visible_aliases = &["d", "dl"])]
     Download(download_pkg::DownloadPkgCommand),
 
     /// Commands/aliases to simplify manipulate with package insides File System Development mode (FSD) location
@@ -40,6 +41,7 @@ pub enum PkgCommands {
     },
 
     /// Installs a package archive (.zip or .gz) into the Creatio instance
+    #[clap(visible_alias = "i")]
     Install(install_pkg::InstallPkgCommand),
 
     /// Print installed package information by Package UId
