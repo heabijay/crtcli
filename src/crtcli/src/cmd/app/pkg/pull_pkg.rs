@@ -157,6 +157,14 @@ impl AppCommand for PullPkgCommand {
         progress.finish_and_clear();
 
         for package_map in packages_map {
+            if packages_map.len() > 1 {
+                eprintln!(
+                    "  Unpacking {bold}{}{bold:#} package...",
+                    package_map.package_name,
+                    bold = Style::new().bold()
+                );
+            }
+
             let pkg_config = CrtCliPkgConfig::from_package_folder(&package_map.destination_folder)?;
 
             let apply_features = combine_apply_features_from_args_and_config(
