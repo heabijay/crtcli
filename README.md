@@ -270,7 +270,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 Downloads packages from the Creatio instance as a zip archive.
 
-**Aliases:** `d`, `dl` (full command: `crtcli app pkg d ...` or `crtcli a p d ...`)
+**Aliases:** `d`, `dl` (full command: `crtcli app pkg dl ...` or `crtcli a p d ...`)
 
 **Arguments:**
 
