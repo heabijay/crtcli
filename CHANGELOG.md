@@ -1,6 +1,6 @@
 # crtcli Changelog
 
-## [Unreleased](https://github.com/heabijay/crtcli/compare/v0.1.3...HEAD)
+## [0.2.0](https://github.com/heabijay/crtcli/releases/tag/v0.2.0) (2025-06-01)
 
 ### Added
 
