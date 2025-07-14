@@ -9,12 +9,17 @@ pub const WORKSPACE_CONFIG_FILENAME: &str = "workspace.crtcli.toml";
 #[derive(Debug, Deserialize, Clone)]
 pub struct WorkspaceAppConfig {
     pub url: String,
+
     pub username: Option<String>,
     pub password: Option<String>,
+
     pub oauth_url: Option<String>,
     pub oauth_client_id: Option<String>,
     pub oauth_client_secret: Option<String>,
+
     pub insecure: Option<bool>,
+
+    #[serde(alias = "netframework")]
     pub net_framework: Option<bool>,
 }
 
