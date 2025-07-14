@@ -967,6 +967,18 @@ This is useful for standardizing package structure, cleaning up localization fil
     _Affects_:
   - Data/**/Localization/data.*.json
   - Resources/**/resource.*.xml
+  
+- `--apply-bom-normalization <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files (.json / .xml) by adding or removing BOM bytes.
+
+    _Affects_:
+  - descriptor.json
+  - Assemblies/**/*.json
+  - Data/**/*.json
+  - Data/**/Localization/*.json
+  - Resources/**/resource.*.xml
+  - Schemas/**/descriptor.json
+  - Schemas/**/properties.json
+  - SqlSchemas/**/descriptor.json
 
 \* Check [package.crtcli.toml](#packagecrtclitoml) to configure default apply transforms.
 
