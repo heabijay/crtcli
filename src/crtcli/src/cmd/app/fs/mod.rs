@@ -72,7 +72,7 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
                 let culture_suffix = item
                     .culture_name
                     .as_ref()
-                    .map(|x| format!(", {}", x))
+                    .map(|x| format!(", {x}"))
                     .unwrap_or_default();
 
                 match item.state {
@@ -107,7 +107,7 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
                 .workspace_item
                 .culture_name
                 .as_ref()
-                .map(|x| format!(", {}", x))
+                .map(|x| format!(", {x}"))
                 .unwrap_or_default();
 
             writeln!(

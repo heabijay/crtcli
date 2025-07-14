@@ -1,9 +1,13 @@
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 use regex::Regex;
+use std::cmp::Ordering;
 use std::io::Cursor;
 use std::sync::LazyLock;
 use thiserror::Error;
+
+const TERRASOFT_CONFIGURATION_REFERENCE_BLOCK: &str =
+    "Reference Include=\"Terrasoft.Configuration\"";
 
 pub static PKG_CSPROJ_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(
@@ -66,7 +70,13 @@ pub fn apply_sorting(content: &[u8]) -> Result<Vec<u8>, CsprojProcessingError> {
             let a = a.first().expect("event block cannot be empty");
             let b = b.first().expect("event block cannot be empty");
 
-            a.cmp(b)
+            if a.eq_ignore_ascii_case(TERRASOFT_CONFIGURATION_REFERENCE_BLOCK.as_ref()) {
+                Ordering::Less
+            } else if b.eq_ignore_ascii_case(TERRASOFT_CONFIGURATION_REFERENCE_BLOCK.as_ref()) {
+                Ordering::Greater
+            } else {
+                a.cmp(b)
+            }
         });
 
         if let Some(ref open_sep) = event_blocks.separator {

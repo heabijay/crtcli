@@ -44,11 +44,11 @@ impl CrtSessionCookie {
             format!(".ASPXAUTH={};BPMCSRF={};", self.aspxauth, self.bpmcsrf).to_owned();
 
         if let Some(csrftoken) = &self.csrftoken {
-            cookie_value = format!("{}CsrfToken={};", cookie_value, csrftoken);
+            cookie_value = format!("{cookie_value}CsrfToken={csrftoken};");
         }
 
         if let Some(bpmsessionid) = &self.bpmsessionid {
-            cookie_value = format!("{}BPMSESSIONID={};", cookie_value, bpmsessionid);
+            cookie_value = format!("{cookie_value}BPMSESSIONID={bpmsessionid};");
         }
 
         cookie_value

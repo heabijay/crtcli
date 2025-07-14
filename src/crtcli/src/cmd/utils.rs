@@ -28,8 +28,7 @@ pub fn get_next_filename_if_exists(path_buf: PathBuf) -> PathBuf {
 
     let mut i = 1;
     loop {
-        let new_path =
-            path_buf.with_file_name(format!("{path_buf_stem}_{}{path_buf_extension}", i));
+        let new_path = path_buf.with_file_name(format!("{path_buf_stem}_{i}{path_buf_extension}"));
 
         if !new_path.exists() {
             return new_path;
@@ -63,7 +62,7 @@ pub fn humanize_bytes(bytes: u64) -> String {
     } else if bytes >= KB {
         format!("{:.2} KB", bytes as f64 / KB as f64)
     } else {
-        format!("{} B", bytes)
+        format!("{bytes} B")
     }
 }
 

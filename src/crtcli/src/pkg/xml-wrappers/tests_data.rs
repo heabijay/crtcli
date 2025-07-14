@@ -342,11 +342,6 @@ pub const INPUT: &str = r#"
 			<SpecificVersion>False</SpecificVersion>
 			<Private>False</Private>
 		</Reference>
-		<Reference Include="WebitelChats">
-			<HintPath>$(RelativePkgFolderPath)/WebitelChats/$(StandalonePackageAssemblyPath)/WebitelChats.dll</HintPath>
-			<SpecificVersion>False</SpecificVersion>
-			<Private>False</Private>
-		</Reference>
 		<Reference Include="CrtBaseConsts">
 			<HintPath>$(RelativePkgFolderPath)/CrtBaseConsts/$(StandalonePackageAssemblyPath)/CrtBaseConsts.dll</HintPath>
 			<SpecificVersion>False</SpecificVersion>
@@ -634,29 +629,7 @@ pub const INPUT: &str = r#"
 		</Reference>
 	</ItemGroup>
 	<ItemGroup Label="Standalone package external assembly references" />
-	<ItemGroup Label="Entity Files">
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Activity/Activity.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Activity/Activity.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Contact/Contact.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Contact/Contact.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/ContactType/ContactType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/ContactType/ContactType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Currency/Currency.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Currency/Currency.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactDealStats/VwWCEContactDealStats.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactDealStats/VwWCEContactDealStats.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactEachKYCLimits/VwWCEContactEachKYCLimits.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactEachKYCLimits/VwWCEContactEachKYCLimits.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEExchangeRate/VwWCEExchangeRate.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEExchangeRate/VwWCEExchangeRate.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEBranch/WCEBranch.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEBranch/WCEBranch.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECity/WCECity.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECity/WCECity.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerResidentType/WCECustomerResidentType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerResidentType/WCECustomerResidentType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerStatus/WCECustomerStatus.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerStatus/WCECustomerStatus.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDeal/WCEDeal.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDeal/WCEDeal.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealLifecycle/WCEDealLifecycle.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealLifecycle/WCEDealLifecycle.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOperationType/WCEDealOperationType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOperationType/WCEDealOperationType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOrigin/WCEDealOrigin.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOrigin/WCEDealOrigin.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealStatus/WCEDealStatus.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealStatus/WCEDealStatus.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEExchangeRate/WCEExchangeRate.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEExchangeRate/WCEExchangeRate.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEIdentificationDocumentType/WCEIdentificationDocumentType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEIdentificationDocumentType/WCEIdentificationDocumentType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEKYCLevel/WCEKYCLevel.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEKYCLevel/WCEKYCLevel.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEPaymentInformation/WCEPaymentInformation.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEPaymentInformation/WCEPaymentInformation.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WtelChats/WtelChats.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WtelChats/WtelChats.cs')" />
-	</ItemGroup>
+	<ItemGroup Label="Entity Files"></ItemGroup>
 	<ItemGroup Label="3rd Party References"></ItemGroup>
 	<Target Name="Paths" BeforeTargets="BeforeCompile">
 		<Message Importance="High" Text="*********** Project [$(MSBuildProjectFile)] TargetFramework [$(TargetFramework)] CoreTargetFramework [$(CoreTargetFramework)]" />
@@ -1001,6 +974,11 @@ pub const CSPROJ_SORTING_EXPECTED_OUTPUT: &str = r#"
 		</Reference>
 	</ItemGroup>
 	<ItemGroup Label="Package References">
+		<Reference Include="Terrasoft.Configuration">
+			<HintPath>$(RelativePkgFolderPath)/../bin/Terrasoft.Configuration.dll</HintPath>
+			<SpecificVersion>False</SpecificVersion>
+			<Private>False</Private>
+		</Reference>
 		<Reference Include="CSP">
 			<HintPath>$(RelativePkgFolderPath)/CSP/$(StandalonePackageAssemblyPath)/CSP.dll</HintPath>
 			<SpecificVersion>False</SpecificVersion>
@@ -1296,16 +1274,6 @@ pub const CSPROJ_SORTING_EXPECTED_OUTPUT: &str = r#"
 			<SpecificVersion>False</SpecificVersion>
 			<Private>False</Private>
 		</Reference>
-		<Reference Include="Terrasoft.Configuration">
-			<HintPath>$(RelativePkgFolderPath)/../bin/Terrasoft.Configuration.dll</HintPath>
-			<SpecificVersion>False</SpecificVersion>
-			<Private>False</Private>
-		</Reference>
-		<Reference Include="WebitelChats">
-			<HintPath>$(RelativePkgFolderPath)/WebitelChats/$(StandalonePackageAssemblyPath)/WebitelChats.dll</HintPath>
-			<SpecificVersion>False</SpecificVersion>
-			<Private>False</Private>
-		</Reference>
 		<Reference Include="XSSProtection">
 			<HintPath>$(RelativePkgFolderPath)/XSSProtection/$(StandalonePackageAssemblyPath)/XSSProtection.dll</HintPath>
 			<SpecificVersion>False</SpecificVersion>
@@ -1313,29 +1281,7 @@ pub const CSPROJ_SORTING_EXPECTED_OUTPUT: &str = r#"
 		</Reference>
 	</ItemGroup>
 	<ItemGroup Label="Standalone package external assembly references" />
-	<ItemGroup Label="Entity Files">
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Activity/Activity.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Activity/Activity.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Contact/Contact.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Contact/Contact.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/ContactType/ContactType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/ContactType/ContactType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Currency/Currency.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/Currency/Currency.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactDealStats/VwWCEContactDealStats.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactDealStats/VwWCEContactDealStats.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactEachKYCLimits/VwWCEContactEachKYCLimits.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEContactEachKYCLimits/VwWCEContactEachKYCLimits.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEExchangeRate/VwWCEExchangeRate.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/VwWCEExchangeRate/VwWCEExchangeRate.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEBranch/WCEBranch.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEBranch/WCEBranch.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECity/WCECity.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECity/WCECity.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerResidentType/WCECustomerResidentType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerResidentType/WCECustomerResidentType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerStatus/WCECustomerStatus.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCECustomerStatus/WCECustomerStatus.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDeal/WCEDeal.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDeal/WCEDeal.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealLifecycle/WCEDealLifecycle.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealLifecycle/WCEDealLifecycle.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOperationType/WCEDealOperationType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOperationType/WCEDealOperationType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOrigin/WCEDealOrigin.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealOrigin/WCEDealOrigin.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealStatus/WCEDealStatus.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEDealStatus/WCEDealStatus.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEExchangeRate/WCEExchangeRate.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEExchangeRate/WCEExchangeRate.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEIdentificationDocumentType/WCEIdentificationDocumentType.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEIdentificationDocumentType/WCEIdentificationDocumentType.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEKYCLevel/WCEKYCLevel.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEKYCLevel/WCEKYCLevel.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEPaymentInformation/WCEPaymentInformation.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WCEPaymentInformation/WCEPaymentInformation.cs')" />
-		<Compile Remove="$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WtelChats/WtelChats.cs" Condition="Exists('$(RelativePkgFolderPath)/WCastellExchange.Base/Schemas/WtelChats/WtelChats.cs')" />
-	</ItemGroup>
+	<ItemGroup Label="Entity Files"></ItemGroup>
 	<ItemGroup Label="3rd Party References"></ItemGroup>
 	<Target Name="Paths" BeforeTargets="BeforeCompile">
 		<Message Importance="High" Text="*********** Project [$(MSBuildProjectFile)] TargetFramework [$(TargetFramework)] CoreTargetFramework [$(CoreTargetFramework)]" />
