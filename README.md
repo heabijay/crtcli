@@ -954,7 +954,7 @@ This is useful for standardizing package structure, cleaning up localization fil
 
 **Transforms (also options):**
 
-- `--apply-sorting | -S <true/false>` — Sorts the contents of specific files within the package. This is useful when you work with any VCS cause it prevents you from check some inconsistent diffs.
+- `--apply-sorting | -S <true/false>` — Sorts the contents of specific files within the package. This is useful when you work with any VCS cause it prevents you from check some inconsistent diffs. (Recommended)
 
     _Affects:_
   - descriptor.json
@@ -962,11 +962,24 @@ This is useful for standardizing package structure, cleaning up localization fil
   - Data/**/Localization/*.json
   - Files/*.csproj
 
-- `--apply-localization-cleanup | -L <EXCEPT-LOCALIZATIONS>` —  Removes localization files except for the specified cultures (comma-separated list).
+- `--apply-localization-cleanup | -L <EXCEPT-LOCALIZATIONS>` —  Removes localization files except for the specified cultures (comma-separated list). (Recommended)
 
     _Affects_:
   - Data/**/Localization/data.*.json
   - Resources/**/resource.*.xml
+  
+- `--apply-bom-normalization <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files (.json / .xml) by adding or removing BOM bytes.
+
+    _Affects_:
+  - descriptor.json
+  - Assemblies/**/*.json
+  - Data/**/*.json
+  - Data/**/Localization/*.json
+  - Resources/**/resource.*.xml
+  - Schemas/**/descriptor.json
+  - Schemas/**/metadata.json
+  - Schemas/**/properties.json
+  - SqlSchemas/**/descriptor.json
 
 \* Check [package.crtcli.toml](#packagecrtclitoml) to configure default apply transforms.
 
@@ -1169,6 +1182,8 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
 - `apply.localization_cleanup = <except-localizations>` — Enable/disable localization cleanup transform by default in [pkg apply](#pkg-apply) command.
 
+- `apply.bom_normalization = <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files by default in [pkg apply](#pkg-apply) command.
+
 **Examples:**
 
 1. For example, current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder inside in Creatio.
@@ -1213,7 +1228,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 - `apps.<alias>.username` — (Optional) The username for authentication.
 - `apps.<alias>.password` — (Optional) The password for authentication.
 - `apps.<alias>.insecure` — (Optional) Set to `true` to disable SSL certificate validation.
-- `apps.<alias>.net_framework` — (Optional) Set to `true` if your Creatio instance is running on .NET Framework (IIS).
+- `apps.<alias>.net_framework` | `apps.<alias>.netframework` — (Optional) Set to `true` if your Creatio instance is running on .NET Framework (IIS).
 
 For OAuth 2.0 authentication (instead of username and password):
 

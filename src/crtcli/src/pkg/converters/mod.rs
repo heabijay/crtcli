@@ -7,6 +7,9 @@ pub use combined_converter::*;
 mod localization_cleanup;
 pub use localization_cleanup::*;
 
+mod bom_normalization;
+pub use bom_normalization::*;
+
 pub trait PkgFileConverter {
     type Error: std::error::Error + Send + Sync + 'static;
 
