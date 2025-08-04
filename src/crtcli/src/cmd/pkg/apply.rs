@@ -52,6 +52,11 @@ pub struct PkgApplyFeatures {
         value_hint = clap::ValueHint::Other)]
     #[serde(rename = "localization_cleanup")]
     apply_localization_cleanup: Option<Vec<String>>,
+
+    /// Normalizes a Byte Order Mark (BOM) in package schema files (.json / .xml) by adding or removing BOM bytes.
+    #[arg(long, value_name = "BOM_NORMALIZATION_MODE")]
+    #[serde(rename = "bom_normalization")]
+    apply_bom_normalization: Option<BomNormalizationMode>,
 }
 
 impl PkgApplyFeatures {
@@ -63,20 +68,27 @@ impl PkgApplyFeatures {
             apply_localization_cleanup: self.apply_localization_cleanup.clone().or(other
                 .as_ref()
                 .and_then(|x| x.apply_localization_cleanup.clone())),
+            apply_bom_normalization: self
+                .apply_bom_normalization
+                .or(other.and_then(|x| x.apply_bom_normalization)),
         }
     }
 
     pub fn build_combined_converter(&self) -> CombinedPkgFileConverter {
         let mut combined = CombinedPkgFileConverter::new();
 
-        if self.apply_sorting.is_some_and(|x| x) {
-            combined.add(SortingPkgFileConverter);
-        }
-
         if let Some(localization_cultures) = &self.apply_localization_cleanup {
             combined.add(LocalizationCleanupPkgFileConverter::new(
                 HashSet::from_iter(localization_cultures.iter().cloned()),
             ));
+        }
+
+        if self.apply_sorting.is_some_and(|x| x) {
+            combined.add(SortingPkgFileConverter);
+        }
+
+        if let Some(bom_normalization) = self.apply_bom_normalization {
+            combined.add(BomNormalizationPkgFileConverter::new(bom_normalization));
         }
 
         combined
