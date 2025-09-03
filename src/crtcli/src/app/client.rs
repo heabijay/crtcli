@@ -579,21 +579,16 @@ impl From<sql::SqlRunnerError> for CrtClientError {
 
 impl From<reqwest::Error> for CrtClientError {
     fn from(value: reqwest::Error) -> Self {
-        if value.is_request() {
-            if let Some(source) = value.source() {
-                if let Some(hyper_error) =
-                    source.downcast_ref::<hyper_util::client::legacy::Error>()
-                {
-                    if hyper_error.is_connect() {
-                        if let Some(inner_error) = hyper_error.source() {
-                            return CrtClientError::Connection {
-                                inner_message: inner_error.to_string(),
-                                source: value,
-                            };
-                        }
-                    }
-                }
-            }
+        if value.is_request()
+            && let Some(source) = value.source()
+            && let Some(hyper_error) = source.downcast_ref::<hyper_util::client::legacy::Error>()
+            && hyper_error.is_connect()
+            && let Some(inner_error) = hyper_error.source()
+        {
+            return CrtClientError::Connection {
+                inner_message: inner_error.to_string(),
+                source: value,
+            };
         }
 
         CrtClientError::Reqwest(value)
@@ -629,10 +624,10 @@ impl std::error::Error for StandardServiceError {}
 
 impl StandardServiceResponse {
     pub fn into_result(self) -> Result<(), StandardServiceError> {
-        if !self.success {
-            if let Some(err) = self.error_info {
-                return Err(err);
-            }
+        if !self.success
+            && let Some(err) = self.error_info
+        {
+            return Err(err);
         }
 
         Ok(())

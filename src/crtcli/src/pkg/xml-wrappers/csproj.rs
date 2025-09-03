@@ -179,10 +179,10 @@ fn xml_write_event_blocks(writer: &mut Writer<Cursor<Vec<u8>>>, event_blocks: Ev
             writer.write_event(event).unwrap();
         }
 
-        if i < event_blocks_len - 1 {
-            if let Some(ref separator) = event_blocks.separator {
-                writer.write_event(Event::Text(separator.clone())).unwrap();
-            }
+        if i < event_blocks_len - 1
+            && let Some(ref separator) = event_blocks.separator
+        {
+            writer.write_event(Event::Text(separator.clone())).unwrap();
         }
     }
 

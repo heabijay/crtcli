@@ -144,9 +144,11 @@ impl FileSystemSynchronizationResultResponse {
         self,
     ) -> Result<FileSystemSynchronizationResultResponse, StandardServiceError> {
         if !self.base.success {
-            if let Some(err) = self.base.error_info {
-                return Err(err);
-            }
+            let err = self.base.error_info.expect(
+                "self.base.success = true, but self.base.error_info is None, which is unexpected",
+            );
+
+            return Err(err);
         }
 
         Ok(self)

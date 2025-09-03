@@ -379,11 +379,11 @@ impl AppCommand for TunnelCommand {
 
                 tokio::spawn(async move {
                     loop {
-                        if let Some(Ok(event::Event::Key(key_event))) = event_stream.next().await {
-                            if is_close_event(key_event) {
-                                let _ = cancellation_token.cancel();
-                                break;
-                            }
+                        if let Some(Ok(event::Event::Key(key_event))) = event_stream.next().await
+                            && is_close_event(key_event)
+                        {
+                            let _ = cancellation_token.cancel();
+                            break;
                         }
 
                         if cancellation_token.is_cancelled() {

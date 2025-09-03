@@ -16,7 +16,7 @@ struct CrtSessionCacheEntry {
 }
 
 trait CrtSessionCacheStorage: Send + Sync {
-    fn get(&self) -> Cow<HashMap<u64, CrtSessionCacheEntry>>;
+    fn get(&self) -> Cow<'_, HashMap<u64, CrtSessionCacheEntry>>;
 
     fn set(&self, value: Cow<HashMap<u64, CrtSessionCacheEntry>>);
 }
@@ -26,7 +26,7 @@ struct BinaryFileCrtSessionCacheStorage {
 }
 
 impl CrtSessionCacheStorage for BinaryFileCrtSessionCacheStorage {
-    fn get(&self) -> Cow<HashMap<u64, CrtSessionCacheEntry>> {
+    fn get(&self) -> Cow<'_, HashMap<u64, CrtSessionCacheEntry>> {
         let cache: HashMap<u64, CrtSessionCacheEntry> = File::open(&self.filepath)
             .ok()
             .and_then(|mut f| {
@@ -57,7 +57,7 @@ impl MemoryCrtSessionCacheStorage {
 }
 
 impl CrtSessionCacheStorage for MemoryCrtSessionCacheStorage {
-    fn get(&self) -> Cow<HashMap<u64, CrtSessionCacheEntry>> {
+    fn get(&self) -> Cow<'_, HashMap<u64, CrtSessionCacheEntry>> {
         Cow::Owned(self.cache.read().unwrap().clone())
     }
 

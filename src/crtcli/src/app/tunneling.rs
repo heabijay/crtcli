@@ -61,12 +61,11 @@ impl<'c> CrtCliTunnelingService<'c> {
             ))
             .await;
 
-        if let Err(CrtClientError::WebSocket(websocket_err)) = &result {
-            if let tokio_tungstenite::tungstenite::Error::Http(response) = websocket_err.deref() {
-                if response.status().as_u16() == 404 {
-                    return Err(CrtClientError::CrtCliTunnelingPackageNotInstalled);
-                }
-            }
+        if let Err(CrtClientError::WebSocket(websocket_err)) = &result
+            && let tokio_tungstenite::tungstenite::Error::Http(response) = websocket_err.deref()
+            && response.status().as_u16() == 404
+        {
+            return Err(CrtClientError::CrtCliTunnelingPackageNotInstalled);
         }
 
         let (stream, _) = result?;
