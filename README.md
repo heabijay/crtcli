@@ -838,7 +838,8 @@ Establishes TCP tunnels via the Creatio instance to access internal services, su
 
 **Requires crtcli.tunneling package installed** and "CanManageSolution" operation permission for the user in Creatio.
 
-[Download crtcli.tunneling_v0.1.0.zip](https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip)
+[Download crtcli.tunneling_v0.1.1.zip](https://github.com/user-attachments/files/22113792/crtcli.tunneling_v0.1.1.zip)
+
 
 <details>
 <summary>
@@ -848,13 +849,13 @@ Install using the one-line command
 Shell:
 
 ```sh
-curl -sfL https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip | crtcli app pkg install @- -r
+curl -sfL https://github.com/user-attachments/files/22113792/crtcli.tunneling_v0.1.1.zip | crtcli app pkg install @- -r
 ```
 
 PowerShell:
 
 ```powershell
-(iwr -useb https://github.com/user-attachments/files/19711059/crtcli.tunneling_v0.1.0.zip).Content | crtcli app pkg install - -r
+(iwr -useb https://github.com/user-attachments/files/22113792/crtcli.tunneling_v0.1.1.zip).Content | crtcli app pkg install - -r
 ```
 </details>
 

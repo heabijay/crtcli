@@ -16,7 +16,7 @@ impl<'c> CrtCliTunnelingService<'c> {
     pub async fn get_status(&self) -> Result<TunnelingInformationResponse, CrtClientError> {
         let response = self
             .0
-            .request(Method::GET, "0/rest/crtcli/tunneling")
+            .request(Method::GET, "0/rest/crtcli/tunneling/")
             .send_with_session(self.0)
             .await?;
 
