@@ -961,6 +961,7 @@ This is useful for standardizing package structure, cleaning up localization fil
   - descriptor.json
   - Data/**/*.json
   - Data/**/Localization/*.json
+  - Resources/**/resource.*.xml
   - Files/*.csproj
 
 - `--apply-localization-cleanup | -L <EXCEPT-LOCALIZATIONS>` —  Removes localization files except for the specified cultures (comma-separated list). (Recommended)

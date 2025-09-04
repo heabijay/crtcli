@@ -1,5 +1,6 @@
 use crate::pkg::converters::PkgFileConverter;
-use crate::pkg::json_wrappers::{PKG_DATA_LCZ_DATA_PATH_REGEX, PKG_RESOURCE_PATH_REGEX};
+use crate::pkg::json_wrappers::PKG_DATA_LCZ_DATA_PATH_REGEX;
+use crate::pkg::xml_wrappers::resource::PKG_RESOURCE_PATH_REGEX;
 use std::collections::HashSet;
 use thiserror::Error;
 

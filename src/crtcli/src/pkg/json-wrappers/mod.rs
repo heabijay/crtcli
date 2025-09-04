@@ -10,9 +10,6 @@ pub use pkg_data_data::*;
 mod pkg_data_descriptor;
 pub use pkg_data_descriptor::*;
 
-mod pkg_resource;
-pub use pkg_resource::*;
-
 mod pkg_schemas_descriptor;
 pub use pkg_schemas_descriptor::*;
 
