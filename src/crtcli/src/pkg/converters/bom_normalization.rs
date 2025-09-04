@@ -1,6 +1,7 @@
 use crate::pkg::converters::PkgFileConverter;
 use crate::pkg::json_wrappers::*;
 use crate::pkg::paths::*;
+use crate::pkg::xml_wrappers::resource::PKG_RESOURCE_PATH_REGEX;
 use crate::utils::bom;
 use clap::ValueEnum;
 use serde::Deserialize;

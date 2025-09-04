@@ -19,6 +19,9 @@ pub enum SortingPkgFileConverterError {
     #[error("failed to apply json data descriptor sorting: {0}")]
     ApplyDataDescriptorSorting(#[from] PkgDataDescriptorSortingError),
 
+    #[error("failed to apply resource sorting: {0}")]
+    ApplyResourceSorting(#[from] resource::ResourceProcessingError),
+
     #[error("failed to apply csproj sorting: {0}")]
     ApplyCsprojSorting(#[from] csproj::CsprojProcessingError),
 
@@ -58,6 +61,10 @@ impl PkgFileConverter for SortingPkgFileConverter {
             return Ok(Some(out));
         }
 
+        if resource::PKG_RESOURCE_PATH_REGEX.is_match(filename) {
+            return Ok(Some(resource::apply_sorting(&content)?));
+        }
+
         if csproj::PKG_CSPROJ_PATH_REGEX.is_match(filename) {
             return Ok(Some(csproj::apply_sorting(&content)?));
         }
@@ -70,6 +77,7 @@ impl PkgFileConverter for SortingPkgFileConverter {
             || PKG_DATA_DATA_PATH_REGEX.is_match(filename)
             || PKG_DATA_LCZ_DATA_PATH_REGEX.is_match(filename)
             || PKG_DATA_DESCRIPTOR_PATH_REGEX.is_match(filename)
+            || resource::PKG_RESOURCE_PATH_REGEX.is_match(filename)
             || csproj::PKG_CSPROJ_PATH_REGEX.is_match(filename)
     }
 }
