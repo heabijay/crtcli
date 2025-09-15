@@ -1,4 +1,4 @@
-use crate::cmd::cli::{CliCommand, CommandResult};
+use crate::cmd::cli::{CliCommand, CommandDynError, CommandResult};
 use crate::cmd::pkg::package_config::{
     CrtCliPkgConfig, combine_apply_features_from_args_and_config,
 };
@@ -106,10 +106,8 @@ enum ApplyCommandError {
     #[error("unable to change file {0}: {1}")]
     FileChangeAccessError(PathBuf, #[source] std::io::Error),
 
-    #[error(
-        "apply check not passed, there are some files with non-applied transforms, for example: {0}"
-    )]
-    CheckNotPassed(PathBuf),
+    #[error("apply check not passed, there are some files with non-applied transforms")]
+    CheckNotPassed,
 }
 
 impl CliCommand for ApplyCommand {
@@ -135,6 +133,8 @@ impl CliCommand for ApplyCommand {
         let converter = apply_features.build_combined_converter();
         let mut stdout = stdout().lock();
 
+        let mut any_applied = false;
+
         match &self.file {
             None => {
                 for file in walk_over_package_files(self.package_folder.clone()) {
@@ -142,12 +142,20 @@ impl CliCommand for ApplyCommand {
                         .map_err(WalkOverPackageFilesContentError::FolderAccess)
                         .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
-                    apply_file(&self, &mut stdout, &converter, file_path)?;
+                    if apply_file(&self, &mut stdout, &converter, file_path)? {
+                        any_applied = true;
+                    };
                 }
             }
             Some(for_single_file) => {
-                apply_file(&self, &mut stdout, &converter, for_single_file.to_owned())?
+                if apply_file(&self, &mut stdout, &converter, for_single_file.to_owned())? {
+                    any_applied = true;
+                }
             }
+        }
+
+        if self.check_only && any_applied {
+            return Err(ApplyCommandError::CheckNotPassed.into());
         }
 
         return Ok(());
@@ -157,13 +165,13 @@ impl CliCommand for ApplyCommand {
             mut stdout: impl Write,
             converter: &CombinedPkgFileConverter,
             file_path: PathBuf,
-        ) -> CommandResult {
+        ) -> Result<bool, CommandDynError> {
             let relative_path = file_path
                 .strip_prefix(&_self.package_folder)
                 .unwrap_or(&file_path);
 
             if !converter.is_applicable(relative_path.to_str().unwrap()) {
-                return Ok(());
+                return Ok(false);
             }
 
             let file =
@@ -183,32 +191,43 @@ impl CliCommand for ApplyCommand {
             if let Some(content) = converted_content {
                 if content != file.content {
                     if _self.check_only {
-                        return Err(ApplyCommandError::CheckNotPassed(file_path).into());
+                        writeln!(stdout, "\tto be modified:\t{}", file.filename).unwrap();
+                    } else {
+                        std::fs::write(&file_path, content).map_err(|err| {
+                            ApplyCommandError::FileChangeAccessError(file_path, err)
+                        })?;
+
+                        writeln!(stdout, "\tmodified:\t{}", file.filename).unwrap();
                     }
 
-                    std::fs::write(&file_path, content)
-                        .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
-
-                    writeln!(stdout, "\tmodified:\t{}", file.filename).unwrap();
+                    return Ok(true);
                 }
             } else {
                 if _self.check_only {
-                    return Err(ApplyCommandError::CheckNotPassed(file_path).into());
+                    writeln!(
+                        stdout,
+                        "{style}\tto be deleted:\t{}{style:#}",
+                        file.filename,
+                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                    )
+                    .unwrap();
+                } else {
+                    std::fs::remove_file(&file_path)
+                        .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
+
+                    writeln!(
+                        stdout,
+                        "{style}\tdeleted:\t{}{style:#}",
+                        file.filename,
+                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                    )
+                    .unwrap();
                 }
 
-                std::fs::remove_file(&file_path)
-                    .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
-
-                writeln!(
-                    stdout,
-                    "{style}\tdeleted:\t{}{style:#}",
-                    file.filename,
-                    style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
-                )
-                .unwrap();
+                return Ok(true);
             }
 
-            Ok(())
+            Ok(false)
         }
     }
 }
