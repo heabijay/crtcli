@@ -10,6 +10,7 @@ mod app;
 mod cmd;
 mod pkg;
 mod utils;
+mod dotnet_interop;
 
 #[derive(Debug)]
 struct CommandHandledError(ExitCode);

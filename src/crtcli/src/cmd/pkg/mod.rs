@@ -6,6 +6,7 @@ mod pack;
 pub mod package_config;
 mod unpack;
 mod unpack_all;
+mod autogen;
 
 pub use apply::PkgApplyFeatures;
 
@@ -13,6 +14,9 @@ pub use apply::PkgApplyFeatures;
 pub enum PkgCommands {
     /// Applies transformations to the contents of a package folder
     Apply(apply::ApplyCommand),
+
+    /// TODO
+    Autogen(autogen::AutogenCommand),
 
     /// Creates a package archive (.zip or .gz) from package folders
     #[clap(visible_alias = "p")]
@@ -30,6 +34,7 @@ impl CliCommand for PkgCommands {
     fn run(self) -> CommandResult {
         match self {
             PkgCommands::Apply(command) => command.run(),
+            PkgCommands::Autogen(command) => command.run(),
             PkgCommands::Pack(command) => command.run(),
             PkgCommands::Unpack(command) => command.run(),
             PkgCommands::UnpackAll(command) => command.run(),
