@@ -13,7 +13,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 #[derive(Args, Debug)]
 pub struct InstallPkgCommand {
-    /// Path to the package archive file (Use '@-' or '-' value to read data from standard input)
+    /// Path to the package archive file (Use '@-' or '-' value to read data from stdin)
     #[arg(value_hint = clap::ValueHint::FilePath)]
     filepath: PathBuf,
 

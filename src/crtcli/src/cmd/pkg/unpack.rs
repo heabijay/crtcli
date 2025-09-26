@@ -35,7 +35,7 @@ pub struct UnpackCommand {
 #[derive(Error, Debug)]
 enum UnpackCommandError {
     #[error("invalid package filename in path")]
-    InvalidPackageFilename(),
+    InvalidPackageFilename,
 
     #[error("failed to read the package file: {0}")]
     ReadPackageFile(#[from] std::io::Error),
@@ -58,7 +58,7 @@ enum UnpackCommandError {
     #[error(
         "multiple files found in zip package bundle, please specify file using -p argument or use 'unpack-all' command"
     )]
-    MultipleFilesInZipPackage(),
+    MultipleFilesInZipPackage,
 }
 
 impl CliCommand for UnpackCommand {
@@ -69,9 +69,9 @@ impl CliCommand for UnpackCommand {
                 let filename = self
                     .package_filepath
                     .file_stem()
-                    .ok_or(UnpackCommandError::InvalidPackageFilename())?
+                    .ok_or(UnpackCommandError::InvalidPackageFilename)?
                     .to_str()
-                    .ok_or(UnpackCommandError::InvalidPackageFilename())?;
+                    .ok_or(UnpackCommandError::InvalidPackageFilename)?;
 
                 crate::cmd::utils::get_next_filename_if_exists(PathBuf::from(".").join(filename))
             }
@@ -104,7 +104,7 @@ impl CliCommand for UnpackCommand {
 
         let gzip_result: Option<_> = match &zip_result {
             Err(ExtractSingleZipPackageError::MultiplePackageInZipFile) => {
-                return Err(UnpackCommandError::MultipleFilesInZipPackage().into());
+                return Err(UnpackCommandError::MultipleFilesInZipPackage.into());
             }
             Err(ExtractSingleZipPackageError::OpenZipFileForReading(ZipError::InvalidArchive(
                 _,

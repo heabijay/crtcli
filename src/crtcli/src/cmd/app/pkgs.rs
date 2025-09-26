@@ -1,6 +1,7 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
+use anstream::stdout;
 use anstyle::Style;
 use async_trait::async_trait;
 use clap::Args;
@@ -27,11 +28,13 @@ impl AppCommand for PkgsCommand {
             }
         }
 
-        eprintln!(
-            "{style}Total: {} packages{style:#}",
-            packages.len(),
-            style = Style::new().underline()
-        );
+        if stdout().is_terminal() {
+            eprintln!(
+                "{style}Total: {} packages{style:#}",
+                packages.len(),
+                style = Style::new().underline()
+            );
+        }
 
         Ok(())
     }

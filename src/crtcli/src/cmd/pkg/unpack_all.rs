@@ -26,7 +26,7 @@ pub struct UnpackAllCommand {
 #[derive(Error, Debug)]
 enum UnpackAllCommandError {
     #[error("invalid package filename in path")]
-    InvalidPackageFilename(),
+    InvalidPackageFilename,
 
     #[error("file access error: {0}")]
     FileAccess(#[from] std::io::Error),
@@ -43,9 +43,9 @@ impl CliCommand for UnpackAllCommand {
                 let filename = self
                     .package_filepath
                     .file_stem()
-                    .ok_or(UnpackAllCommandError::InvalidPackageFilename())?
+                    .ok_or(UnpackAllCommandError::InvalidPackageFilename)?
                     .to_str()
-                    .ok_or(UnpackAllCommandError::InvalidPackageFilename())?;
+                    .ok_or(UnpackAllCommandError::InvalidPackageFilename)?;
 
                 crate::cmd::utils::get_next_filename_if_exists(PathBuf::from(".").join(filename))
             }

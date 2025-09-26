@@ -13,7 +13,7 @@ pub struct DownloadPkgCommand {
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     packages: Vec<String>,
 
-    /// Output path where the downloaded package archive will be saved (default: current directory & auto-generated name)
+    /// Output path where the downloaded package archive will be saved (default: current directory & auto-generated name) (Use '@-' or '-' value to write data to stdout)
     ///
     /// - If a directory is provided, the archive will be saved there with an auto-generated name.
     /// - If a file path is provided, the archive will be saved with that name.
@@ -37,17 +37,6 @@ impl AppCommand for DownloadPkgCommand {
             &self.packages
         };
 
-        let output_path = output_has_filename_or!(output_path, {
-            let default_filename = match packages.len() {
-                1 => packages.iter().next().unwrap(),
-                _ => "Packages",
-            };
-
-            &crate::cmd::utils::get_next_filename_if_exists(output_path.join(
-                crate::cmd::utils::generate_zip_package_filename(default_filename),
-            ))
-        });
-
         let progress = spinner!(
             "Downloading {bold}{target}{bold:#} {target_label} from {bold}{url}{bold:#}",
             target = packages.join(", "),
@@ -64,13 +53,31 @@ impl AppCommand for DownloadPkgCommand {
             .get_zip_packages(&packages)
             .await?;
 
-        let mut file = tokio::fs::File::create(output_path).await?;
-
-        tokio::io::copy(&mut result, &mut file).await?;
-
         progress.finish_and_clear();
 
-        println!("{}", output_path.display());
+        match output_path.to_str() {
+            Some("@-") | Some("-") => {
+                tokio::io::copy(&mut result, &mut tokio::io::stdout()).await?;
+            }
+            _ => {
+                let output_path = output_has_filename_or!(output_path, {
+                    let default_filename = match packages.len() {
+                        1 => packages.iter().next().unwrap(),
+                        _ => "Packages",
+                    };
+
+                    &crate::cmd::utils::get_next_filename_if_exists(output_path.join(
+                        crate::cmd::utils::generate_zip_package_filename(default_filename),
+                    ))
+                });
+
+                let mut file = tokio::fs::File::create(output_path).await?;
+
+                tokio::io::copy(&mut result, &mut file).await?;
+
+                println!("{}", output_path.display());
+            }
+        }
 
         Ok(())
     }
