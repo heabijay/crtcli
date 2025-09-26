@@ -58,7 +58,7 @@ enum Commands {
     /// Commands to interact with Creatio application instance
     ///
     /// This is the collection of subcommands that are related to concrete Creatio instance.
-    /// You should specify Creatio connection parameters like URL, USERNAME, PASSWORD through command arguments
+    /// You should specify Creatio connection parameters like URL, USERNAME, PASSWORD through command arguments,
     /// or you could set ENV variables (as well as create .env file) for better UX.
     ///
     /// You can also use app aliases defined in workspace.crtcli.toml config file by specifying

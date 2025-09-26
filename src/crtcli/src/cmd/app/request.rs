@@ -28,7 +28,7 @@ pub struct RequestCommand {
     #[arg(short, long)]
     anonymous: bool,
 
-    /// Request body data (for methods like POST) (Use '@-' or '-' value to read data from standard input)
+    /// Request body data (for methods like POST) (Use '@-' or '-' value to read data from stdin)
     #[arg(short, long, value_hint = clap::ValueHint::Other)]
     data: Option<String>,
 

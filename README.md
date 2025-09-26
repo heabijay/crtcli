@@ -280,7 +280,7 @@ Downloads packages from the Creatio instance as a zip archive.
 
 **Options:**
 
-- `--output | -o <PATH>` — Output path where the downloaded package archive will be saved.
+- `--output | -o <PATH>` — Output path where the downloaded package archive will be saved. Use '@-' or '-' value to write data to stdout.
 
   If a directory is provided: The archive will be saved there with an auto-generated name.
 
@@ -386,7 +386,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 **Arguments:**
 
-- `<FILEPATH>` (required) — Path to the package archive file. (Use '@-' or '-' value to read data from standard input)
+- `<FILEPATH>` (required) — Path to the package archive file. (Use '@-' or '-' value to read data from stdin)
 
 **Options:**
 
@@ -715,7 +715,7 @@ Sends authenticated HTTP requests to the Creatio instance, similar to curl.
 
 - `--anonymous | -a` — Send the request without authentication.
 
-- `--data | -d <DATA>` — Request body data (for methods like POST). Use '@-' or '-' value to read data from standard input.
+- `--data | -d <DATA>` — Request body data (for methods like POST). Use '@-' or '-' value to read data from stdin.
 
 - `--header | -H <HEADER>` — Add a custom header to the request (format: Key: Value). The default Content-Type is application/json.
 
