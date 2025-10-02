@@ -45,7 +45,7 @@ pub struct InstallPkgCommandOptions {
 
     /// Disables the display of the installation log
     #[arg(long)]
-    disable_install_log_pooling: bool,
+    disable_install_log_polling: bool,
 }
 
 #[derive(Debug, Error)]
@@ -159,12 +159,12 @@ where
         .await
         .map_err(InstallPkgCommandError::Upload)?;
 
-    let log_watcher = (!options.disable_install_log_pooling).then(|| {
+    let log_watcher = (!options.disable_install_log_polling).then(|| {
         let progress_clone = Arc::clone(&progress);
 
         // Sometimes, Creatio based on .NET Framework (IIS) does not allow retrieval of the installation log in real-time.
         // Instead, it appears that Creatio blocks the log request until package installation is finished.
-        // The reason for this is unknown, but hopefully, this could help.
+        // This is probably because Creatio system web services are not marked with the interface `IReadOnlySessionState`.
         if client.is_net_framework() {
             InstallLogWatcherBuilder::new_with_new_session(&client).unwrap()
         } else {
@@ -175,6 +175,17 @@ where
             InstallLogWatcherEvent::Clear => {}
             InstallLogWatcherEvent::Append(text) => {
                 progress_clone.suspend(move || print!("{}", text))
+            }
+            InstallLogWatcherEvent::FetchError(error) => {
+                progress_clone.suspend(move || {
+                    eprintln!(
+                        "{style}warning (log polling): {error}{style:#}",
+                        error = error,
+                        style = Style::new()
+                            .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                            .dimmed()
+                    )
+                });
             }
         })
     });
@@ -187,6 +198,24 @@ where
 
     if let Some(log_watcher) = log_watcher {
         log_watcher.stop();
+
+        progress.set_message(
+            match install_result {
+                Ok(_) => format!(
+                    "{green}Package archive {green_bold}{package_name}{green_bold:#}{green} successfully installed at {green_bold}{url}{green_bold:#}. Trying to get final logs...",
+                    green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+                    green_bold = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold(),
+                    url = client.base_url()
+                ),
+                Err(_) => format!(
+                    "{red}Package archive {red_bold}{package_name}{red_bold:#}{red} installation failed at {red_bold}{url}{red_bold:#}. Trying to get final logs...",
+                    red = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))),
+                    red_bold = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))).bold(),
+                    url = client.base_url()
+                ),
+            }
+        );
+
         log_watcher.wait_until_stopped().await;
     }
 

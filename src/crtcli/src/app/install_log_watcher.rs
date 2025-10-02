@@ -1,8 +1,8 @@
 use crate::app::{CrtClient, CrtClientBuilder, CrtClientError};
+use futures::FutureExt;
+use futures::future::{BoxFuture, Shared};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Notify;
-use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 pub struct InstallLogWatcherBuilder {
@@ -12,7 +12,7 @@ pub struct InstallLogWatcherBuilder {
 
 #[derive(Clone, Debug)]
 struct InstallLogWatcherConfig {
-    pooling_delay: Duration,
+    polling_delay: Duration,
     wait_for_clear_on_start: bool,
     fetch_last_log_on_stop: bool,
 }
@@ -20,7 +20,7 @@ struct InstallLogWatcherConfig {
 impl Default for InstallLogWatcherConfig {
     fn default() -> Self {
         Self {
-            pooling_delay: Duration::from_millis(1000),
+            polling_delay: Duration::from_millis(1000),
             wait_for_clear_on_start: false,
             fetch_last_log_on_stop: false,
         }
@@ -29,14 +29,14 @@ impl Default for InstallLogWatcherConfig {
 
 pub struct InstallLogWatcherHandle {
     cancellation_token: CancellationToken,
-    finish_notify: Arc<Notify>,
-    _worker: JoinHandle<Result<(), CrtClientError>>,
+    worker: Shared<BoxFuture<'static, ()>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum InstallLogWatcherEvent<'a> {
     Clear,
     Append(&'a str),
+    FetchError(Arc<CrtClientError>),
 }
 
 impl InstallLogWatcherBuilder {
@@ -59,8 +59,8 @@ impl InstallLogWatcherBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn pooling_delay(mut self, value: Duration) -> Self {
-        self.config.pooling_delay = value;
+    pub fn polling_delay(mut self, value: Duration) -> Self {
+        self.config.polling_delay = value;
         self
     }
 
@@ -80,14 +80,12 @@ impl InstallLogWatcherBuilder {
         H: Fn(InstallLogWatcherEvent<'_>) + Send + Sync + 'static,
     {
         let cancellation_token = CancellationToken::new();
-        let finish_notify = Arc::new(Notify::new());
 
         let worker = {
             let cancellation_token = cancellation_token.clone();
-            let finish_notify = finish_notify.clone();
 
             tokio::spawn(async move {
-                let result = InstallLogWatcher::new(
+                let _ = InstallLogWatcher::new(
                     self.crt_client,
                     self.config,
                     handler,
@@ -95,23 +93,22 @@ impl InstallLogWatcherBuilder {
                 )
                 .run()
                 .await;
-
-                finish_notify.notify_waiters();
-                result
+            })
+            .map(|_| {
+                // Ignoring any result with any error, e.g. JoinError, because it is not implement Clone
             })
         };
 
         InstallLogWatcherHandle {
             cancellation_token,
-            finish_notify,
-            _worker: worker,
+            worker: worker.boxed().shared(),
         }
     }
 }
 
 impl InstallLogWatcherHandle {
     pub async fn wait_until_stopped(&self) {
-        self.finish_notify.notified().await;
+        self.worker.clone().await;
     }
 
     pub fn stop(&self) {
@@ -130,6 +127,10 @@ struct InstallLogWatcher<H> {
     config: InstallLogWatcherConfig,
     handler: H,
     cancellation_token: CancellationToken,
+
+    // state
+    last_log: String,
+    clear_received: bool,
 }
 
 impl<H> InstallLogWatcher<H>
@@ -143,6 +144,8 @@ where
         cancellation_token: CancellationToken,
     ) -> Self {
         Self {
+            last_log: String::new(),
+            clear_received: !config.wait_for_clear_on_start,
             crt_client,
             config,
             handler,
@@ -150,39 +153,18 @@ where
         }
     }
 
-    async fn run(&self) -> Result<(), CrtClientError> {
-        let mut last_log = String::new();
-        let mut clear_received = !self.config.wait_for_clear_on_start;
-
+    async fn run(&mut self) -> Result<(), CrtClientError> {
         loop {
-            let current_log = self.get_log_file().await?;
-            let is_first_log_msg = current_log.is_empty() && !clear_received;
-            let is_appending_log_msg = !last_log.is_empty() && !current_log.starts_with(&last_log);
-
-            // Determine if a clear event should be emitted.
-            if is_first_log_msg || is_appending_log_msg {
-                (self.handler)(InstallLogWatcherEvent::Clear);
-                clear_received = true;
-            }
-
-            // If clear has been received, calculate and emit the delta.
-            if clear_received {
-                let delta = Self::strip_delta(&last_log, &current_log);
-                if !delta.is_empty() {
-                    (self.handler)(InstallLogWatcherEvent::Append(delta));
-                }
-            }
-
-            last_log = current_log;
+            self.fetch_and_handle_log_event().await;
 
             tokio::select! {
                 _ = self.cancellation_token.cancelled() => {
-                    if self.config.fetch_last_log_on_stop && clear_received {
-                        self.handle_final_log(&last_log).await?;
+                    if self.config.fetch_last_log_on_stop && self.clear_received {
+                        self.fetch_and_handle_log_event().await
                     }
                     break;
                 },
-                _ = tokio::time::sleep(self.config.pooling_delay) => {},
+                _ = tokio::time::sleep(self.config.polling_delay) => {},
             }
         }
 
@@ -204,21 +186,33 @@ where
         }
     }
 
-    async fn handle_final_log(&self, last_log: &str) -> Result<(), CrtClientError> {
-        let final_log = self.get_log_file().await?;
-
-        if final_log != last_log {
-            if !last_log.is_empty() && !final_log.starts_with(last_log) {
-                (self.handler)(InstallLogWatcherEvent::Clear);
+    async fn fetch_and_handle_log_event(&mut self) {
+        let current_log = match self.get_log_file().await {
+            Ok(log) => log,
+            Err(e) => {
+                (self.handler)(InstallLogWatcherEvent::FetchError(Arc::new(e)));
+                return;
             }
+        };
 
-            let delta = Self::strip_delta(last_log, &final_log);
+        let is_first_log_msg = current_log.is_empty() && !self.clear_received;
+        let is_appending_log_msg =
+            !self.last_log.is_empty() && !current_log.starts_with(&self.last_log);
 
+        // Determine if a clear event should be emitted.
+        if is_first_log_msg || is_appending_log_msg {
+            self.clear_received = true;
+            (self.handler)(InstallLogWatcherEvent::Clear);
+        }
+
+        // If clear has been received, calculate and emit the delta.
+        if self.clear_received {
+            let delta = Self::strip_delta(&self.last_log, &current_log);
             if !delta.is_empty() {
                 (self.handler)(InstallLogWatcherEvent::Append(delta));
             }
         }
 
-        Ok(())
+        self.last_log = current_log;
     }
 }

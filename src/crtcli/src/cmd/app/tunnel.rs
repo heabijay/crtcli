@@ -245,7 +245,7 @@ impl AppCommand for TunnelCommand {
             let start_time = Instant::now();
             let refresh_interval = Duration::from_millis(500);
 
-            let cancellation_token = start_pooling_cancellation_token();
+            let cancellation_token = start_polling_cancellation_token();
             let mut stderr = anstream::stderr();
 
             loop {
@@ -364,7 +364,7 @@ impl AppCommand for TunnelCommand {
             let _ = terminal::disable_raw_mode();
         }
 
-        fn start_pooling_cancellation_token() -> CancellationToken {
+        fn start_polling_cancellation_token() -> CancellationToken {
             let mut event_stream = EventStream::new();
             let cancellation_token = CancellationToken::new();
 
