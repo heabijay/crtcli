@@ -33,7 +33,7 @@
 
  - Replaced the `--data-stdin | -D` option with the '-' value of the `--data | -d` option in the `app request` command ([#14](https://github.com/heabijay/crtcli/pull/14))
 
- - Refactored `app`-based commands to use the tokio async runtime, which should improve install log pooling ([#16](https://github.com/heabijay/crtcli/pull/16))
+ - Refactored `app`-based commands to use the tokio async runtime, which should improve install log polling ([#16](https://github.com/heabijay/crtcli/pull/16))
 
  - Simplified the compile and restart options in `app pkg fs push`; also, `app pkg fs push -r` now works without the `-c` option ([#17](https://github.com/heabijay/crtcli/pull/17))
 

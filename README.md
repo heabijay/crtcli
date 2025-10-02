@@ -472,7 +472,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
   );
   ```
   
-- `--disable-install-log-pooling` — Disables the display of the installation log.
+- `--disable-install-log-polling` — Disables the display of the installation log.
 
   
 \* (sql) — Requires an installed sql runner package in Creatio that is supported by crtcli. Please check [app sql](#app-sql) command documentation. 
