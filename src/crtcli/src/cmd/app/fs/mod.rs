@@ -61,7 +61,8 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
                     .cmp(&i2.object_type.get_fs_order_index())
                     .then(
                         i1.name
-                            .cmp(&i2.name)
+                            .to_lowercase()
+                            .cmp(&i2.name.to_lowercase())
                             .then(i1.culture_name.cmp(&i2.culture_name)),
                     )
             });

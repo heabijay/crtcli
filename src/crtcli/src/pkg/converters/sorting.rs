@@ -1,9 +1,37 @@
 use crate::pkg::converters::PkgFileConverter;
 use crate::pkg::json_wrappers::*;
 use crate::pkg::xml_wrappers::*;
+use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use thiserror::Error;
 
-pub struct SortingPkgFileConverter;
+pub struct SortingPkgFileConverter {
+    comparer: SortingComparer,
+}
+
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize, ValueEnum)]
+pub enum SortingComparer {
+    /// Alphanumeric comparer, pretending to be equivalent to PostgreSQL collation comparing. This means that it ignores non-alphanumeric characters when comparing.
+    #[default]
+    #[clap(aliases = ["psql", "postgresql"])]
+    #[serde(rename = "alnum", alias = "psql", alias = "postgresql")]
+    Alnum,
+
+    /// Standard comparer, which uses all characters in a string and compares bytes byte by byte.
+    #[clap(aliases = ["standard", "mssql"])]
+    #[serde(rename = "std", alias = "standard", alias = "mssql")]
+    Std,
+}
+
+impl SortingComparer {
+    pub fn cmp(&self, a: &[u8], b: &[u8]) -> Ordering {
+        match self {
+            SortingComparer::Alnum => crate::utils::lexical_str::ascii_alnum_cmp(a, b),
+            SortingComparer::Std => a.cmp(b),
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum SortingPkgFileConverterError {
@@ -27,6 +55,12 @@ pub enum SortingPkgFileConverterError {
 
     #[error("failed to serialize/save json: {0}")]
     Serialize(#[from] PkgJsonWrapperSerializeError),
+}
+
+impl SortingPkgFileConverter {
+    pub fn new(comparer: SortingComparer) -> Self {
+        Self { comparer }
+    }
 }
 
 impl PkgFileConverter for SortingPkgFileConverter {
@@ -62,7 +96,7 @@ impl PkgFileConverter for SortingPkgFileConverter {
         }
 
         if resource::PKG_RESOURCE_PATH_REGEX.is_match(filename) {
-            return Ok(Some(resource::apply_sorting(&content)?));
+            return Ok(Some(resource::apply_sorting(&content, self.comparer)?));
         }
 
         if csproj::PKG_CSPROJ_PATH_REGEX.is_match(filename) {

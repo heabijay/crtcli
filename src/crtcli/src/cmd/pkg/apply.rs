@@ -42,6 +42,15 @@ pub struct PkgApplyFeatures {
     #[serde(rename = "sorting")]
     apply_sorting: Option<bool>,
 
+    /// Configures sorting comparer for `--apply-sorting | -S` transform which will be used to sort strings.
+    #[arg(
+        long,
+        default_value = "alnum",
+        value_name = "COMPARER", 
+        value_hint = clap::ValueHint::Other)]
+    #[serde(rename = "sorting_comparer")]
+    apply_sorting_comparer: Option<SortingComparer>,
+
     /// Removes localization files except for the specified cultures (comma-separated list).
     /// Example: --apply-localization-cleanup "en-US,uk-UA"
     #[arg(
@@ -65,6 +74,9 @@ impl PkgApplyFeatures {
             apply_sorting: self
                 .apply_sorting
                 .or(other.as_ref().and_then(|x| x.apply_sorting)),
+            apply_sorting_comparer: self
+                .apply_sorting_comparer
+                .or(other.as_ref().and_then(|x| x.apply_sorting_comparer)),
             apply_localization_cleanup: self.apply_localization_cleanup.clone().or(other
                 .as_ref()
                 .and_then(|x| x.apply_localization_cleanup.clone())),
@@ -84,7 +96,9 @@ impl PkgApplyFeatures {
         }
 
         if self.apply_sorting.is_some_and(|x| x) {
-            combined.add(SortingPkgFileConverter);
+            combined.add(SortingPkgFileConverter::new(
+                self.apply_sorting_comparer.unwrap_or_default(),
+            ));
         }
 
         if let Some(bom_normalization) = self.apply_bom_normalization {
