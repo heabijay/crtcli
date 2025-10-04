@@ -1,3 +1,4 @@
+use crate::pkg::converters::SortingComparer;
 use crate::pkg::xml_wrappers::*;
 use crate::utils::bom;
 use quick_xml::events::{BytesStart, Event};
@@ -25,7 +26,10 @@ pub enum ResourceProcessingError {
     ItemsBlockProcessing(#[from] XmlReadEventBlockError),
 }
 
-pub fn apply_sorting(content: &[u8]) -> Result<Vec<u8>, ResourceProcessingError> {
+pub fn apply_sorting(
+    content: &[u8],
+    comparer: SortingComparer,
+) -> Result<Vec<u8>, ResourceProcessingError> {
     let mut writer = Writer::new(Cursor::new(Vec::<u8>::new()));
 
     if bom::is_bom(content) {
@@ -40,7 +44,7 @@ pub fn apply_sorting(content: &[u8]) -> Result<Vec<u8>, ResourceProcessingError>
             .map_err(ResourceProcessingError::Reader)?
         {
             Event::Start(e) if is_items_group_start(&e) => {
-                process_blocks_sorting(&mut reader, &mut writer, e)?;
+                process_blocks_sorting(comparer, &mut reader, &mut writer, e)?;
             }
             Event::Eof => break,
             e => writer.write_event(e).unwrap(),
@@ -50,6 +54,7 @@ pub fn apply_sorting(content: &[u8]) -> Result<Vec<u8>, ResourceProcessingError>
     return Ok(writer.into_inner().into_inner());
 
     fn process_blocks_sorting(
+        comparer: SortingComparer,
         reader: &mut Reader<&[u8]>,
         writer: &mut Writer<Cursor<Vec<u8>>>,
         start_tag: BytesStart,
@@ -65,10 +70,10 @@ pub fn apply_sorting(content: &[u8]) -> Result<Vec<u8>, ResourceProcessingError>
             match (a, b) {
                 (Event::Empty(a), Event::Empty(b)) => {
                     match (a.try_get_attribute("Name"), b.try_get_attribute("Name")) {
-                        (Ok(Some(a_name)), Ok(Some(b_name))) => a_name
-                            .value
-                            .to_ascii_lowercase()
-                            .cmp(&b_name.value.to_ascii_lowercase()),
+                        (Ok(Some(a_name)), Ok(Some(b_name))) => comparer.cmp(
+                            &a_name.value.to_ascii_lowercase(),
+                            &b_name.value.to_ascii_lowercase(),
+                        ),
                         (Ok(Some(_)), _) => Ordering::Greater,
                         (_, Ok(Some(_))) => Ordering::Less,
                         (Ok(_), _) => Ordering::Greater,

@@ -964,6 +964,16 @@ This is useful for standardizing package structure, cleaning up localization fil
   - Resources/**/resource.*.xml
   - Files/*.csproj
 
+- `--apply-sorting-comparer <COMPARER>` — Configures the sorting comparer for the `--apply-sorting | -S` transform, which will be used to sort strings.
+
+  This is necessary for sorting `Resources/**/resource.*.xml` files when working on Creatio with different database types.
+
+  Possible values:
+  - `alnum` (aliases: `psql`, `postgresql`) (default) — An alphanumeric comparer, pretending to be equivalent to PostgreSQL collation comparing/ordering. This means that it ignores non-alphanumeric characters when comparing. This option is the best when your primary Creatio database is PostgreSQL.
+  - `std` (aliases: `standard`, `mssql`) — A standard comparer, which uses all characters in a string and compares bytes byte by byte. This option is the best when your primary Creatio database is Microsoft SQL Server.
+
+  Defaults: `alnum`
+
 - `--apply-localization-cleanup | -L <EXCEPT-LOCALIZATIONS>` —  Removes localization files except for the specified cultures (comma-separated list). (Recommended)
 
     _Affects_:
@@ -1181,6 +1191,8 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 **Parameters:**
 
 - `apply.sorting = <true/false>` — Enable/disable sorting transform by default in [pkg apply](#pkg-apply) command.
+
+- `apply.sorting_comparer = <comparer>` — Configures sorting transform comparer by default in [pkg apply](#pkg-apply) command.
 
 - `apply.localization_cleanup = <except-localizations>` — Enable/disable localization cleanup transform by default in [pkg apply](#pkg-apply) command.
 
