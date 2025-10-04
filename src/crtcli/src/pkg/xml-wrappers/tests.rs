@@ -14,7 +14,7 @@ fn resource_sorting() {
     let input = resource_tests_data::INPUT.as_bytes();
     let expected_output = resource_tests_data::RESOURCE_SORTING_EXPECTED_OUTPUT.as_bytes();
 
-    let output = resource::apply_sorting(input).unwrap();
+    let output = resource::apply_sorting(input, crate::pkg::converters::SortingComparer::Alnum).unwrap();
 
     pretty_assertions::assert_eq!(
         String::from_utf8_lossy(expected_output),
