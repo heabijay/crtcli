@@ -1,5 +1,30 @@
 # crtcli Changelog
 
+## [0.2.1](https://github.com/heabijay/crtcli/releases/tag/v0.2.1) (2025-10-05)
+
+### Added
+
+ - Added "netframework" as an alias for "net_framework" in the workspace.crtcli.toml file
+
+ - Added new BOM normalization transform for `pkg apply`-related commands ([#26](https://github.com/heabijay/crtcli/pull/26))
+
+ - `app pkg download` can now output package to standard output (stdout) using `--output -` ([#28](https://github.com/heabijay/crtcli/pull/28))
+
+ - The sorting transform in `pkg apply` now supports Resources .xml files ([#27](https://github.com/heabijay/crtcli/pull/27)) and ([#30](https://github.com/heabijay/crtcli/pull/30))
+
+ - The string comparer can now be customized for the sorting transform in `pkg apply` ([#30](https://github.com/heabijay/crtcli/pull/30))
+
+### Changed
+
+ - Gave the "Terrasoft.Configuration" reference higher priority in `.csproj` sorting when using `pkg apply`-related commands
+
+ - The `pkg apply --check` command now displays a more detailed and clearer list of files that would be applied
+
+### Fixed
+
+ - Fixed an issue where package installation using `app pkg install` (and related commands like `app pkg push`) could get stuck if the log fetch failed once ([#29](https://github.com/heabijay/crtcli/pull/29))
+
+
 ## [0.2.0](https://github.com/heabijay/crtcli/releases/tag/v0.2.0) (2025-06-01)
 
 ### Added
