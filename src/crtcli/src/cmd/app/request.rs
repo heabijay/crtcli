@@ -83,6 +83,22 @@ impl ValueParserFactory for HeaderArg {
     }
 }
 
+enum RequestData {
+    None,
+    Vec(Vec<u8>),
+    String(String),
+}
+
+impl RequestData {
+    fn into_bytes(self) -> Option<Vec<u8>> {
+        match self {
+            RequestData::None => None,
+            RequestData::Vec(vec) => Some(vec),
+            RequestData::String(str) => Some(str.into_bytes()),
+        }
+    }
+}
+
 #[async_trait]
 impl AppCommand for RequestCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
@@ -92,10 +108,10 @@ impl AppCommand for RequestCommand {
             .unwrap_or(&self.url)
             .trim_start_matches('/');
 
-        let data = match &self.data {
-            None => None,
-            Some(str) if str == "@-" || str == "-" => Some(read_data_from_stdin()?),
-            Some(str) => Some(str.clone()),
+        let data: RequestData = match &self.data {
+            None => RequestData::None,
+            Some(str) if str == "@-" || str == "-" => RequestData::Vec(read_data_from_stdin()?),
+            Some(str) => RequestData::String(str.to_owned()),
         };
 
         let mut request = client.request(self.method.clone(), url);
@@ -112,8 +128,8 @@ impl AppCommand for RequestCommand {
             request = request.header("Content-Type", "application/json");
         }
 
-        if let Some(data) = data {
-            request = request.body(data);
+        if let Some(bytes) = data.into_bytes() {
+            request = request.body(bytes);
         }
 
         let mut response = match self.anonymous {
@@ -136,7 +152,7 @@ impl AppCommand for RequestCommand {
 
         return Ok(());
 
-        fn read_data_from_stdin() -> Result<String, std::io::Error> {
+        fn read_data_from_stdin() -> Result<Vec<u8>, std::io::Error> {
             let dimmed = Style::new().dimmed();
             let italic = Style::new().italic();
             let stdin_terminal = stdin().is_terminal();
@@ -147,9 +163,9 @@ impl AppCommand for RequestCommand {
                 eprintln!("{italic}");
             }
 
-            let mut data = String::new();
+            let mut data = vec![];
 
-            stdin().lock().read_to_string(&mut data).inspect_err(|_| {
+            stdin().lock().read_to_end(&mut data).inspect_err(|_| {
                 if stdin_terminal {
                     eprint!("{italic:#}")
                 }
