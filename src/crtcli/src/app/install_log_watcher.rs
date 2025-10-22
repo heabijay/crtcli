@@ -41,6 +41,17 @@ pub enum InstallLogWatcherEvent<'a> {
 
 impl InstallLogWatcherBuilder {
     pub fn new(crt_client: Arc<CrtClient>) -> Self {
+        // Sometimes, Creatio based on .NET Framework (IIS) does not allow retrieval of the installation log in real-time.
+        // Instead, it appears that Creatio blocks the log request until package installation is finished.
+        // This is probably because Creatio system web services are not marked with the interface `IReadOnlySessionState`.
+        if crt_client.is_net_framework() {
+            InstallLogWatcherBuilder::new_with_new_session(&crt_client).unwrap()
+        } else {
+            InstallLogWatcherBuilder::new_with_current_session(crt_client)
+        }
+    }
+
+    pub fn new_with_current_session(crt_client: Arc<CrtClient>) -> Self {
         Self {
             crt_client,
             config: InstallLogWatcherConfig::default(),
@@ -55,7 +66,8 @@ impl InstallLogWatcherBuilder {
                 .danger_accept_invalid_certs(crt_client.is_insecure())
                 .build()?,
         );
-        Ok(Self::new(new_client))
+
+        Ok(Self::new_with_current_session(new_client))
     }
 
     #[allow(dead_code)]

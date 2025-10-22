@@ -225,11 +225,17 @@ Load packages from filesystem into Creatio database.
 
 Print last package installation log.
 
+**Options:**
+
+- `--watch` — Watch for and display installation log updates in real-time.
+
 **Examples:**
 
 - `crtcli app https://localhost:5000 -i install-log` — Gets last package installation log at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
 - `crtcli app install-log` — Gets last package installation log in Creatio '$CRTCLI_APP_URL'.
+
+- `crtcli app prod install-log --watch` — Watch for install log updates in real-time at prod (alias) Creatio instance. Check [workspace.crtcli.toml](#workspacecrtclitoml)
 
 
 ### app pkg
@@ -472,7 +478,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
   );
   ```
   
-- `--disable-install-log-polling` — Disables the display of the installation log.
+- `--disable-install-log-polling` — Disables the display of the installation log updates in real-time.
 
   
 \* (sql) — Requires an installed sql runner package in Creatio that is supported by crtcli. Please check [app sql](#app-sql) command documentation. 

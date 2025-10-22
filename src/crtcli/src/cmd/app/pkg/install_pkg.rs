@@ -43,7 +43,7 @@ pub struct InstallPkgCommandOptions {
     #[arg(long)]
     clear_schemas_content: bool,
 
-    /// Disables the display of the installation log
+    /// Disables the display of the installation log updates in real-time
     #[arg(long)]
     disable_install_log_polling: bool,
 }
@@ -162,32 +162,25 @@ where
     let log_watcher = (!options.disable_install_log_polling).then(|| {
         let progress_clone = Arc::clone(&progress);
 
-        // Sometimes, Creatio based on .NET Framework (IIS) does not allow retrieval of the installation log in real-time.
-        // Instead, it appears that Creatio blocks the log request until package installation is finished.
-        // This is probably because Creatio system web services are not marked with the interface `IReadOnlySessionState`.
-        if client.is_net_framework() {
-            InstallLogWatcherBuilder::new_with_new_session(&client).unwrap()
-        } else {
-            InstallLogWatcherBuilder::new(Arc::clone(&client))
-        }
-        .fetch_last_log_on_stop(true)
-        .start(move |event| match event {
-            InstallLogWatcherEvent::Clear => {}
-            InstallLogWatcherEvent::Append(text) => {
-                progress_clone.suspend(move || print!("{}", text))
-            }
-            InstallLogWatcherEvent::FetchError(error) => {
-                progress_clone.suspend(move || {
-                    eprintln!(
-                        "{style}warning (log polling): {error}{style:#}",
-                        error = error,
-                        style = Style::new()
-                            .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
-                            .dimmed()
-                    )
-                });
-            }
-        })
+        InstallLogWatcherBuilder::new(Arc::clone(&client))
+            .fetch_last_log_on_stop(true)
+            .start(move |event| match event {
+                InstallLogWatcherEvent::Clear => {}
+                InstallLogWatcherEvent::Append(text) => {
+                    progress_clone.suspend(move || print!("{}", text))
+                }
+                InstallLogWatcherEvent::FetchError(error) => {
+                    progress_clone.suspend(move || {
+                        eprintln!(
+                            "{style}warning (log polling): {error}{style:#}",
+                            error = error,
+                            style = Style::new()
+                                .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                                .dimmed()
+                        )
+                    });
+                }
+            })
     });
 
     let install_result = client
