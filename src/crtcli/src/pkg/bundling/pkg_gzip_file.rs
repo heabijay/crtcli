@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 
@@ -8,11 +9,6 @@ pub struct PkgGZipFile {
 }
 
 impl PkgGZipFile {
-    pub fn get_escaped_filename(&self) -> String {
-        self.filename
-            .replace(['/', '\\'], std::path::MAIN_SEPARATOR_STR)
-    }
-
     pub fn open_fs_file_relative(
         pkg_path: impl AsRef<Path>,
         relative_path: impl AsRef<Path>,
@@ -33,6 +29,16 @@ impl PkgGZipFile {
             .unwrap();
 
         Self::open_fs_file_relative(pkg_path, relative)
+    }
+
+    pub fn to_native_path_string(&self) -> Cow<'_, str> {
+        if std::path::MAIN_SEPARATOR == '/' && self.filename.contains('\\') {
+            Cow::Owned(self.filename.replace('\\', "/"))
+        } else if std::path::MAIN_SEPARATOR != '/' && self.filename.contains('/') {
+            Cow::Owned(self.filename.replace('/', "\\"))
+        } else {
+            Cow::Borrowed(&self.filename)
+        }
     }
 }
 

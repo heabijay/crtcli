@@ -54,7 +54,8 @@ impl<W: Write> PkgGZipEncoder<W> {
         Ok(())
     }
 
-    pub fn write(&mut self, file: &PkgGZipFile) -> Result<(), PkgGZipEncoderError> {
+    #[allow(dead_code)]
+    pub fn write_file(&mut self, file: &PkgGZipFile) -> Result<(), PkgGZipEncoderError> {
         self.write_as_filename(&file.filename)?;
         self.write_as_content(&file.content)?;
 

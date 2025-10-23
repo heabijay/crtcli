@@ -183,8 +183,8 @@ pub fn extract_gzip_package_to_folder(
 
     for file in decoder {
         let file = file?;
-        let filename = &file.get_escaped_filename();
-        let file_content = config.file_converter.convert(filename, file.content)?;
+        let filename = file.to_native_path_string().into_owned();
+        let file_content = config.file_converter.convert(&filename, file.content)?;
 
         if file_content.is_none() {
             continue;
@@ -192,7 +192,7 @@ pub fn extract_gzip_package_to_folder(
 
         let file_content = file_content.unwrap();
 
-        let destination_path = destination_folder.join(filename);
+        let destination_path = destination_folder.join(&filename);
         let destination_path_parent = destination_path.parent().ok_or_else(|| {
             ExtractGzipPackageError::GetParentFolderOrDestinationPath(
                 destination_path.to_path_buf(),
@@ -209,7 +209,7 @@ pub fn extract_gzip_package_to_folder(
         }
 
         if should_write_to_file(
-            filename,
+            &filename,
             destination_path_parent,
             &destination_path,
             &file_content,

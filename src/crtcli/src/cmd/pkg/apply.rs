@@ -197,7 +197,10 @@ impl CliCommand for ApplyCommand {
                     .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
             let converted_content = converter
-                .convert(&file.get_escaped_filename(), file.content.clone())
+                .convert(
+                    &file.filename, // No need to use file.to_native_path_string because in this case the file was read from the native package folder
+                    file.content.clone(),
+                )
                 .map_err(|err| {
                     ApplyCommandError::ApplyConverters(relative_path.display().to_string(), err)
                 })?;
