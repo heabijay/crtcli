@@ -14,10 +14,10 @@ mod push_pkg_fs;
 
 #[derive(Debug, Subcommand)]
 pub enum PkgFsCommands {
-    /// Unload package in current folder from Creatio database into filesystem and applies any configured transforms
+    /// Unload package(s) in current folder from Creatio database into filesystem and applies any configured transforms
     Pull(pull_pkg_fs::PullPkgFsCommand),
 
-    /// Load package in current folder from filesystem into Creatio database and optionally compiles it
+    /// Load package(s) in current folder from filesystem into Creatio database and optionally compiles it
     Push(push_pkg_fs::PushPkgFsCommand),
 }
 

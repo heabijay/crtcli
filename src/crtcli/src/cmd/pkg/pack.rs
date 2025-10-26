@@ -7,9 +7,9 @@ use zip::CompressionMethod;
 
 #[derive(Debug, Args)]
 pub struct PackCommand {
-    /// Source folders containing packages to be packaged
-    #[arg(required = true, value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
-    package_folders: Vec<PathBuf>,
+    /// Source folders containing packages to be packaged (default: current directory)
+    #[arg(value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
+    packages_folders: Vec<PathBuf>,
 
     /// Output path where the output package archive will be saved (default: current directory & auto-generated name)
     ///
@@ -54,15 +54,21 @@ enum PackCommandError {
 
 impl CliCommand for PackCommand {
     fn run(self) -> CommandResult {
+        let packages_folders = if self.packages_folders.is_empty() {
+            &vec![PathBuf::from(".")]
+        } else {
+            &self.packages_folders
+        };
+
         let output_path = match &self.output {
             Some(output_path) => output_path,
             None => &PathBuf::from("."),
         };
 
         let output_path = output_has_filename_or!(output_path, {
-            let filename = if self.package_folders.len() == 1 {
+            let filename = if packages_folders.len() == 1 {
                 let pkg_name =
-                    crate::pkg::utils::get_package_name_from_folder(&self.package_folders[0])?;
+                    crate::pkg::utils::get_package_name_from_folder(&packages_folders[0])?;
 
                 match self.format {
                     PackFormat::Gzip => &format!("{pkg_name}.gz"),
@@ -103,15 +109,13 @@ impl CliCommand for PackCommand {
 
         match self.format {
             PackFormat::Gzip => {
-                if self.package_folders.len() > 1 {
+                if packages_folders.len() > 1 {
                     Err(PackCommandError::MultiplePackagesIntoGzip)?
                 }
 
-                pack_gzip_package_from_folder(&self.package_folders[0], file, gzip_config)?
+                pack_gzip_package_from_folder(&packages_folders[0], file, gzip_config)?
             }
-            PackFormat::Zip => {
-                pack_zip_package_from_folders(&self.package_folders, file, &zip_config)?
-            }
+            PackFormat::Zip => pack_zip_package_from_folders(packages_folders, file, &zip_config)?,
         }
 
         println!("{}", output_path.display());

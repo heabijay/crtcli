@@ -1,21 +1,3 @@
-macro_rules! detect_target_package_name {
-    ($specified_package_name: expr, $destination_folder: expr) => {
-        match &$specified_package_name {
-            Some(p) => p,
-            None => &crate::pkg::utils::get_package_name_from_folder($destination_folder).map_err(
-                crate::cmd::app::pkg::DetectTargetPackageNameError::GetPackageNameFromFolder,
-            )?,
-        }
-    };
-    ($specified_package_name:expr) => {
-        detect_target_package_name!($specified_package_name, &std::path::PathBuf::from("."))
-    };
-    () => {
-        crate::pkg::utils::get_package_name_from_folder(&std::path::PathBuf::from("."))
-            .map_err(crate::cmd::app::pkg::DetectTargetPackageNameError::GetPackageNameFromFolder)?
-    };
-}
-
 mod compile;
 
 pub use compile::print_build_response;

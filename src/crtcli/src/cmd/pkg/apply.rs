@@ -11,14 +11,14 @@ use clap::Args;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Args)]
 pub struct ApplyCommand {
-    /// Path to the package folder
+    /// Paths to the packages folders (default: current directory)
     #[arg(value_hint = clap::ValueHint::DirPath)]
-    pub package_folder: PathBuf,
+    pub packages_folders: Vec<PathBuf>,
 
     #[command(flatten)]
     pub apply_features: Option<PkgApplyFeatures>,
@@ -126,44 +126,36 @@ enum ApplyCommandError {
 
 impl CliCommand for ApplyCommand {
     fn run(self) -> CommandResult {
-        let pkg_config = CrtCliPkgConfig::from_package_folder(&self.package_folder)?;
-
-        let apply_features = combine_apply_features_from_args_and_config(
-            self.apply_features.as_ref(),
-            pkg_config.as_ref(),
-        );
-
-        let apply_features = match apply_features {
-            Some(f) => f,
-            None if self.no_feature_present_warning_disabled => return Ok(()),
-            None => {
-                return Err(
-                    "please pass any feature(s) to apply like --apply-sorting, ... to continue"
-                        .into(),
-                );
-            }
+        let packages_folders = if self.packages_folders.is_empty() {
+            &vec![PathBuf::from(".")]
+        } else {
+            &self.packages_folders
         };
-
-        let converter = apply_features.build_combined_converter();
-        let mut stdout = stdout().lock();
 
         let mut any_applied = false;
 
-        match &self.file {
-            None => {
-                for file in walk_over_package_files(self.package_folder.clone()) {
-                    let file_path = file
-                        .map_err(WalkOverPackageFilesContentError::FolderAccess)
-                        .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
-
-                    if apply_file(&self, &mut stdout, &converter, file_path)? {
-                        any_applied = true;
-                    };
-                }
+        for package_folder in packages_folders {
+            if packages_folders.len() > 1 {
+                println!(
+                    "{verb} {bold}{package_folder}{bold:#}:",
+                    verb = if self.check_only {
+                        "Checking"
+                    } else {
+                        "Applying"
+                    },
+                    package_folder = package_folder.display(),
+                    bold = Style::new().bold(),
+                )
             }
-            Some(for_single_file) => {
-                if apply_file(&self, &mut stdout, &converter, for_single_file.to_owned())? {
-                    any_applied = true;
+
+            if apply_package_folder(&self, package_folder)? {
+                any_applied = true;
+            } else {
+                if packages_folders.len() > 1 {
+                    println!(
+                        "\t{style}— Nothing to do —{style:#}",
+                        style = Style::new().italic().dimmed()
+                    );
                 }
             }
         }
@@ -174,27 +166,83 @@ impl CliCommand for ApplyCommand {
 
         return Ok(());
 
+        fn apply_package_folder(
+            _self: &ApplyCommand,
+            package_folder: &Path,
+        ) -> Result<bool, CommandDynError> {
+            let pkg_config = CrtCliPkgConfig::from_package_folder(package_folder)?;
+
+            let apply_features = combine_apply_features_from_args_and_config(
+                _self.apply_features.as_ref(),
+                pkg_config.as_ref(),
+            );
+
+            let apply_features = match apply_features {
+                Some(f) => f,
+                None if _self.no_feature_present_warning_disabled => return Ok(false),
+                None => {
+                    println!(
+                        "{style}warning: no feature is present, please use an option like --apply-sorting to do something{style:#}",
+                        style = Style::new()
+                            .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                            .dimmed(),
+                    );
+                    return Ok(false);
+                }
+            };
+
+            let converter = apply_features.build_combined_converter();
+            let mut stdout = stdout().lock();
+
+            let mut any_applied = false;
+
+            match &_self.file {
+                None => {
+                    for file in walk_over_package_files(package_folder) {
+                        let file_path = file
+                            .map_err(WalkOverPackageFilesContentError::FolderAccess)
+                            .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
+
+                        if apply_file(_self, package_folder, &mut stdout, &converter, file_path)? {
+                            any_applied = true;
+                        };
+                    }
+                }
+                Some(for_single_file) => {
+                    if apply_file(
+                        _self,
+                        package_folder,
+                        &mut stdout,
+                        &converter,
+                        for_single_file.to_owned(),
+                    )? {
+                        any_applied = true;
+                    }
+                }
+            }
+
+            Ok(any_applied)
+        }
+
         fn apply_file(
             _self: &ApplyCommand,
+            package_folder: &Path,
             mut stdout: impl Write,
             converter: &CombinedPkgFileConverter,
             file_path: PathBuf,
         ) -> Result<bool, CommandDynError> {
-            let relative_path = file_path
-                .strip_prefix(&_self.package_folder)
-                .unwrap_or(&file_path);
+            let relative_path = file_path.strip_prefix(package_folder).unwrap_or(&file_path);
 
             if !converter.is_applicable(relative_path.to_str().unwrap()) {
                 return Ok(false);
             }
 
-            let file =
-                bundling::PkgGZipFile::open_fs_file_relative(&_self.package_folder, relative_path)
-                    .map_err(|err| WalkOverPackageFilesContentError::FileAccess {
-                        path: file_path.clone(),
-                        source: err,
-                    })
-                    .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
+            let file = bundling::PkgGZipFile::open_fs_file_relative(package_folder, relative_path)
+                .map_err(|err| WalkOverPackageFilesContentError::FileAccess {
+                    path: file_path.clone(),
+                    source: err,
+                })
+                .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
             let converted_content = converter
                 .convert(

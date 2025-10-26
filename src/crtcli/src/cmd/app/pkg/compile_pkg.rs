@@ -2,6 +2,7 @@ use crate::app::CrtClient;
 use crate::cmd::app;
 use crate::cmd::app::{AppCommand, print_build_response};
 use crate::cmd::cli::CommandResult;
+use crate::pkg::utils::get_package_name_from_current_dir;
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::Args;
@@ -11,9 +12,9 @@ use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct CompilePkgCommand {
-    /// Name of package to compile (default: package name from ./descriptor.json)
-    #[arg(value_hint = clap::ValueHint::Other)]
-    pub package_name: Option<String>,
+    /// Names of packages to compile (default: package name from ./descriptor.json)
+    #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
+    pub packages_names: Vec<String>,
 
     /// Use Rebuild method instead of just Build
     #[arg(short = 'f', long)]
@@ -33,7 +34,29 @@ pub enum CompilePkgCommandError {
 #[async_trait]
 impl AppCommand for CompilePkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
-        let package_name = detect_target_package_name!(&self.package_name);
+        let packages_names = if self.packages_names.is_empty() {
+            &vec![get_package_name_from_current_dir()?]
+        } else {
+            &self.packages_names
+        };
+
+        if packages_names.len() > 1 {
+            eprintln!(
+                "{style}warning (pkg-compile): multiple packages are specified, crtcli prefer to use app compile in this case{style:#}",
+                style = Style::new()
+                    .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                    .dimmed()
+            );
+
+            return app::compile::CompileCommand {
+                restart: self.restart,
+                force_rebuild: self.force_rebuild,
+            }
+            .run(client)
+            .await;
+        }
+
+        let package_name = packages_names[0].as_str();
 
         let progress = spinner_precise!(
             "{operation_str} {bold}{package_name}{bold:#} package at {bold}{url}{bold:#}",

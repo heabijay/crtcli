@@ -2,7 +2,7 @@ use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::fs::print_fs_sync_result;
 use crate::cmd::cli::CommandResult;
-use anstyle::Style;
+use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::Args;
 use std::sync::Arc;
@@ -18,16 +18,18 @@ pub struct PullFsCommand {
 impl AppCommand for PullFsCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let bold = Style::new().bold();
-
-        let pull_target_str = match &self.packages.len() {
-            0 => "all packages",
-            1 => &format!("{bold}{}{bold:#} package", &self.packages[0]),
-            _ => &format!("{bold}{}{bold:#} packages", &self.packages.join(", ")),
-        };
+        let green_bold = Style::new()
+            .fg_color(Some(Color::Ansi(AnsiColor::Green)))
+            .bold();
 
         let progress = spinner!(
-            "Pulling {pull_target_str} to filesystem from {bold}{url}{bold:#}",
-            url = client.base_url()
+            "Pulling {target} to filesystem from {bold}{url}{bold:#}",
+            target = match &self.packages.len() {
+                0 => "all packages",
+                1 => &format!("{bold}{}{bold:#} package", &self.packages[0]),
+                _ => &format!("{bold}{}{bold:#} packages", &self.packages.join(", ")),
+            },
+            url = client.base_url(),
         );
 
         let result = client
@@ -43,6 +45,20 @@ impl AppCommand for PullFsCommand {
         print_fs_sync_result(&result);
 
         result.into_result()?;
+
+        eprintln!(
+            "{green}✔ {target} {green}successfully pulled to filesystem from {green_bold}{url}{green_bold:#}{green}!{green:#}",
+            target = match &self.packages.len() {
+                0 => "All packages",
+                1 => &format!("Package {green_bold}{}{green_bold:#}", &self.packages[0]),
+                _ => &format!(
+                    "Packages {green_bold}{}{green_bold:#}",
+                    &self.packages.join(", ")
+                ),
+            },
+            green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
+            url = client.base_url(),
+        );
 
         Ok(())
     }
