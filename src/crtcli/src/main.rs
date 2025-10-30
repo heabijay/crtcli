@@ -23,17 +23,15 @@ impl Display for CommandHandledError {
 impl std::error::Error for CommandHandledError {}
 
 fn main() -> ExitCode {
-    load_envs();
+    dotenvy::dotenv().ok();
 
     let cli: cmd::Cli = cmd::Cli::parse();
     let is_debug = cli.debug();
 
     match cli.run() {
-        Ok(_) => ExitCode::SUCCESS,
+        Ok(()) => ExitCode::SUCCESS,
         Err(err) if err.is::<CommandHandledError>() => {
-            let err = err.downcast_ref::<CommandHandledError>().unwrap();
-
-            err.0
+            err.downcast_ref::<CommandHandledError>().unwrap().0
         }
         Err(err) => {
             eprintln!(
@@ -52,17 +50,6 @@ fn main() -> ExitCode {
             }
 
             ExitCode::FAILURE
-        }
-    }
-}
-
-fn load_envs() {
-    dotenvy::dotenv().ok();
-    dotenvy::from_filename(".crtcli.env").ok();
-
-    if let Ok(env_filenames) = std::env::var("CRTCLI_LOAD_ENV_FILENAME") {
-        for env_filename in env_filenames.split(";").map(str::trim) {
-            dotenvy::from_filename(env_filename).ok();
         }
     }
 }
