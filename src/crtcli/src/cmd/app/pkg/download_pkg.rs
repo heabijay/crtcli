@@ -1,6 +1,7 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
+use crate::pkg::utils::get_package_name_from_current_dir;
 use anstyle::Style;
 use async_trait::async_trait;
 use clap::Args;
@@ -32,7 +33,7 @@ impl AppCommand for DownloadPkgCommand {
         };
 
         let packages = if self.packages.is_empty() {
-            &vec![detect_target_package_name!()]
+            &vec![get_package_name_from_current_dir()?]
         } else {
             &self.packages
         };

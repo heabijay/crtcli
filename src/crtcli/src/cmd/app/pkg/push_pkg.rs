@@ -4,6 +4,7 @@ use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::pkg::install_pkg::*;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use crate::pkg::bundling::packer::*;
+use crate::pkg::utils::get_package_name_from_folder;
 use async_trait::async_trait;
 use clap::Args;
 use flate2::Compression;
@@ -63,7 +64,7 @@ impl AppCommand for PushPkgCommand {
         return Ok(());
 
         fn pack_folder_as_gzip(folder: &Path) -> Result<(String, Vec<u8>), CommandDynError> {
-            let package_name = detect_target_package_name!(None, folder);
+            let package_name = get_package_name_from_folder(folder)?;
             let mut package_gzip = vec![];
 
             pack_gzip_package_from_folder(

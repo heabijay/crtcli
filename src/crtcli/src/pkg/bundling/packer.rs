@@ -54,7 +54,7 @@ pub fn pack_gzip_package_from_folder(
 ) -> Result<(), PackGzipPackageFromFolderError> {
     let mut encoder = PkgGZipEncoder::new(gzip_writer, config.compression);
 
-    for pkg_file in walk_over_package_files_content(pkg_folder.to_path_buf()) {
+    for pkg_file in walk_over_package_files_content(pkg_folder) {
         encoder.write_file(&pkg_file?)?;
     }
 

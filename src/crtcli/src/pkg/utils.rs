@@ -36,16 +36,16 @@ pub enum WalkOverPackageFilesContentError {
 }
 
 pub fn walk_over_package_files(
-    pkg_folder: PathBuf,
+    pkg_folder: &Path,
 ) -> impl Iterator<Item = Result<PathBuf, walkdir::Error>> {
-    walk_over_package_dir(&pkg_folder)
+    walk_over_package_dir(pkg_folder)
         .filter(|e| e.as_ref().is_ok_and(|e| !e.file_type().is_dir()))
         .filter_map(move |f| -> Option<Result<PathBuf, walkdir::Error>> {
             match f {
                 Err(err) => Some(Err(err)),
                 Ok(file) => {
                     let file_path = file.path().to_path_buf();
-                    let filename = file_path.strip_prefix(&pkg_folder).unwrap();
+                    let filename = file_path.strip_prefix(pkg_folder).unwrap();
 
                     if contains_hidden_path(filename) {
                         return None;
@@ -58,13 +58,13 @@ pub fn walk_over_package_files(
 }
 
 pub fn walk_over_package_files_content(
-    pkg_folder: PathBuf,
+    pkg_folder: &Path,
 ) -> impl Iterator<Item = Result<bundling::PkgGZipFile, WalkOverPackageFilesContentError>> {
-    walk_over_package_files(pkg_folder.clone())
+    walk_over_package_files(pkg_folder)
         .map(|e| e.map_err(WalkOverPackageFilesContentError::FolderAccess))
         .map(move |f| {
             f.and_then(|f| {
-                bundling::PkgGZipFile::open_fs_file_absolute(&pkg_folder, &f).map_err(|err| {
+                bundling::PkgGZipFile::open_fs_file_absolute(pkg_folder, &f).map_err(|err| {
                     WalkOverPackageFilesContentError::FileAccess {
                         path: f,
                         source: err,
@@ -99,6 +99,10 @@ pub enum GetPackageNameFromFolderError {
 
     #[error("descriptor was correctly read from folder, but filename was not found")]
     PackageNameIsNone,
+}
+
+pub fn get_package_name_from_current_dir() -> Result<String, GetPackageNameFromFolderError> {
+    get_package_name_from_folder(&PathBuf::from("."))
 }
 
 pub fn get_package_name_from_folder(

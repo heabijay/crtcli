@@ -253,9 +253,11 @@ Compiles a specific package within the Creatio instance.
 
 **Arguments:**
 
-- `[PACKAGE_NAME]` — Name of package to compile.
+- `[PACKAGES_NAMES]` — A space-separated or comma-separated list of package names to compile.
 
   Defaults: If omitted, crtcli will try to determine the package name from the current directory (by looking for descriptor.json).
+
+  Note: When multiple packages are specified, crtcli currently prefers to use `app compile`. If you need to compile packages separately, use a command chain like: `crtcli app pkg compile {PACKAGE_NAME} && crtcli app pkg compile {PACKAGE_NAME2}`.
 
 **Options:**
 
@@ -270,6 +272,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg compile UsrCustomPkg -f` — Rebuilds package 'UsrCustomPkg' at insecure Creatio 'https://localhost:5000'.
 
 - `crtcli app pkg compile -r` — Compiles the UsrPackage (inferred from the current directory) in the Creatio instance defined by $CRTCLI_APP_URL and restarts the application.
+
+- `crtcli app prod pkg compile UsrCustomPkg UsrCustomPkg2 -r` | `crtcli app prod pkg compile UsrCustomPkg,UsrCustomPkg2 -r` — In current crtcli behavior, the following commands execute the full `crtcli app prod compile -r` on prod (alias) Creatio instance. Check [workspace.crtcli.toml](#workspacecrtclitoml)
 
 
 ### app pkg download
@@ -311,7 +315,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 ### app pkg fs
 
-Commands/aliases to simplify manipulate with package insides File System Development mode (FSD) location.
+Commands/aliases to simplify manipulate with packages insides File System Development mode (FSD) location.
 
 They are designed to be used from within a package directory located under the Creatio file system packages path, for example:
 
@@ -333,7 +337,7 @@ crtcli pkg apply .
 
 **Options:**
 
-- `--package-folder <PACKAGE_FOLDER>` — Package folder where package is already pulled previously.
+- `--package-folder <PACKAGES_FOLDERS>` — Packages folders where package was already pulled previously.
 
   Defaults: Current directory
 
@@ -351,10 +355,12 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg fs pull -S true` — Pulls package 'UsrPackage' from Creatio (using FSD) on '$CRTCLI_APP_URL' and applies sorting transform.
 
+- `crtcli app pkg fs pull --package-folder ../UsrPackage --package-folder ../UsrPackage2 -cr` — Pulls package 'UsrPackage' and 'UsrPackage2' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL' and applies sorting transform.
+
 
 ### app pkg fs push
 
-Load package  in current folder from filesystem into Creatio database and optionally compiles it.
+Load package(s) in current folder from filesystem into Creatio database and optionally compiles it.
 
 Alternative to:
 
@@ -365,7 +371,7 @@ crtcli app pkg compile "{package_name}" -r
 
 **Options:**
 
-- `--package-folder <PACKAGE_FOLDER>` — Package folder where package is already pulled previously.
+- `--package-folder <PACKAGES_FOLDERS>` — Packages folders where package was already pulled previously.
 
   Defaults: Current directory
 
@@ -383,6 +389,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg fs push -cr` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL', compiles it after successfully push, and restarts Creatio application if compilation was successful.
 
+- `crtcli app pkg fs push --package-folder ../UsrPackage --package-folder ../UsrPackage2 -cr` — Pushes package 'UsrPackage' and 'UsrPackage2' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL', compiles application it after successfully push, and restarts Creatio application if compilation was successful.
+
 
 ### app pkg install
 
@@ -392,7 +400,9 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 **Arguments:**
 
-- `<FILEPATH>` (required) — Path to the package archive file. (Use '@-' or '-' value to read data from stdin)
+- `<FILEPATHS>` (required) — Paths to the package archive files. (Use single '@-' or '-' value to read data from stdin)
+
+  Note: When multiple file paths are specified, all packages will be combined into a single package archive file.
 
 **Options:**
 
@@ -400,11 +410,15 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 - `--compile-package | -c` — Compile the package in Creatio after successful installation.
 
-- `--force | -f` (sql) — Overrides changed schemas in the database. Use this if you've modified schemas in an unlocked package within Creatio, and the installing process is preventing updates to those schemas.
+- `--force | -f` (sql) — Overrides changed packages & schemas in the database. Use this if you've modified schemas in an unlocked package within Creatio, and the installing process is preventing updates to those schemas.
 
   Under the hood, this option executes the following SQL script before package installation to mark all package schemas as unchanged:
 
   ```sql
+  UPDATE "SysPackage"
+  SET "IsChanged" = False, "IsLocked" = False 
+  WHERE "UId" = '{package_uid}';
+  
   UPDATE "SysSchema" 
   SET "IsChanged" = False, "IsLocked" = False 
   WHERE "SysPackageId" IN (SELECT "Id" FROM "SysPackage" WHERE "UId" = '{package_uid}');
@@ -492,6 +506,8 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 - `crtcli app pkg install UsrPackage.gz -Fr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, clears all localization data of 'UsrPackage' schemas, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' and restarts it after successful installation.
 
+- `crtcli app prod pkg install UsrPackage.gz repos/UsrPackage2.gz UsrPackageCollection.zip` — Combines packages in UsrPackageCollection.zip, UsrPackage.gz UsrPackage3.gz to single "Package.zip" package archive and installs it into prod (alias) Creatio instance at once. Check [workspace.crtcli.toml](#workspacecrtclitoml)
+
 
 ### app pkg get-uid
 
@@ -529,11 +545,11 @@ Print installed package information by Package UId.
 
 ### app pkg lock
 
-Execute SQL to make package locked if it is unlocked in Creatio.
+Execute SQL to make packages locked if it is unlocked in Creatio.
 
 ```sql
 UPDATE "SysPackage" 
-SET "InstallType" = 1, "IsLocked" = False, "IsChanged" = False
+SET "InstallType" = 1
 WHERE "Name" = '{package_name}';   
 ```
 
@@ -541,7 +557,7 @@ WHERE "Name" = '{package_name}';
 
 **Arguments:**
 
-- `[PACKAGE_NAME]` — Package name to lock.
+- `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to lock.
 
   Defaults: Tries to determine package name from current folder as package folder. (From file ./descriptor.json)
 
@@ -549,7 +565,7 @@ WHERE "Name" = '{package_name}';
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg lock UsrCustomPackage` — Locks package 'UsrCustomPackage' at insecure Creatio 'https://localhost:5000'.
+- `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg lock UsrCustomPackage UsrCustomPackage2` | `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg lock UsrCustomPackage,UsrCustomPackage2` — Locks package 'UsrCustomPackage' and 'UsrCustomPackage2' at insecure Creatio 'https://localhost:5000'.
 
 - `crtcli app pkg lock` — Locks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL'.
 
@@ -635,11 +651,11 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 ### app pkg unlock
 
-Execute SQL to make package unlocked if it is locked in Creatio.
+Execute SQL to make packages unlocked if it is locked in Creatio.
 
 ```sql
 UPDATE "SysPackage"
-SET "InstallType" = 0, "IsLocked" = True, "IsChanged" = True
+SET "InstallType" = 0
 WHERE "Name" = '{package_name}';
 ```
 
@@ -649,7 +665,7 @@ WHERE "Name" = '{package_name}';
 
 **Arguments:**
 
-- `[PACKAGE_NAME]` — Name of the package to unlock.
+- `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to unlock.
 
   Defaults: Tries to determine package name from current folder as package folder. (From file ./descriptor.json)
 
@@ -657,7 +673,7 @@ WHERE "Name" = '{package_name}';
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli app https://localhost:5000 -i pkg unlock UsrCustomPackage` — Unlocks package 'UsrCustomPackage' at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
+- `crtcli app https://localhost:5000 -i pkg unlock UsrCustomPackage UsrCustomPackage2` | `crtcli app https://localhost:5000 -i pkg unlock UsrCustomPackage,UsrCustomPackage2` — Unlocks package 'UsrCustomPackage' and 'UsrCustomPackage2' at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
 - `crtcli app pkg unlock` — Unlocks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL'.
 
@@ -945,13 +961,15 @@ Commands for working with Creatio package files (.zip, .gz) or package folders l
 
 ### pkg apply
 
-Applies transformations to the contents of a package folder. 
+Applies transformations to the contents of a packages folders. 
 
 This is useful for standardizing package structure, cleaning up localization files, and improving version control diffs, etc.
 
 **Arguments:**
 
-- `<PACKAGE_FOLDER>` (required) — Path to the package folder.
+- `[PACKAGES_FOLDERS]` — Paths to the packages folders.
+
+  Defaults: Current directory
 
 **Options:**
 
@@ -1003,9 +1021,9 @@ This is useful for standardizing package structure, cleaning up localization fil
 
 **Examples:**
 
-- `crtcli pkg apply . --apply-sorting true` — Applies sorting transform to the current package folder.
+- `crtcli pkg apply --apply-sorting true` — Applies sorting transform to the current package folder.
 
-- `crtcli pkg apply /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage -S true -L 'en-US,uk-UA'` — Applies sorting and localization cleanup transforms to package '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage'. Localization cleanup deletes all localization files in this folder except for 'en-US' and 'uk-UA' cultures.
+- `crtcli pkg apply /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 -S true -L 'en-US,uk-UA'` — Applies sorting and localization cleanup transforms to packages '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2'. Localization cleanup deletes all localization files in this folder except for 'en-US' and 'uk-UA' cultures.
 
 
 ### pkg pack
@@ -1028,7 +1046,9 @@ Excluded: Hidden folders and files (names starting with .).
 
 **Arguments:**
 
-- `<PACKAGE_FOLDERS>` (required) — Source folders containing the package files to be packaged.
+- `[PACKAGES_FOLDERS]` — Source folders containing the package files to be packaged.
+
+  Defaults: Current directory
 
 **Options:**
 
@@ -1060,13 +1080,13 @@ Excluded: Hidden folders and files (names starting with .).
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli pkg pack .` — Packs current folder as package and outputs package file 'UsrPackage_2024-12-01_21-00-00.zip' to current directory.
+- `crtcli pkg pack` — Packs current folder as package and outputs package file 'UsrPackage_2024-12-01_21-00-00.zip' to current directory.
 
-- `crtcli pkg pack /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3 --format gzip --compression best` — Packs folders '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3' as package archive and outputs package file 'Packages_2024-12-01_21-00-00.zip' to current directory.
+- `crtcli pkg pack /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3 --format zip --compression best` — Packs folders '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3' as package archive and outputs package file 'Packages_2024-12-01_21-00-00.zip' to current directory.
 
-- `crtcli pkg pack . -o /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
+- `crtcli pkg pack -o /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
 
-- `crtcli pkg pack . -o /backups/UsrPackage-latest.zip` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
+- `crtcli pkg pack -o /backups/UsrPackage-latest.zip` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
 
 
 ### pkg unpack
@@ -1103,6 +1123,8 @@ And here you can use transforms from [pkg apply](#pkg-apply) command.
 ### pkg unpack-all
 
 Extract all packages from a zip archive.
+
+**Aliases:** `ua` (full command: `crtcli pkg ua ...` or `crtcli p ua ...`)
 
 **Arguments:**
 

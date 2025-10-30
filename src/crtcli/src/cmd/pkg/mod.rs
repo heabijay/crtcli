@@ -11,7 +11,7 @@ pub use apply::PkgApplyFeatures;
 
 #[derive(Debug, Subcommand)]
 pub enum PkgCommands {
-    /// Applies transformations to the contents of a package folder
+    /// Applies transformations to the contents of a packages folders
     Apply(apply::ApplyCommand),
 
     /// Creates a package archive (.zip or .gz) from package folders
@@ -23,6 +23,7 @@ pub enum PkgCommands {
     Unpack(unpack::UnpackCommand),
 
     /// Extract all packages from a zip archive
+    #[clap(visible_alias = "ua")]
     UnpackAll(unpack_all::UnpackAllCommand),
 }
 

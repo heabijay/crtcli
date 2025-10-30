@@ -6,6 +6,7 @@ use crate::cmd::pkg::package_config::{
     CrtCliPkgConfig, combine_apply_features_from_args_and_config,
 };
 use crate::pkg::bundling::extractor::*;
+use crate::pkg::utils::{get_package_name_from_current_dir, get_package_name_from_folder};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::Args;
@@ -86,10 +87,15 @@ impl TryFrom<&str> for PackageDestinationArg {
             PathBuf::from(destination_folder)
         };
 
-        let package_name = detect_target_package_name!(package_name, &destination_folder);
+        let package_name = if let Some(package_name) = package_name {
+            package_name
+        } else {
+            get_package_name_from_folder(&destination_folder)
+                .map_err(DetectTargetPackageNameError::GetPackageNameFromFolder)?
+        };
 
         Ok(Self {
-            package_name: package_name.to_string(),
+            package_name,
             destination_folder,
         })
     }
@@ -106,12 +112,12 @@ impl ValueParserFactory for PackageDestinationArg {
 #[async_trait]
 impl AppCommand for PullPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
-        let current_folder = PathBuf::from(".");
+        let current_dir = PathBuf::from(".");
 
         let packages_map: &[_] = if self.packages_map.is_empty() {
             &[PackageDestinationArg {
-                package_name: detect_target_package_name!(),
-                destination_folder: current_folder.clone(),
+                package_name: get_package_name_from_current_dir()?,
+                destination_folder: current_dir.clone(),
             }]
         } else {
             &self.packages_map
@@ -119,7 +125,7 @@ impl AppCommand for PullPkgCommand {
 
         if packages_map
             .iter()
-            .filter(|p| p.destination_folder == current_folder)
+            .filter(|p| p.destination_folder == current_dir)
             .count()
             > 1
         {

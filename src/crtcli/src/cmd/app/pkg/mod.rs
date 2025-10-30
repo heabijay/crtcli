@@ -34,7 +34,7 @@ pub enum PkgCommands {
     #[clap(visible_aliases = &["d", "dl"])]
     Download(download_pkg::DownloadPkgCommand),
 
-    /// Commands/aliases to simplify manipulate with package insides File System Development mode (FSD) location
+    /// Commands/aliases to simplify manipulate with packages insides File System Development mode (FSD) location
     Fs {
         #[command(subcommand)]
         command: fs::PkgFsCommands,
@@ -47,7 +47,7 @@ pub enum PkgCommands {
     /// Print installed package information by Package UId
     GetUid(get_uid_pkg::GetUidPkgCommand),
 
-    /// Execute SQL to make package locked if it is unlocked in Creatio
+    /// Execute SQL to make packages locked if it is unlocked in Creatio
     Lock(lock_pkg::LockPkgCommand),
 
     /// Downloads packages from Creatio, unpacks it to destination folders, and applies configured transforms
@@ -56,7 +56,7 @@ pub enum PkgCommands {
     /// Packs packages from source folders and installs it into the Creatio instance
     Push(push_pkg::PushPkgCommand),
 
-    /// Execute SQL to make package unlocked if it is locked in Creatio
+    /// Execute SQL to make packages unlocked if it is locked in Creatio
     Unlock(unlock_pkg::UnlockPkgCommand),
 }
 

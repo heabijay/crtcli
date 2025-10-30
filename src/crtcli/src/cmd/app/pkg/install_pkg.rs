@@ -1,21 +1,23 @@
 use crate::app::{CrtClient, CrtClientError, InstallLogWatcherBuilder, InstallLogWatcherEvent};
 use crate::cmd::app::AppCommand;
-use crate::cmd::app::restart::print_app_restart_requested;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::Args;
-use std::io::{Cursor, Read, Seek, stdin};
-use std::path::PathBuf;
+use std::io::{Cursor, Read, Seek, Write, stdin};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use zip::result::ZipError;
+use zip::write::{FileOptions, SimpleFileOptions};
+use zip::{ZipArchive, ZipWriter};
 
 #[derive(Args, Debug)]
 pub struct InstallPkgCommand {
-    /// Path to the package archive file (Use '@-' or '-' value to read data from stdin)
-    #[arg(value_hint = clap::ValueHint::FilePath)]
-    filepath: PathBuf,
+    /// Paths to the package archive files (Use single '@-' or '-' value to read data from stdin)
+    #[arg(required = true, value_hint = clap::ValueHint::FilePath)]
+    filepaths: Vec<PathBuf>,
 
     #[command(flatten)]
     install_pkg_options: InstallPkgCommandOptions,
@@ -69,32 +71,34 @@ pub enum InstallPkgCommandError {
     PkgCompile(#[source] CommandDynError),
 
     #[error("failed to restart app: {0}")]
-    AppRestart(#[source] CrtClientError),
+    AppRestart(#[source] CommandDynError),
+}
+
+#[derive(Debug, Error)]
+enum BeforeInstallPkgCombineError {
+    #[error("failed to process {0} file while combining packages into single package archive: {1}")]
+    ProcessFile(PathBuf, CommandDynError),
+
+    #[error("failed to format zip archive for combined packages: {0}")]
+    Zip(#[from] ZipError),
 }
 
 #[async_trait]
 impl AppCommand for InstallPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
-        let (package_content, package_name) = match &self.filepath.to_str() {
-            Some("@-") | Some("-") => {
-                let mut data = vec![];
+        let (package_content, package_name) = if self.filepaths.len() == 1 {
+            let filepath = &self.filepaths[0];
 
-                stdin().read_to_end(&mut data)?;
-
-                let mut reader = Cursor::new(data);
-                let filename = get_filename_for_package_reader(&mut reader)?;
-
-                (reader.into_inner(), filename)
+            if Some("@-") == filepath.to_str() || Some("@-") == filepath.to_str() {
+                read_package_input_from_stdin()?
+            } else {
+                (std::fs::read(filepath)?, path_to_filename_str(filepath)?)
             }
-            _ => (
-                std::fs::read(&self.filepath)?,
-                self.filepath
-                    .file_name()
-                    .ok_or("unable to get filename of specified path")?
-                    .to_str()
-                    .ok_or("unable to get filename str of specified path")?
-                    .to_string(),
-            ),
+        } else {
+            (
+                combine_packages_to_single_zip(&self.filepaths)?,
+                "Packages.zip".to_owned(),
+            )
         };
 
         install_package_from_stream_command(
@@ -105,7 +109,69 @@ impl AppCommand for InstallPkgCommand {
         )
         .await?;
 
-        Ok(())
+        return Ok(());
+
+        fn read_package_input_from_stdin() -> Result<(Vec<u8>, String), CommandDynError> {
+            let mut data = vec![];
+
+            stdin().read_to_end(&mut data)?;
+
+            let mut reader = Cursor::new(data);
+            let filename = get_filename_for_package_reader(&mut reader)?;
+
+            Ok((reader.into_inner(), filename))
+        }
+
+        fn combine_packages_to_single_zip(
+            filepaths: &[impl AsRef<Path>],
+        ) -> Result<Vec<u8>, BeforeInstallPkgCombineError> {
+            let mut zip = ZipWriter::new(Cursor::new(vec![]));
+            let file_options =
+                SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+            for filepath in filepaths {
+                process_file_combine(&mut zip, file_options, filepath).map_err(|e| {
+                    BeforeInstallPkgCombineError::ProcessFile(filepath.as_ref().to_path_buf(), e)
+                })?;
+            }
+
+            return Ok(zip.finish()?.into_inner());
+
+            fn process_file_combine(
+                mut zip: &mut ZipWriter<impl Write + Seek>,
+                file_options: FileOptions<()>,
+                filepath: &impl AsRef<Path>,
+            ) -> Result<(), CommandDynError> {
+                let mut file = std::fs::File::open(filepath)?;
+
+                if crate::pkg::utils::is_gzip_stream(&mut file)? {
+                    zip.start_file(path_to_filename_str(filepath.as_ref())?, file_options)?;
+
+                    std::io::copy(&mut file, &mut zip)?;
+                } else {
+                    let mut zip_inner = ZipArchive::new(file)?;
+
+                    for i in 0..zip_inner.len() {
+                        let mut file = zip_inner.by_index(i)?;
+
+                        zip.start_file(file.name(), file_options)?;
+
+                        std::io::copy(&mut file, &mut zip)?;
+                    }
+                }
+
+                Ok(())
+            }
+        }
+
+        fn path_to_filename_str(path: &Path) -> Result<String, CommandDynError> {
+            Ok(path
+                .file_name()
+                .ok_or("unable to get filename of specified path")?
+                .to_str()
+                .ok_or("unable to get filename str of specified path")?
+                .to_string())
+        }
     }
 }
 
@@ -137,7 +203,7 @@ pub async fn install_package_from_stream_command<R>(
     options: &InstallPkgCommandOptions,
 ) -> Result<(), InstallPkgCommandError>
 where
-    R: AsyncReadExt + AsyncSeekExt + std::io::Read + std::io::Seek + Send + Sync + Unpin + 'static,
+    R: AsyncReadExt + AsyncSeekExt + Read + Seek + Send + Sync + Unpin + 'static,
 {
     let descriptors =
         crate::pkg::utils::get_package_descriptors_from_package_reader(&mut package_reader)
@@ -232,34 +298,22 @@ where
     install_result?;
 
     if options.compile_package {
-        match descriptors.len() {
-            0 => {}
-            1 if descriptors.first().unwrap().name().is_some() => {
-                crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
-                    package_name: Some(descriptors.first().unwrap().name().unwrap().to_owned()),
-                    force_rebuild: false,
-                    restart: options.restart,
-                }
-                .run(client)
-                .await
-                .map_err(InstallPkgCommandError::PkgCompile)?
-            }
-            _ => crate::cmd::app::compile::CompileCommand {
-                restart: options.restart,
-                force_rebuild: false,
-            }
+        crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
+            packages_names: descriptors
+                .iter()
+                .filter_map(|d| d.value.as_str().map(|s| s.to_owned()))
+                .collect(),
+            force_rebuild: false,
+            restart: options.restart,
+        }
+        .run(client)
+        .await
+        .map_err(InstallPkgCommandError::PkgCompile)?
+    } else if options.restart {
+        crate::cmd::app::restart::RestartCommand
             .run(client)
             .await
-            .map_err(InstallPkgCommandError::PkgCompile)?,
-        }
-    } else if options.restart {
-        client
-            .app_installer_service()
-            .restart_app()
-            .await
-            .map_err(InstallPkgCommandError::AppRestart)?;
-
-        print_app_restart_requested(&client);
+            .map_err(InstallPkgCommandError::AppRestart)?
     }
 
     return Ok(());
@@ -313,7 +367,7 @@ where
             for descriptor in descriptors {
                 let rows_affected = client
                     .sql_scripts()
-                    .reset_schema_content(
+                    .clear_schema_content(
                         descriptor
                             .uid()
                             .ok_or(InstallPkgCommandError::PackageUidValueNull)?,
