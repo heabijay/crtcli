@@ -1,26 +1,26 @@
-use crate::pkg::converters::PkgFileConverter;
 use crate::pkg::json_wrappers::PKG_DATA_LCZ_DATA_PATH_REGEX;
+use crate::pkg::transforms::PkgFileTransform;
 use crate::pkg::xml_wrappers::resource::PKG_RESOURCE_PATH_REGEX;
 use std::collections::HashSet;
 use thiserror::Error;
 
-pub struct LocalizationCleanupPkgFileConverter {
+pub struct LocalizationCleanupPkgFileTransform {
     allow_cultures: HashSet<String>,
 }
 
-impl LocalizationCleanupPkgFileConverter {
+impl LocalizationCleanupPkgFileTransform {
     pub fn new(allow_cultures: HashSet<String>) -> Self {
         Self { allow_cultures }
     }
 }
 
 #[derive(Error, Debug)]
-pub enum LocalizationCleanupPkgFileConverterError {}
+pub enum LocalizationCleanupPkgFileTransformError {}
 
-impl PkgFileConverter for LocalizationCleanupPkgFileConverter {
-    type Error = LocalizationCleanupPkgFileConverterError;
+impl PkgFileTransform for LocalizationCleanupPkgFileTransform {
+    type Error = LocalizationCleanupPkgFileTransformError;
 
-    fn convert(&self, filename: &str, content: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
+    fn transform(&self, filename: &str, content: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
         if let Some(caps) = PKG_DATA_LCZ_DATA_PATH_REGEX
             .captures(filename)
             .or_else(|| PKG_RESOURCE_PATH_REGEX.captures(filename))

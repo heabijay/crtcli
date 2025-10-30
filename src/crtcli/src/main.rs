@@ -7,6 +7,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::process::ExitCode;
 
 mod app;
+mod cfg;
 mod cmd;
 mod pkg;
 mod utils;

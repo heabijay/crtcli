@@ -16,7 +16,7 @@ pub struct PullPkgFsCommand {
     packages_folders: Vec<PathBuf>,
 
     #[command(flatten)]
-    apply_features: Option<crate::cmd::pkg::PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::PkgApplyFeatures>,
 }
 
 #[async_trait]

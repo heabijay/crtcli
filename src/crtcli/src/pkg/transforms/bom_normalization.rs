@@ -1,6 +1,6 @@
-use crate::pkg::converters::PkgFileConverter;
 use crate::pkg::json_wrappers::*;
 use crate::pkg::paths::*;
+use crate::pkg::transforms::PkgFileTransform;
 use crate::pkg::xml_wrappers::resource::PKG_RESOURCE_PATH_REGEX;
 use crate::utils::bom;
 use clap::ValueEnum;
@@ -18,23 +18,23 @@ pub enum BomNormalizationMode {
     Remove,
 }
 
-pub struct BomNormalizationPkgFileConverter {
+pub struct BomNormalizationPkgFileTransform {
     mode: BomNormalizationMode,
 }
 
-impl BomNormalizationPkgFileConverter {
+impl BomNormalizationPkgFileTransform {
     pub fn new(mode: BomNormalizationMode) -> Self {
         Self { mode }
     }
 }
 
 #[derive(Error, Debug)]
-pub enum BomNormalizationPkgFileConverterError {}
+pub enum BomNormalizationPkgFileTransformError {}
 
-impl PkgFileConverter for BomNormalizationPkgFileConverter {
-    type Error = BomNormalizationPkgFileConverterError;
+impl PkgFileTransform for BomNormalizationPkgFileTransform {
+    type Error = BomNormalizationPkgFileTransformError;
 
-    fn convert(
+    fn transform(
         &self,
         filename: &str,
         mut content: Vec<u8>,

@@ -2,7 +2,7 @@ use crate::pkg::bundling::PkgGZipDecoder;
 use crate::pkg::bundling::utils::{
     FolderIsEmptyValidationError, remove_dir_all_files_predicate, validate_folder_is_empty,
 };
-use crate::pkg::converters::*;
+use crate::pkg::transforms::*;
 use crate::pkg::utils::contains_hidden_path;
 use anstyle::{AnsiColor, Color, Style};
 use std::collections::HashSet;
@@ -27,7 +27,7 @@ pub enum ExtractGzipPackageError {
     PkgGZipDecoder(#[from] crate::pkg::bundling::PkgGZipDecoderError),
 
     #[error("error occurred in apply pkg file conversion/feature: {0}")]
-    PkgFileConverterError(#[from] CombinedPkgFileConverterError),
+    PkgFileTransformError(#[from] CombinedPkgFileTransformError),
 
     #[error("unable to extract parent folder or file destination path {0}")]
     GetParentFolderOrDestinationPath(PathBuf),
@@ -91,7 +91,7 @@ pub enum FilesAlreadyExistsInFolderStrategy {
 pub struct PackageToFolderExtractorConfig {
     files_already_exists_in_folder_strategy: FilesAlreadyExistsInFolderStrategy,
 
-    file_converter: CombinedPkgFileConverter,
+    file_transform: CombinedPkgFileTransform,
 
     print_merge_log: bool,
 }
@@ -105,8 +105,8 @@ impl PackageToFolderExtractorConfig {
         self
     }
 
-    pub fn with_converter(mut self, converter: CombinedPkgFileConverter) -> Self {
-        self.file_converter = converter;
+    pub fn with_transform(mut self, transform: CombinedPkgFileTransform) -> Self {
+        self.file_transform = transform;
         self
     }
 
@@ -184,7 +184,7 @@ pub fn extract_gzip_package_to_folder(
     for file in decoder {
         let file = file?;
         let filename = file.to_native_path_string().into_owned();
-        let file_content = config.file_converter.convert(&filename, file.content)?;
+        let file_content = config.file_transform.transform(&filename, file.content)?;
 
         if file_content.is_none() {
             continue;

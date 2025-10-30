@@ -1,15 +1,12 @@
+use crate::cfg::PkgConfig;
+use crate::cfg::package::combine_apply_features_from_args_and_config;
 use crate::cmd::cli::{CliCommand, CommandDynError, CommandResult};
-use crate::cmd::pkg::package_config::{
-    CrtCliPkgConfig, combine_apply_features_from_args_and_config,
-};
 use crate::pkg::bundling;
-use crate::pkg::converters::*;
+use crate::pkg::transforms::*;
 use crate::pkg::utils::{WalkOverPackageFilesContentError, walk_over_package_files};
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
-use serde::Deserialize;
-use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -21,7 +18,7 @@ pub struct ApplyCommand {
     pub packages_folders: Vec<PathBuf>,
 
     #[command(flatten)]
-    pub apply_features: Option<PkgApplyFeatures>,
+    pub apply_features: Option<crate::pkg::PkgApplyFeatures>,
 
     /// Apply transforms only to a specific file within the package folder
     #[arg(short = 'f', long, value_hint = clap::ValueHint::FilePath)]
@@ -35,87 +32,13 @@ pub struct ApplyCommand {
     pub no_feature_present_warning_disabled: bool,
 }
 
-#[derive(Args, Debug, Default, Deserialize, Clone)]
-pub struct PkgApplyFeatures {
-    /// Sorts files like in the "Data/../*.json", "descriptor.json", ... by some property to simplify merge operations in Git, SVN, etc.
-    #[arg(short = 'S', long)]
-    #[serde(rename = "sorting")]
-    apply_sorting: Option<bool>,
-
-    /// Configures sorting comparer for `--apply-sorting | -S` transform which will be used to sort strings.
-    #[arg(
-        long,
-        default_value = "alnum",
-        value_name = "COMPARER", 
-        value_hint = clap::ValueHint::Other)]
-    #[serde(rename = "sorting_comparer")]
-    apply_sorting_comparer: Option<SortingComparer>,
-
-    /// Removes localization files except for the specified cultures (comma-separated list).
-    /// Example: --apply-localization-cleanup "en-US,uk-UA"
-    #[arg(
-        short = 'L',
-        long,
-        value_name = "EXCEPT-LOCALIZATIONS", 
-        value_delimiter = ',',
-        value_hint = clap::ValueHint::Other)]
-    #[serde(rename = "localization_cleanup")]
-    apply_localization_cleanup: Option<Vec<String>>,
-
-    /// Normalizes a Byte Order Mark (BOM) in package schema files (.json / .xml) by adding or removing BOM bytes.
-    #[arg(long, value_name = "BOM_NORMALIZATION_MODE")]
-    #[serde(rename = "bom_normalization")]
-    apply_bom_normalization: Option<BomNormalizationMode>,
-}
-
-impl PkgApplyFeatures {
-    pub fn combine(&self, other: Option<&PkgApplyFeatures>) -> PkgApplyFeatures {
-        PkgApplyFeatures {
-            apply_sorting: self
-                .apply_sorting
-                .or(other.as_ref().and_then(|x| x.apply_sorting)),
-            apply_sorting_comparer: self
-                .apply_sorting_comparer
-                .or(other.as_ref().and_then(|x| x.apply_sorting_comparer)),
-            apply_localization_cleanup: self.apply_localization_cleanup.clone().or(other
-                .as_ref()
-                .and_then(|x| x.apply_localization_cleanup.clone())),
-            apply_bom_normalization: self
-                .apply_bom_normalization
-                .or(other.and_then(|x| x.apply_bom_normalization)),
-        }
-    }
-
-    pub fn build_combined_converter(&self) -> CombinedPkgFileConverter {
-        let mut combined = CombinedPkgFileConverter::new();
-
-        if let Some(localization_cultures) = &self.apply_localization_cleanup {
-            combined.add(LocalizationCleanupPkgFileConverter::new(
-                HashSet::from_iter(localization_cultures.iter().cloned()),
-            ));
-        }
-
-        if self.apply_sorting.is_some_and(|x| x) {
-            combined.add(SortingPkgFileConverter::new(
-                self.apply_sorting_comparer.unwrap_or_default(),
-            ));
-        }
-
-        if let Some(bom_normalization) = self.apply_bom_normalization {
-            combined.add(BomNormalizationPkgFileConverter::new(bom_normalization));
-        }
-
-        combined
-    }
-}
-
 #[derive(Error, Debug)]
 enum ApplyCommandError {
     #[error("failed to access package file path: {0}")]
     WalkOverPackageFilesContent(#[from] WalkOverPackageFilesContentError),
 
     #[error("unable to apply features to {0}: {1}")]
-    ApplyConverters(String, #[source] CombinedPkgFileConverterError),
+    ApplyTransforms(String, #[source] CombinedPkgFileTransformError),
 
     #[error("unable to change file {0}: {1}")]
     FileChangeAccessError(PathBuf, #[source] std::io::Error),
@@ -168,7 +91,7 @@ impl CliCommand for ApplyCommand {
             _self: &ApplyCommand,
             package_folder: &Path,
         ) -> Result<bool, CommandDynError> {
-            let pkg_config = CrtCliPkgConfig::from_package_folder(package_folder)?;
+            let pkg_config = PkgConfig::from_package_folder(package_folder)?;
 
             let apply_features = combine_apply_features_from_args_and_config(
                 _self.apply_features.as_ref(),
@@ -189,7 +112,7 @@ impl CliCommand for ApplyCommand {
                 }
             };
 
-            let converter = apply_features.build_combined_converter();
+            let transform = apply_features.build_combined_transform();
             let mut stdout = stdout().lock();
 
             let mut any_applied = false;
@@ -201,7 +124,7 @@ impl CliCommand for ApplyCommand {
                             .map_err(WalkOverPackageFilesContentError::FolderAccess)
                             .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
-                        if apply_file(_self, package_folder, &mut stdout, &converter, file_path)? {
+                        if apply_file(_self, package_folder, &mut stdout, &transform, file_path)? {
                             any_applied = true;
                         };
                     }
@@ -211,7 +134,7 @@ impl CliCommand for ApplyCommand {
                         _self,
                         package_folder,
                         &mut stdout,
-                        &converter,
+                        &transform,
                         for_single_file.to_owned(),
                     )? {
                         any_applied = true;
@@ -226,12 +149,12 @@ impl CliCommand for ApplyCommand {
             _self: &ApplyCommand,
             package_folder: &Path,
             mut stdout: impl Write,
-            converter: &CombinedPkgFileConverter,
+            transform: &CombinedPkgFileTransform,
             file_path: PathBuf,
         ) -> Result<bool, CommandDynError> {
             let relative_path = file_path.strip_prefix(package_folder).unwrap_or(&file_path);
 
-            if !converter.is_applicable(relative_path.to_str().unwrap()) {
+            if !transform.is_applicable(relative_path.to_str().unwrap()) {
                 return Ok(false);
             }
 
@@ -242,13 +165,13 @@ impl CliCommand for ApplyCommand {
                 })
                 .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
-            let converted_content = converter
-                .convert(
+            let converted_content = transform
+                .transform(
                     &file.filename, // No need to use file.to_native_path_string because in this case the file was read from the native package folder
                     file.content.clone(),
                 )
                 .map_err(|err| {
-                    ApplyCommandError::ApplyConverters(relative_path.display().to_string(), err)
+                    ApplyCommandError::ApplyTransforms(relative_path.display().to_string(), err)
                 })?;
 
             if let Some(content) = converted_content {

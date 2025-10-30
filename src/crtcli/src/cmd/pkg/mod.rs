@@ -3,11 +3,8 @@ use clap::Subcommand;
 
 pub mod apply;
 mod pack;
-pub mod package_config;
 mod unpack;
 mod unpack_all;
-
-pub use apply::PkgApplyFeatures;
 
 #[derive(Debug, Subcommand)]
 pub enum PkgCommands {

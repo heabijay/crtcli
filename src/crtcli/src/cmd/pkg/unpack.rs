@@ -1,8 +1,6 @@
+use crate::cfg::PkgConfig;
+use crate::cfg::package::combine_apply_features_from_args_and_config;
 use crate::cmd::cli::{CliCommand, CommandResult};
-use crate::cmd::pkg::apply::PkgApplyFeatures;
-use crate::cmd::pkg::package_config::{
-    CrtCliPkgConfig, combine_apply_features_from_args_and_config,
-};
 use crate::pkg::bundling::extractor::*;
 use clap::Args;
 use std::io::{Seek, SeekFrom};
@@ -29,7 +27,7 @@ pub struct UnpackCommand {
     merge: bool,
 
     #[command(flatten)]
-    apply_features: Option<PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::PkgApplyFeatures>,
 }
 
 #[derive(Error, Debug)]
@@ -77,7 +75,7 @@ impl CliCommand for UnpackCommand {
             }
         };
 
-        let pkg_config = CrtCliPkgConfig::from_package_folder(&destination_folder)?;
+        let pkg_config = PkgConfig::from_package_folder(&destination_folder)?;
 
         let apply_features = combine_apply_features_from_args_and_config(
             self.apply_features.as_ref(),
@@ -90,7 +88,7 @@ impl CliCommand for UnpackCommand {
                 true => FilesAlreadyExistsInFolderStrategy::SmartMerge,
                 false => FilesAlreadyExistsInFolderStrategy::ThrowError,
             })
-            .with_converter(apply_features.build_combined_converter());
+            .with_transform(apply_features.build_combined_transform());
 
         let mut file = std::fs::File::open(self.package_filepath)
             .map_err(UnpackCommandError::ReadPackageFile)?;

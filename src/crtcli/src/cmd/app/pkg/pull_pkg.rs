@@ -1,10 +1,9 @@
 use crate::app::{CrtClient, CrtClientError};
+use crate::cfg::PkgConfig;
+use crate::cfg::package::combine_apply_features_from_args_and_config;
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::cli::CommandResult;
-use crate::cmd::pkg::package_config::{
-    CrtCliPkgConfig, combine_apply_features_from_args_and_config,
-};
 use crate::pkg::bundling::extractor::*;
 use crate::pkg::utils::{get_package_name_from_current_dir, get_package_name_from_folder};
 use anstyle::{AnsiColor, Color, Style};
@@ -30,7 +29,7 @@ pub struct PullPkgCommand {
     packages_map: Vec<PackageDestinationArg>,
 
     #[command(flatten)]
-    apply_features: Option<crate::cmd::pkg::PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::PkgApplyFeatures>,
 }
 
 #[derive(Debug, Error)]
@@ -171,7 +170,7 @@ impl AppCommand for PullPkgCommand {
                 );
             }
 
-            let pkg_config = CrtCliPkgConfig::from_package_folder(&package_map.destination_folder)?;
+            let pkg_config = PkgConfig::from_package_folder(&package_map.destination_folder)?;
 
             let apply_features = combine_apply_features_from_args_and_config(
                 self.apply_features.as_ref(),
@@ -184,7 +183,7 @@ impl AppCommand for PullPkgCommand {
                     FilesAlreadyExistsInFolderStrategy::SmartMerge,
                 )
                 .print_merge_log(true)
-                .with_converter(apply_features.build_combined_converter());
+                .with_transform(apply_features.build_combined_transform());
 
             extract_single_zip_package_to_folder(
                 std::io::Cursor::new(&package_data),

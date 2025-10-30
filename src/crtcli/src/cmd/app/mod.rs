@@ -15,8 +15,8 @@ mod tunnel;
 
 use crate::CommandHandledError;
 use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
+use crate::cfg::workspace::{WorkspaceAppConfig, WorkspaceConfig};
 use crate::cmd::cli::{CommandDynError, CommandResult};
-use crate::cmd::workspace_config::{WorkspaceAppConfig, WorkspaceConfig};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
 use clap::{Args, Subcommand};

@@ -1,12 +1,12 @@
-use crate::pkg::converters::PkgFileConverter;
 use crate::pkg::json_wrappers::*;
+use crate::pkg::transforms::PkgFileTransform;
 use crate::pkg::xml_wrappers::*;
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use thiserror::Error;
 
-pub struct SortingPkgFileConverter {
+pub struct SortingPkgFileTransform {
     comparer: SortingComparer,
 }
 
@@ -34,7 +34,7 @@ impl SortingComparer {
 }
 
 #[derive(Error, Debug)]
-pub enum SortingPkgFileConverterError {
+pub enum SortingPkgFileTransformError {
     #[error("failed to parse json file: {0}")]
     ParseJsonFile(#[from] PkgJsonWrapperCreateError),
 
@@ -57,16 +57,16 @@ pub enum SortingPkgFileConverterError {
     Serialize(#[from] PkgJsonWrapperSerializeError),
 }
 
-impl SortingPkgFileConverter {
+impl SortingPkgFileTransform {
     pub fn new(comparer: SortingComparer) -> Self {
         Self { comparer }
     }
 }
 
-impl PkgFileConverter for SortingPkgFileConverter {
-    type Error = SortingPkgFileConverterError;
+impl PkgFileTransform for SortingPkgFileTransform {
+    type Error = SortingPkgFileTransformError;
 
-    fn convert(&self, filename: &str, content: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
+    fn transform(&self, filename: &str, content: Vec<u8>) -> Result<Option<Vec<u8>>, Self::Error> {
         let mut out = vec![];
 
         if filename == crate::pkg::paths::PKG_DESCRIPTOR_FILE {

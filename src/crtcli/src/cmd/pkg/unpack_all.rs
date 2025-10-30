@@ -1,5 +1,4 @@
 use crate::cmd::cli::{CliCommand, CommandResult};
-use crate::cmd::pkg::apply::PkgApplyFeatures;
 use crate::pkg::bundling::extractor::*;
 use clap::Args;
 use std::path::PathBuf;
@@ -20,7 +19,7 @@ pub struct UnpackAllCommand {
     merge: bool,
 
     #[command(flatten)]
-    apply_features: PkgApplyFeatures,
+    apply_features: crate::pkg::PkgApplyFeatures,
 }
 
 #[derive(Error, Debug)]
@@ -53,12 +52,13 @@ impl CliCommand for UnpackAllCommand {
 
         let file = std::fs::File::open(&self.package_filepath)
             .map_err(UnpackAllCommandError::FileAccess)?;
+
         let config = PackageToFolderExtractorConfig::default()
             .with_files_already_exists_in_folder_strategy(match self.merge {
                 true => FilesAlreadyExistsInFolderStrategy::SmartMerge,
                 false => FilesAlreadyExistsInFolderStrategy::ThrowError,
             })
-            .with_converter(self.apply_features.build_combined_converter());
+            .with_transform(self.apply_features.build_combined_transform());
 
         extract_zip_package_to_folder(file, &destination_folder, &config)
             .map_err(UnpackAllCommandError::ExtractZipPackage)?;
