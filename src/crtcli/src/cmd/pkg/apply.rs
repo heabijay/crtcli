@@ -150,13 +150,11 @@ impl CliCommand for ApplyCommand {
 
             if apply_package_folder(&self, package_folder)? {
                 any_applied = true;
-            } else {
-                if packages_folders.len() > 1 {
-                    println!(
-                        "\t{style}— Nothing to do —{style:#}",
-                        style = Style::new().italic().dimmed()
-                    );
-                }
+            } else if packages_folders.len() > 1 {
+                println!(
+                    "\t{style}— Nothing to do —{style:#}",
+                    style = Style::new().italic().dimmed()
+                );
             }
         }
 
