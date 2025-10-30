@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct UnlockPkgCommand {
-    /// Names of the packages to unlock
+    /// A space-separated or comma-separated list of package names to unlock
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     package_names: Vec<String>,
 }

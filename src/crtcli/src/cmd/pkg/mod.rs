@@ -23,6 +23,7 @@ pub enum PkgCommands {
     Unpack(unpack::UnpackCommand),
 
     /// Extract all packages from a zip archive
+    #[clap(visible_alias = "ua")]
     UnpackAll(unpack_all::UnpackAllCommand),
 }
 

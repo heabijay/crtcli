@@ -253,7 +253,7 @@ Compiles a specific package within the Creatio instance.
 
 **Arguments:**
 
-- `[PACKAGES_NAMES]` — Names of packages to compile.
+- `[PACKAGES_NAMES]` — A space-separated or comma-separated list of package names to compile.
 
   Defaults: If omitted, crtcli will try to determine the package name from the current directory (by looking for descriptor.json).
 
@@ -557,7 +557,7 @@ WHERE "Name" = '{package_name}';
 
 **Arguments:**
 
-- `[PACKAGE_NAMES]` — Names of the packages to lock.
+- `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to lock.
 
   Defaults: Tries to determine package name from current folder as package folder. (From file ./descriptor.json)
 
@@ -665,7 +665,7 @@ WHERE "Name" = '{package_name}';
 
 **Arguments:**
 
-- `[PACKAGE_NAMES]` — Names of the packages to unlock.
+- `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to unlock.
 
   Defaults: Tries to determine package name from current folder as package folder. (From file ./descriptor.json)
 
@@ -1080,13 +1080,13 @@ Excluded: Hidden folders and files (names starting with .).
 
 For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder.
 
-- `crtcli pkg pack .` — Packs current folder as package and outputs package file 'UsrPackage_2024-12-01_21-00-00.zip' to current directory.
+- `crtcli pkg pack` — Packs current folder as package and outputs package file 'UsrPackage_2024-12-01_21-00-00.zip' to current directory.
 
-- `crtcli pkg pack /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3 --format gzip --compression best` — Packs folders '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3' as package archive and outputs package file 'Packages_2024-12-01_21-00-00.zip' to current directory.
+- `crtcli pkg pack /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2 /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3 --format zip --compression best` — Packs folders '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage2' and '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage3' as package archive and outputs package file 'Packages_2024-12-01_21-00-00.zip' to current directory.
 
-- `crtcli pkg pack . -o /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
+- `crtcli pkg pack -o /backups/ --format gzip --compression best` — Packs current folder as package and outputs package file 'UsrPackage.gz' with the best compression preset to '/backups/' folder.
 
-- `crtcli pkg pack . -o /backups/UsrPackage-latest.zip` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
+- `crtcli pkg pack -o /backups/UsrPackage-latest.zip` — Packs current folder as package and outputs package file 'UsrPackage-latest.zip' to '/backups/' folder. If file already exists — it will be replaced.
 
 
 ### pkg unpack
@@ -1123,6 +1123,8 @@ And here you can use transforms from [pkg apply](#pkg-apply) command.
 ### pkg unpack-all
 
 Extract all packages from a zip archive.
+
+**Aliases:** `ua` (full command: `crtcli pkg ua ...` or `crtcli p ua ...`)
 
 **Arguments:**
 

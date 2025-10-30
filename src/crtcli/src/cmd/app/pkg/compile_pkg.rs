@@ -12,7 +12,7 @@ use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct CompilePkgCommand {
-    /// Names of packages to compile (default: package name from ./descriptor.json)
+    /// A space-separated or comma-separated list of package names to compile (default: package name from ./descriptor.json)
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     pub packages_names: Vec<String>,
 

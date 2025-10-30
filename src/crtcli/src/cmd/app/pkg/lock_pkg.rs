@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct LockPkgCommand {
-    /// Names of the packages to lock
+    /// A space-separated or comma-separated list of package names
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     package_names: Vec<String>,
 }
