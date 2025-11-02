@@ -61,7 +61,7 @@ enum Commands {
     /// You should specify Creatio connection parameters like URL, USERNAME, PASSWORD through command arguments,
     /// or you could set ENV variables (as well as create .env file) for better UX.
     ///
-    /// You can also use app aliases defined in workspace.crtcli.toml config file by specifying
+    /// You can also use app aliases defined in `.crtcli.toml` config file by specifying
     /// the alias name as the URL parameter. For example: `crtcli app dev restart`
     ///
     /// Example use cases:

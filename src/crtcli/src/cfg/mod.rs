@@ -1,4 +1,5 @@
 pub mod package;
-pub mod workspace;
-
 pub use package::PkgConfig;
+
+pub mod dot;
+pub use dot::DotConfig;

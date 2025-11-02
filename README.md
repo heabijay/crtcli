@@ -83,13 +83,13 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
 
 Commands to interact with Creatio application instance.
 
-Please check [dotenv (.env) files](#dotenv-env-files) and [workspace.crtcli.toml](#workspacecrtclitoml) for simplified commands usage.
+Please check [dotenv (.env) files](#dotenv-env-files) and [.crtcli.toml](#crtclitoml) for simplified commands usage.
 
 **Aliases:** `a` (full command: `crtcli a ...`)
 
 **Arguments:**
 
-- `<URL/APP>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [workspace.crtcli.toml](#workspacecrtclitoml). 
+- `<URL/APP>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [.crtcli.toml](#crtclitoml). 
   - If the value starts with "http://" or "https://", it is treated as a direct URL
   - Otherwise, it is treated as an alias name
 
@@ -136,7 +136,7 @@ For OAuth 2.0 authentication (instead of username and password):
 
 - `crtcli app <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured via [environment variables / .env file](#dotenv-env-files).
 
-- `crtcli app prod <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured with the `prod` alias in [workspace.crtcli.toml](#workspacecrtclitoml).
+- `crtcli app prod <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured with the `prod` alias in [.crtcli.toml](#crtclitoml).
 
 
 ### app compile
@@ -235,7 +235,7 @@ Print last package installation log.
 
 - `crtcli app install-log` — Gets last package installation log in Creatio '$CRTCLI_APP_URL'.
 
-- `crtcli app prod install-log --watch` — Watch for install log updates in real-time at prod (alias) Creatio instance. Check [workspace.crtcli.toml](#workspacecrtclitoml)
+- `crtcli app prod install-log --watch` — Watch for install log updates in real-time at prod (alias) Creatio instance. Check [.crtcli.toml](#crtclitoml)
 
 
 ### app pkg
@@ -273,7 +273,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg compile -r` — Compiles the UsrPackage (inferred from the current directory) in the Creatio instance defined by $CRTCLI_APP_URL and restarts the application.
 
-- `crtcli app prod pkg compile UsrCustomPkg UsrCustomPkg2 -r` | `crtcli app prod pkg compile UsrCustomPkg,UsrCustomPkg2 -r` — In current crtcli behavior, the following commands execute the full `crtcli app prod compile -r` on prod (alias) Creatio instance. Check [workspace.crtcli.toml](#workspacecrtclitoml)
+- `crtcli app prod pkg compile UsrCustomPkg UsrCustomPkg2 -r` | `crtcli app prod pkg compile UsrCustomPkg,UsrCustomPkg2 -r` — In current crtcli behavior, the following commands execute the full `crtcli app prod compile -r` on prod (alias) Creatio instance. Check [.crtcli.toml](#crtclitoml)
 
 
 ### app pkg download
@@ -506,7 +506,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 - `crtcli app pkg install UsrPackage.gz -Fr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, clears all localization data of 'UsrPackage' schemas, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' and restarts it after successful installation.
 
-- `crtcli app prod pkg install UsrPackage.gz repos/UsrPackage2.gz UsrPackageCollection.zip` — Combines packages in UsrPackageCollection.zip, UsrPackage.gz UsrPackage3.gz to single "Package.zip" package archive and installs it into prod (alias) Creatio instance at once. Check [workspace.crtcli.toml](#workspacecrtclitoml)
+- `crtcli app prod pkg install UsrPackage.gz repos/UsrPackage2.gz UsrPackageCollection.zip` — Combines packages in UsrPackageCollection.zip, UsrPackage.gz UsrPackage3.gz to single "Package.zip" package archive and installs it into prod (alias) Creatio instance at once. Check [.crtcli.toml](#crtclitoml)
 
 
 ### app pkg get-uid
@@ -646,7 +646,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg push -Fcr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' with executing sql scripts to mark package schemas as unchanged, schema localization cleanup, compiles package and restarts application after install. 
 
-- `crtcli app prod pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into prod (alias) Creatio instance at once. Check [workspace.crtcli.toml](#workspacecrtclitoml)
+- `crtcli app prod pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into prod (alias) Creatio instance at once. Check [.crtcli.toml](#crtclitoml)
 
 
 ### app pkg unlock
@@ -716,7 +716,7 @@ Important: If your Creatio instance is running on .NET Framework (IIS), you must
 
 - `crtcli app https://localhost:5000 -i --net-framework restart` — Restarts Creatio application at insecure 'https://localhost:5000' using Supervisor:Supervisor credentials and .NET Framework (IIS) compatibility.
 
-- `crtcli app dev restart` — Restarts Creatio application using the 'dev' alias from workspace.crtcli.toml.
+- `crtcli app dev restart` — Restarts Creatio application using the 'dev' alias from .crtcli.toml.
 
 - `crtcli app restart` — Restarts Creatio application specified by the $CRTCLI_APP_URL environment variable.
 
@@ -1256,11 +1256,11 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
     - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
 
 
-### workspace.crtcli.toml
+### .crtcli.toml
 
-The workspace.crtcli.toml file is an optional configuration file that allows you to configure crtcli's for use across multiple nested folders.
+The .crtcli.toml file is an optional configuration file that allows you to configure crtcli's for use across multiple nested folders.
 
-Location: workspace.crtcli.toml in the current directory or any parent directory.
+Location: .crtcli.toml in the current directory or any parent directory.
 
 Check [toml syntax here](https://toml.io/en/v1.0.0).
 
@@ -1282,7 +1282,7 @@ For OAuth 2.0 authentication (instead of username and password):
 
 1. For example, if the current folder is `/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage`, which represents a package folder in Creatio, you could have the following files with the specified content:
 
-   - _/Creatio_8.1.5.2176/Terrasoft.Configuration/workspace.crtcli.toml_:
+   - _/Creatio_8.1.5.2176/Terrasoft.Configuration/.crtcli.toml_:
 
         ```toml
         [apps.dev]
@@ -1293,7 +1293,7 @@ For OAuth 2.0 authentication (instead of username and password):
         net_framework = true
         ```
 
-   - _/Creatio_8.1.5.2176/workspace.crtcli.toml_:
+   - _/Creatio_8.1.5.2176/.crtcli.toml_:
 
         ```toml
         [apps.dev]
