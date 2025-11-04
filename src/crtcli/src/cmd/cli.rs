@@ -76,7 +76,7 @@ enum Commands {
         args: crate::cmd::app::AppCommandArgs,
 
         #[command(subcommand)]
-        command: crate::cmd::app::AppCommands,
+        command: Option<crate::cmd::app::AppCommands>,
     },
 
     /// Commands for working with Creatio package files (.zip, .gz) or package folders locally
@@ -105,9 +105,9 @@ impl CliCommand for Commands {
 #[tokio::main(flavor = "current_thread")]
 async fn run_app_command(
     args: crate::cmd::app::AppCommandArgs,
-    command: crate::cmd::app::AppCommands,
+    cmd: Option<crate::cmd::app::AppCommands>,
 ) -> CommandResult {
-    command.run(args).await
+    crate::cmd::app::AppCommands::run(args, cmd).await
 }
 
 fn print_completions(shell: clap_complete::Shell, cmd: &mut Command) {

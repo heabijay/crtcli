@@ -119,8 +119,6 @@ Please check [dotenv (.env) files](#dotenv-env-files) and [.crtcli.toml](#crtcli
 
   By default, crtcli primary uses .NET Core / .NET (Kestrel) API routes to operate with remote. However, some features like "app restart" works by different API routes in both platforms.
 
-- `--force-new-session` — Forcefully revoke the cached session and use a new one. Use if you need to log out and log in.
-
 For OAuth 2.0 authentication (instead of username and password):
 
 - `--oauth-url` (env: `CRTCLI_APP_OAUTH_URL`) — (OAuth 2.0) Creatio OAuth URL (Identity Server).
@@ -129,9 +127,13 @@ For OAuth 2.0 authentication (instead of username and password):
 
 - `--oauth-client-secret` (env: `CRTCLI_APP_OAUTH_CLIENT_SECRET`) — (OAuth 2.0) Creatio OAuth Client Secret.
 
+Other options:
+
+- `--clear-session-cache` — (Command) Revoke all cached sessions to use a new session in the future.
+
 **Examples:**
 
-- `crtcli app https://localhost:5000 Supervisor Supervisor1 -i <COMMAND>` — Executes the specified \<COMMAND\> on an insecure Creatio instance at `https://localhost:5000` using the `Supervisor` username and `Supervisor1` password.
+- `crtcli app https://localhost:5000 Supervisor Supervisor1 -i [COMMAND]` — Executes the specified [COMMAND] on an insecure Creatio instance at `https://localhost:5000` using the `Supervisor` username and `Supervisor1` password.
 
 -
   ```sh
@@ -140,13 +142,15 @@ For OAuth 2.0 authentication (instead of username and password):
     --oauth-client-id A3F4C1B0E2D5F8A7B6C9D0E1F2A3B4C5 \
     --oauth-client-secret 8F3C7E1B0D6A5F9E2C4B7D0A1E3F6C9B5A8D7E6F1C0B3A2D5E7F9C1B0D6A5F9E \
     --net-framework \
-    <COMMAND>
+    [COMMAND]
   ```
-  — Executes the specified \<COMMAND\> on the `https://production.creatio.com` Creatio instance, using .NET Framework (IIS) compatibility and OAuth 2.0 authentication via the `https://production-is.creatio.com` Identity Server, with Client ID `_A3F4C..._` and Client Secret `_8F3C7..._`.
+  — Executes the specified [COMMAND] on the `https://production.creatio.com` Creatio instance, using .NET Framework (IIS) compatibility and OAuth 2.0 authentication via the `https://production-is.creatio.com` Identity Server, with Client ID `_A3F4C..._` and Client Secret `_8F3C7..._`.
 
-- `crtcli app <COMMAND>` — Executes the specified \<COMMAND\> on the default Creatio instance (configured via environment variables or `default_app` in [.crtcli.toml](#crtclitoml)).
+- `crtcli app [COMMAND]` — Executes the specified [COMMAND] on the default Creatio instance (configured via environment variables or `default_app` in [.crtcli.toml](#crtclitoml)).
 
-- `crtcli app prod <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured with the `prod` alias in [.crtcli.toml](#crtclitoml).
+- `crtcli app prod [COMMAND]` — Executes the specified [COMMAND] on the Creatio instance configured with the `prod` alias in [.crtcli.toml](#crtclitoml).
+
+- `crtcli app --clear-session-cache` — Clears all cached sessions. New sessions will be created as needed.
 
 
 ### app compile

@@ -67,10 +67,13 @@ impl CrtSessionCacheStorage for MemoryCrtSessionCacheStorage {
 }
 
 pub trait CrtSessionCache: Send + Sync {
+    fn clear_all(&self);
+
     fn get_entry(&self, credentials: &CrtCredentials) -> Option<CrtSession>;
 
     fn set_entry(&self, credentials: &CrtCredentials, session: CrtSession);
 
+    #[allow(dead_code)]
     fn remove_entry(&self, credentials: &CrtCredentials);
 }
 
@@ -100,6 +103,10 @@ impl<S> CrtSessionCache for DefaultCrtSessionCache<S>
 where
     S: CrtSessionCacheStorage,
 {
+    fn clear_all(&self) {
+        self.storage.set(Default::default());
+    }
+
     fn get_entry(&self, credentials: &CrtCredentials) -> Option<CrtSession> {
         let hash = Self::hash_credentials(credentials);
 

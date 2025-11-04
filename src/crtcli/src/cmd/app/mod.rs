@@ -14,13 +14,14 @@ mod sql;
 mod tunnel;
 
 use crate::CommandHandledError;
+use crate::app::session_cache;
 use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
 use crate::cfg::DotConfig;
 use crate::cfg::dot::DotAppConfig;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
-use clap::{Args, Subcommand};
+use clap::{Args, CommandFactory, Subcommand};
 use std::sync::Arc;
 
 const DEFAULT_APP_USERNAME: &str = "Supervisor";
@@ -84,9 +85,9 @@ pub struct AppCommandArgs {
     )]
     net_framework: bool,
 
-    /// Forcefully revoke the cached session and use a new one
-    #[arg(long = "force-new-session")]
-    force_new_session: bool,
+    /// (Command) Revoke all cached sessions to use a new session in the future
+    #[arg(long)]
+    clear_session_cache: bool,
 }
 
 #[async_trait]
@@ -144,16 +145,18 @@ pub enum AppCommands {
 }
 
 impl AppCommands {
-    pub async fn run(&self, args: AppCommandArgs) -> CommandResult {
-        rustls::crypto::ring::default_provider()
-            .install_default()
-            .expect("failed to install rustls crypto provider");
+    pub async fn run(args: AppCommandArgs, cmd: Option<AppCommands>) -> CommandResult {
+        if args.clear_session_cache {
+            return Self::run_clear_session_cache(args);
+        }
 
-        let args = Self::load_and_apply_dot_config(args)?;
-        let credentials = args.get_credentials()?;
-        let client = Arc::new(Self::build_client(credentials, &args)?);
+        let Some(cmd) = cmd else {
+            return Self::print_app_help_and_exit();
+        };
 
-        match self {
+        let client = Arc::new(Self::setup_client_by_args(args)?);
+
+        match cmd {
             AppCommands::Compile(command) => command.run(client).await,
             AppCommands::FlushRedis(command) => command.run(client).await,
             AppCommands::Fs { command } => command.run(client).await,
@@ -167,11 +170,24 @@ impl AppCommands {
         }
     }
 
+    fn setup_client_by_args(args: AppCommandArgs) -> Result<CrtClient, CommandDynError> {
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .expect("failed to install rustls crypto provider");
+
+        let session_cache = session_cache::create_default_session_cache();
+        let args = Self::load_and_apply_dot_config(args)?;
+        let credentials = args.get_credentials()?;
+
+        Ok(Self::build_client(credentials, &args, session_cache)?)
+    }
+
     fn build_client(
         credentials: CrtCredentials,
         args: &AppCommandArgs,
+        session_cache: Box<dyn session_cache::CrtSessionCache>,
     ) -> Result<CrtClient, CrtClientError> {
-        let session = check_default_credentials_in_cache(&credentials, args);
+        let session = check_default_credentials_in_cache(&credentials, args, session_cache);
 
         return CrtClient::builder(credentials)
             .danger_accept_invalid_certs(args.insecure)
@@ -182,14 +198,9 @@ impl AppCommands {
         fn check_default_credentials_in_cache(
             credentials: &CrtCredentials,
             args: &AppCommandArgs,
+            session_cache: Box<dyn session_cache::CrtSessionCache>,
         ) -> Option<CrtSession> {
-            let cache = crate::app::session_cache::create_default_session_cache();
-
-            if args.force_new_session {
-                cache.remove_entry(credentials);
-            }
-
-            let session = cache.get_entry(credentials);
+            let session = session_cache.get_entry(credentials);
 
             if let Some(session) = session {
                 return Some(session);
@@ -301,6 +312,25 @@ impl AppCommands {
             eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
         }
     }
+
+    fn print_app_help_and_exit() -> CommandResult {
+        crate::cmd::Cli::command()
+            .find_subcommand_mut("app")
+            .unwrap()
+            .print_help()?;
+
+        Err(CommandHandledError(ExitCode::FAILURE).into())
+    }
+
+    fn run_clear_session_cache(_args: AppCommandArgs) -> CommandResult {
+        session_cache::create_default_session_cache().clear_all();
+
+        eprintln!(
+            "✓ Successfully cleared all cached sessions. New sessions will be created as needed."
+        );
+
+        Ok(())
+    }
 }
 
 impl AppCommandArgs {
@@ -378,7 +408,7 @@ impl AppCommandArgs {
 
                 eprintln!();
                 eprintln!(
-                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> <COMMAND>"
+                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> [COMMAND]"
                 );
                 eprintln!();
                 eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
@@ -429,7 +459,7 @@ impl AppCommandArgs {
 
             eprintln!();
             eprintln!(
-                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> [USERNAME] [PASSWORD] <COMMAND>"
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> [USERNAME] [PASSWORD] [COMMAND]"
             );
             eprintln!();
             eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
