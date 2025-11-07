@@ -97,9 +97,11 @@ Please check [dotenv (.env) files](#dotenv-env-files) and [.crtcli.toml](#crtcli
 
 **Arguments:**
 
-- `<URL/APP>` (required) (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [.crtcli.toml](#crtclitoml). 
+- `[URL/APP]` (env: `CRTCLI_APP_URL`) — The base URL of Creatio instance or an app alias defined in [.crtcli.toml](#crtclitoml). 
   - If the value starts with "http://" or "https://", it is treated as a direct URL
   - Otherwise, it is treated as an alias name
+
+  Defaults: None. Default app could be specified in [.env](#dotenv-env-files) or [.crtcli.toml](#crtclitoml) using `default_app` property.
 
 - `[USERNAME]` (env: `CRTCLI_APP_USERNAME`) — Creatio Username.
 
@@ -142,7 +144,7 @@ For OAuth 2.0 authentication (instead of username and password):
   ```
   — Executes the specified \<COMMAND\> on the `https://production.creatio.com` Creatio instance, using .NET Framework (IIS) compatibility and OAuth 2.0 authentication via the `https://production-is.creatio.com` Identity Server, with Client ID `_A3F4C..._` and Client Secret `_8F3C7..._`.
 
-- `crtcli app <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured via [environment variables / .env file](#dotenv-env-files).
+- `crtcli app <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured via [environment variables / .env file](#dotenv-env-files) or `default_app` in [.crtcli.toml](#crtclitoml).
 
 - `crtcli app prod <COMMAND>` — Executes the specified \<COMMAND\> on the Creatio instance configured with the `prod` alias in [.crtcli.toml](#crtclitoml).
 
@@ -161,7 +163,7 @@ Compiles the Creatio application (equivalent to the "Build" or "Rebuild" action 
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i compile` — Compiles the Creatio instance at insecure https://localhost:5000.
 
-- `crtcli app compile -fr` — Compiles the Creatio instance specified by the $CRTCLI_APP_URL environment variable, using a forced rebuild and restarting afterward.
+- `crtcli app compile -fr` — Compiles the Creatio instance specified by the $CRTCLI_APP_URL environment variable or the `default_app` in [.crtcli.toml](#crtclitoml), using a forced rebuild and restarting afterward.
 
 
 ### app flush-redis
@@ -172,7 +174,7 @@ Clears the Redis cache associated with the Creatio instance.
 
 - `crtcli app https://localhost:5000 -i flush-redis` — Flushes the Redis cache for the insecure Creatio instance at https://localhost:5000 using default Supervisor:Supervisor credentials.
 
-- `crtcli app flush-redis` — Flushes Redis cache in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app flush-redis` — Flushes Redis cache in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app fs
@@ -188,7 +190,7 @@ Print if File System Development mode is enabled for the Creatio instance.
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i fs check` — Check is File System Development mode status for the insecure Creatio 'https://localhost:5000'. (True/False)
 
-- `crtcli app fs check` — Check is File System Development mode enabled in Creatio instance specified by the $CRTCLI_APP_URL environment variable.
+- `crtcli app fs check` — Check is File System Development mode enabled in Creatio instance specified by the $CRTCLI_APP_URL or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app fs pull
@@ -205,9 +207,9 @@ Unload packages from Creatio database into filesystem.
 
 - `crtcli app https://localhost:5000 -i fs pull` — Pulls all packages from database into filesystem at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
-- `crtcli app fs pull UsrPackage` — Pulls single package 'UsrPackage' from database into filesystem in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app fs pull UsrPackage` — Pulls single package 'UsrPackage' from database into filesystem in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
-- `crtcli app fs pull UsrPackage UsrPackage2` | `crtcli app fs pull UsrPackage,UsrPackage2` — Pulls packages 'UsrPackage' and 'UsrPackage2' from database into filesystem in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app fs pull UsrPackage UsrPackage2` | `crtcli app fs pull UsrPackage,UsrPackage2` — Pulls packages 'UsrPackage' and 'UsrPackage2' from database into filesystem in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app fs push
@@ -224,9 +226,9 @@ Load packages from filesystem into Creatio database.
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i fs push` — Pushes all packages from filesystem into database at insecure Creatio 'https://localhost:5000'.
 
-- `crtcli app fs push UsrPackage` — Pushes single package 'UsrPackage' from filesystem into database in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app fs push UsrPackage` — Pushes single package 'UsrPackage' from filesystem into database in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
-- `crtcli app fs push UsrPackage UsrPackage2` | `crtcli app fs push UsrPackage,UsrPackage2` — Pushes packages 'UsrPackage' and 'UsrPackage2' from filesystem into database in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app fs push UsrPackage UsrPackage2` | `crtcli app fs push UsrPackage,UsrPackage2` — Pushes packages 'UsrPackage' and 'UsrPackage2' from filesystem into database in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app install-log
@@ -241,7 +243,7 @@ Print last package installation log.
 
 - `crtcli app https://localhost:5000 -i install-log` — Gets last package installation log at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
-- `crtcli app install-log` — Gets last package installation log in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app install-log` — Gets last package installation log in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 - `crtcli app prod install-log --watch` — Watch for install log updates in real-time at prod (alias) Creatio instance. Check [.crtcli.toml](#crtclitoml)
 
@@ -279,7 +281,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg compile UsrCustomPkg -f` — Rebuilds package 'UsrCustomPkg' at insecure Creatio 'https://localhost:5000'.
 
-- `crtcli app pkg compile -r` — Compiles the UsrPackage (inferred from the current directory) in the Creatio instance defined by $CRTCLI_APP_URL and restarts the application.
+- `crtcli app pkg compile -r` — Compiles the UsrPackage (inferred from the current directory) in the Creatio instance defined by $CRTCLI_APP_URL or the `default_app` in [.crtcli.toml](#crtclitoml) and restarts the application.
 
 - `crtcli app prod pkg compile UsrCustomPkg UsrCustomPkg2 -r` | `crtcli app prod pkg compile UsrCustomPkg,UsrCustomPkg2 -r` — In current crtcli behavior, the following commands execute the full `crtcli app prod compile -r` on prod (alias) Creatio instance. Check [.crtcli.toml](#crtclitoml)
 
@@ -316,9 +318,9 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 -i pkg download UsrCustomPkg` — Downloads package 'UsrCustomPkg', from insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials, to current directory.
 
-- `crtcli app pkg download -o /backups/MyPackage.zip` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' to '/backups' folder with filename 'MyPackage.zip'.
+- `crtcli app pkg download -o /backups/MyPackage.zip` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) to '/backups' folder with filename 'MyPackage.zip'.
 
-- `crtcli app pkg download UsrPkg1 UsrPkg2` | `crtcli app pkg download UsrPkg1,UsrPkg2` — Downloads packages 'UsrPkg1' & 'UsrPkg2' from Creatio '$CRTCLI_APP_URL' to current folder with filename 'Packages_2024-12-01_21-00-00.zip'.
+- `crtcli app pkg download UsrPkg1 UsrPkg2` | `crtcli app pkg download UsrPkg1,UsrPkg2` — Downloads packages 'UsrPkg1' & 'UsrPkg2' from Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) to current folder with filename 'Packages_2024-12-01_21-00-00.zip'.
 
 
 ### app pkg fs
@@ -361,9 +363,9 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg fs pull` — Pulls package 'UsrPackage' to filesystem from Creatio (using FSD) at insecure 'https://localhost:5000' and tries to apply configured transforms to it (for example from package.crtcli.toml file if exists).
 
-- `crtcli app pkg fs pull -S true` — Pulls package 'UsrPackage' from Creatio (using FSD) on '$CRTCLI_APP_URL' and applies sorting transform.
+- `crtcli app pkg fs pull -S true` — Pulls package 'UsrPackage' from Creatio (using FSD) on '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and applies sorting transform.
 
-- `crtcli app pkg fs pull --package-folder ../UsrPackage --package-folder ../UsrPackage2 -cr` — Pulls package 'UsrPackage' and 'UsrPackage2' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL' and applies sorting transform.
+- `crtcli app pkg fs pull --package-folder ../UsrPackage --package-folder ../UsrPackage2 -cr` — Pulls package 'UsrPackage' and 'UsrPackage2' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and applies sorting transform.
 
 
 ### app pkg fs push
@@ -395,9 +397,9 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 -i pkg fs push` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) at insecure 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
-- `crtcli app pkg fs push -cr` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL', compiles it after successfully push, and restarts Creatio application if compilation was successful.
+- `crtcli app pkg fs push -cr` — Pushes package 'UsrPackage' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml), compiles it after successfully push, and restarts Creatio application if compilation was successful.
 
-- `crtcli app pkg fs push --package-folder ../UsrPackage --package-folder ../UsrPackage2 -cr` — Pushes package 'UsrPackage' and 'UsrPackage2' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL', compiles application it after successfully push, and restarts Creatio application if compilation was successful.
+- `crtcli app pkg fs push --package-folder ../UsrPackage --package-folder ../UsrPackage2 -cr` — Pushes package 'UsrPackage' and 'UsrPackage2' from filesystem to Creatio (using FSD) on '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml), compiles application it after successfully push, and restarts Creatio application if compilation was successful.
 
 
 ### app pkg install
@@ -510,9 +512,9 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i --net-framework pkg install /repo/UsrPackage-latest.zip` — Installs package archive '/repo/UsrPackage-latest.zip' at insecure Creatio 'https://localhost:5000' using .NET Framework (IIS) compatibility.
 
-- `crtcli app pkg install UsrPackage.gz -fcr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL', compiles package and restarts Creatio after successful installation.
+- `crtcli app pkg install UsrPackage.gz -fcr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml), compiles package and restarts Creatio after successful installation.
 
-- `crtcli app pkg install UsrPackage.gz -Fr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, clears all localization data of 'UsrPackage' schemas, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' and restarts it after successful installation.
+- `crtcli app pkg install UsrPackage.gz -Fr` — Executes SQL to mark all 'UsrPackage' schemas as not changed, clears all localization data of 'UsrPackage' schemas, installs package 'UsrPackage.gz' in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and restarts it after successful installation.
 
 - `crtcli app prod pkg install UsrPackage.gz repos/UsrPackage2.gz UsrPackageCollection.zip` — Combines packages in UsrPackageCollection.zip, UsrPackage.gz UsrPackage3.gz to single "Package.zip" package archive and installs it into prod (alias) Creatio instance at once. Check [.crtcli.toml](#crtclitoml)
 
@@ -543,7 +545,7 @@ Print installed package information by Package UId.
   | Type: 0
   ```
 
-- `crtcli app pkg get-uid ae8519c2-2aac-4a00-aa61-b0ffaac99ea3 --json` — Prints information about package 'ae8519c2-2aac-4a00-aa61-b0ffaac99ea3' in Creatio '$CRTCLI_APP_URL' in JSON format.
+- `crtcli app pkg get-uid ae8519c2-2aac-4a00-aa61-b0ffaac99ea3 --json` — Prints information about package 'ae8519c2-2aac-4a00-aa61-b0ffaac99ea3' in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) in JSON format.
 
   stdout:
   ```json
@@ -575,7 +577,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg lock UsrCustomPackage UsrCustomPackage2` | `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg lock UsrCustomPackage,UsrCustomPackage2` — Locks package 'UsrCustomPackage' and 'UsrCustomPackage2' at insecure Creatio 'https://localhost:5000'.
 
-- `crtcli app pkg lock` — Locks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app pkg lock` — Locks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app pkg pull
@@ -613,13 +615,13 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 -i pkg pull UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage', from insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials, and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
 
-- `crtcli app pkg pull` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
+- `crtcli app pkg pull` — Downloads package 'UsrPackage' (cause current folder is this package) from Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and unpacks it into current folder using merge with default applied transforms.
 
-- `crtcli app pkg pull UsrPackage2` — Downloads package 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks it into current folder using merge with default applied transforms.
+- `crtcli app pkg pull UsrPackage2` — Downloads package 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and unpacks it into current folder using merge with default applied transforms.
 
-- `crtcli app pkg pull UsrPackage3:/repos/Pkg3 UsrPackage2:/repos/Pkg2` — Downloads packages 'UsrPackage3' and 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' and '/repos/Pkg2' folders using merge with default applied transforms.
+- `crtcli app pkg pull UsrPackage3:/repos/Pkg3 UsrPackage2:/repos/Pkg2` — Downloads packages 'UsrPackage3' and 'UsrPackage2' from Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and unpacks them into '/repos/Pkg3' and '/repos/Pkg2' folders using merge with default applied transforms.
 
-- `crtcli app pkg pull :/repos/Pkg3` — Downloads package 'UsrPackage3' (cause destination folder is this package) from Creatio '$CRTCLI_APP_URL' and unpacks them into '/repos/Pkg3' folder using merge with default applied transforms.
+- `crtcli app pkg pull :/repos/Pkg3` — Downloads package 'UsrPackage3' (cause destination folder is this package) from Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) and unpacks them into '/repos/Pkg3' folder using merge with default applied transforms.
 
 
 ### app pkg push
@@ -652,7 +654,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i pkg push /repos/UsrCustomPackage` — Packs and installs package 'UsrCustomPackage' into insecure Creatio 'https://localhost:5000'.
 
-- `crtcli app pkg push -Fcr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' with executing sql scripts to mark package schemas as unchanged, schema localization cleanup, compiles package and restarts application after install. 
+- `crtcli app pkg push -Fcr` — Packs and installs package 'UsrPackage' (cause current folder is this package) into Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) with executing sql scripts to mark package schemas as unchanged, schema localization cleanup, compiles package and restarts application after install. 
 
 - `crtcli app prod pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into prod (alias) Creatio instance at once. Check [.crtcli.toml](#crtclitoml)
 
@@ -683,7 +685,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app https://localhost:5000 -i pkg unlock UsrCustomPackage UsrCustomPackage2` | `crtcli app https://localhost:5000 -i pkg unlock UsrCustomPackage,UsrCustomPackage2` — Unlocks package 'UsrCustomPackage' and 'UsrCustomPackage2' at insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials.
 
-- `crtcli app pkg unlock` — Unlocks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL'.
+- `crtcli app pkg unlock` — Unlocks package 'UsrPackage' (cause current folder is this package) in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app pkgs
@@ -706,7 +708,7 @@ Lists the installed packages in the Creatio instance.
   ...
   ```
 
-- `crtcli app pkgs --json` — Prints list of installed packages in Creatio '$CRTCLI_APP_URL' in JSON format.
+- `crtcli app pkgs --json` — Prints list of installed packages in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) in JSON format.
 
   stdout:
   ```json
@@ -726,7 +728,7 @@ Important: If your Creatio instance is running on .NET Framework (IIS), you must
 
 - `crtcli app dev restart` — Restarts Creatio application using the 'dev' alias from .crtcli.toml.
 
-- `crtcli app restart` — Restarts Creatio application specified by the $CRTCLI_APP_URL environment variable.
+- `crtcli app restart` — Restarts Creatio application specified by the $CRTCLI_APP_URL environment variable or the `default_app` in [.crtcli.toml](#crtclitoml).
 
 
 ### app request
@@ -755,9 +757,9 @@ Sends authenticated HTTP requests to the Creatio instance, similar to curl.
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i request GET 0/rest/UsrService/UsrMethod` — Sends an authenticated GET request to 'https://localhost:5000/0/rest/UsrService/UsrMethod' at insecure Creatio.
 
-- `crtcli app request POST 0/rest/UsrService/UsrPostMethod -d '{"request": "test"}'` — Sends an authenticated POST request to '0/rest/UsrService/UsrPostMethod' to Creatio '$CRTCLI_APP_URL' with body '{"request": "test"}'.
+- `crtcli app request POST 0/rest/UsrService/UsrPostMethod -d '{"request": "test"}'` — Sends an authenticated POST request to '0/rest/UsrService/UsrPostMethod' to Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) with body '{"request": "test"}'.
 
-- `crtcli app request POST 0/rest/UsrService/UsrPostMethod -d -` — Sends an authenticated POST request to '0/rest/UsrService/UsrPostMethod' to Creatio '$CRTCLI_APP_URL' with body read from stdin.
+- `crtcli app request POST 0/rest/UsrService/UsrPostMethod -d -` — Sends an authenticated POST request to '0/rest/UsrService/UsrPostMethod' to Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) with body read from stdin.
 
   stdin & stdout:
   ```shell
@@ -777,7 +779,7 @@ Sends authenticated HTTP requests to the Creatio instance, similar to curl.
   }
   ```
 
-- `crtcli app request GET 0/ServiceModel/PublicService.svc/UsrPubMethod -a -H "X-Access-Token: 123"` — Sends an anonymous GET request to '0/ServiceModel/PublicService.svc/UsrPubMethod' to Creatio '$CRTCLI_APP_URL' with custom header 'X-Access-Token: 123'.
+- `crtcli app request GET 0/ServiceModel/PublicService.svc/UsrPubMethod -a -H "X-Access-Token: 123"` — Sends an anonymous GET request to '0/ServiceModel/PublicService.svc/UsrPubMethod' to Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) with custom header 'X-Access-Token: 123'.
 
 
 ### app sql
@@ -841,7 +843,7 @@ _Beta: this command is still under development._
   ]
   ```
   
-- `crtcli app sql` — Executes SQL query from stdin in Creatio '$CRTCLI_APP_URL' with automatically detected sql runner.
+- `crtcli app sql` — Executes SQL query from stdin in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) with automatically detected sql runner.
 
   stdin & stdout:
   ```shell
@@ -859,7 +861,7 @@ _Beta: this command is still under development._
   ]
   ```
   
-- `crtcli app sql -r sql-console -f query.sql` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' with sql-console runner.
+- `crtcli app sql -r sql-console -f query.sql` — Executes SQL query from file 'query.sql' in Creatio '$CRTCLI_APP_URL' or the `default_app` in [.crtcli.toml](#crtclitoml) with sql-console runner.
 
 
 ### app tunnel
@@ -1229,6 +1231,9 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 **Parameters:**
 
 - `root` — (Optional) If set to `true` in any .crtcli.toml file, then crtcli will not use any parent directory .crtcli.toml configurations after it.
+- `default_app` — (Optional) The default app alias to use when no explicit app alias is provided by .env or command line arguments.
+  
+- `apps` — (Optional) Collection of app aliases and their configurations.
 
 - `apps.<alias>.url` — The base URL of the Creatio instance.
 - `apps.<alias>.username` — (Optional) The username for authentication.
@@ -1249,6 +1254,12 @@ For OAuth 2.0 authentication (instead of username and password):
    - _/Creatio_8.1.5.2176/Terrasoft.Configuration/.crtcli.toml_:
 
         ```toml
+        [apps.local]
+        url = "https://local-in.creatio.com"
+        username = "Supervisor"
+        password = "54321"
+        insecure = true
+
         [apps.dev]
         url = "https://development.creatio.com"
         username = "Supervisor"
@@ -1260,6 +1271,14 @@ For OAuth 2.0 authentication (instead of username and password):
    - _/Creatio_8.1.5.2176/.crtcli.toml_:
 
         ```toml
+        default_app = "local"
+
+        [apps.local]
+        url = "https://local.creatio.com"
+        username = "Supervisor"
+        password = "12345"
+        insecure = true
+
         [apps.dev]
         url = "https://development-old.creatio.com"
         username = "Supervisor"
@@ -1272,18 +1291,10 @@ For OAuth 2.0 authentication (instead of username and password):
         oauth_client_id = "my-client-id"
         oauth_client_secret = "my-client-secret"
         ```
-   - _/Creatio_8.1.5.2176/.env_:
-
-        ```shell
-        CRTCLI_APP_URL=https://local.creatio.com
-        CRTCLI_APP_USERNAME=Supervisor
-        CRTCLI_APP_PASSWORD=12345
-        CRTCLI_APP_INSECURE=true
-        ```
 
    With this configuration, you can use the defined aliases directly as the URL parameter:
     
-   - `crtcli app pkgs` - Lists packages from the insecure `https://local.creatio.com` Creatio instance using the `Supervisor:12345` credentials (defined in the `.env` file).
+   - `crtcli app pkgs` - Lists packages from the insecure `https://local-in.creatio.com` Creatio instance using the `Supervisor:54321` credentials (app is not provided in .env or command line arguments, so using the `default_app` defined in .crtcli.toml, which is `local` in this case).
 
    - `crtcli app http://localhost:81 compile` — Compiles the `http://localhost:81` Creatio instance using the default `Supervisor:Supervisor` credentials.
 

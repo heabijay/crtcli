@@ -65,7 +65,8 @@ enum Commands {
     /// the alias name as the URL parameter. For example: `crtcli app dev restart`
     ///
     /// Example use cases:
-    /// `crtcli app https://localhost:5000 restart` -- Restarts Creatio instance.
+    /// `crtcli app https://localhost:5000 restart` -- Restarts Creatio instance at https://localhost:5000.
+    /// `crtcli app pkgs` -- List packages at Creatio instance that is specified by .env or `default_app` prop in `.crtcli.toml`.
     /// `crtcli app dev restart` -- Restarts Creatio instance using the 'dev' app alias from `.crtcli.toml`.
     /// `crtcli app pkg download CrtBase,CrtCore` -- Downloads CrtBase and CrtCore packages from Creatio to single zip file.
     /// `crtcli app pkg push` -- Immediate packs current folder as package and installs it to Creatio instance.
