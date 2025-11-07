@@ -248,12 +248,7 @@ impl AppCommands {
         fn print_app_aliases_not_found(dot_config: DotConfig, alias: &str) {
             let bold = Style::new().bold();
             let bold_underline = Style::new().bold().underline();
-            let max_key_len = dot_config
-                .apps()
-                .keys()
-                .map(|k| k.len())
-                .max()
-                .unwrap_or(0);
+            let max_key_len = dot_config.apps().keys().map(|k| k.len()).max().unwrap_or(0);
 
             eprintln!(
                 "{red_bold}error:{red_bold:#} unrecognized app alias '{orange}{alias}{orange:#}' or it is not valid http(s) Creatio Base URL",

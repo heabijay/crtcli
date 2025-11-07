@@ -30,38 +30,46 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
 ```
 
 
-## Commands / Features
+## Table of Contents
 
-- [x] [app](#app)
-    - [x] [compile](#app-compile)
-    - [x] [flush-redis](#app-flush-redis)
-    - [x] [fs](#app-fs)
-      - [x] [check](#app-fs-check)
-      - [x] [pull](#app-fs-pull)
-      - [x] [push](#app-fs-push)
-    - [x] [install-log](#app-install-log)
-    - [x] [pkg](#app-pkg)
-      - [x] [compile](#app-pkg-compile)
-      - [x] [download](#app-pkg-download)
-      - [x] [fs](#app-pkg-fs)
-        - [x] [pull](#app-pkg-fs-pull)
-        - [x] [push](#app-pkg-fs-push)
-      - [x] [install](#app-pkg-install)
-      - [x] [get-uid](#app-pkg-get-uid)
-      - [x] [lock](#app-pkg-lock)
-      - [x] [pull](#app-pkg-pull)
-      - [x] [push](#app-pkg-push)
-      - [x] [unlock](#app-pkg-unlock)
-    - [x] [pkgs](#app-pkgs)
-    - [x] [restart](#app-restart)
-    - [x] [request](#app-request)
-    - [x] [sql](#app-sql)
-    - [x] [tunnel](#app-tunnel)
-- [x] [pkg](#pkg)
-    - [x] [apply](#pkg-apply)
-    - [x] [pack](#pkg-pack)
-    - [x] [unpack](#pkg-unpack)
-    - [x] [unpack-all](#pkg-unpack-all)
+- **[Commands / Features](#commands--features)**
+  - [x] [app](#app)
+      - [x] [compile](#app-compile)
+      - [x] [flush-redis](#app-flush-redis)
+      - [x] [fs](#app-fs)
+        - [x] [check](#app-fs-check)
+        - [x] [pull](#app-fs-pull)
+        - [x] [push](#app-fs-push)
+      - [x] [install-log](#app-install-log)
+      - [x] [pkg](#app-pkg)
+        - [x] [compile](#app-pkg-compile)
+        - [x] [download](#app-pkg-download)
+        - [x] [fs](#app-pkg-fs)
+          - [x] [pull](#app-pkg-fs-pull)
+          - [x] [push](#app-pkg-fs-push)
+        - [x] [install](#app-pkg-install)
+        - [x] [get-uid](#app-pkg-get-uid)
+        - [x] [lock](#app-pkg-lock)
+        - [x] [pull](#app-pkg-pull)
+        - [x] [push](#app-pkg-push)
+        - [x] [unlock](#app-pkg-unlock)
+      - [x] [pkgs](#app-pkgs)
+      - [x] [restart](#app-restart)
+      - [x] [request](#app-request)
+      - [x] [sql](#app-sql)
+      - [x] [tunnel](#app-tunnel)
+  - [x] [pkg](#pkg)
+      - [x] [apply](#pkg-apply)
+      - [x] [pack](#pkg-pack)
+      - [x] [unpack](#pkg-unpack)
+      - [x] [unpack-all](#pkg-unpack-all)
+- **[Config files](#config-files)**
+  - [dotenv (.env) files](#dotenv-env-files)
+  - [.crtcli.toml](#crtclitoml)
+  - [package.crtcli.toml](#packagecrtclitoml)
+
+
+## Commands / Features
 
 
 ### [Root Command]
@@ -1168,7 +1176,7 @@ For example, file 'MyPackage.zip' contains one 'UsrPackage' package, and file 'M
 
 crtcli supports .env files for storing environment variables, simplifying command usage by avoiding repetitive argument entry.
 
-Locations: '.env', '.crtcli.env' in current directory or any parent folders.
+Locations: '.env' in current directory or any parent folders.
 
 **Variables:**
 
@@ -1208,59 +1216,13 @@ Now, from within /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage or a
 - `crtcli app ...` —  Any other app command will similarly use the environment variables from the .env file.
 
 
-### package.crtcli.toml
-
-The package.crtcli.toml file is an optional configuration file that allows you to customize crtcli's behavior for a specific package.
-
-Location: ./package.crtcli.toml within the package folder.
-
-Check [toml syntax here](https://toml.io/en/v1.0.0).
-
-**Parameters:**
-
-- `apply.sorting = <true/false>` — Enable/disable sorting transform by default in [pkg apply](#pkg-apply) command.
-
-- `apply.sorting_comparer = <comparer>` — Configures sorting transform comparer by default in [pkg apply](#pkg-apply) command.
-
-- `apply.localization_cleanup = <except-localizations>` — Enable/disable localization cleanup transform by default in [pkg apply](#pkg-apply) command.
-
-- `apply.bom_normalization = <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files by default in [pkg apply](#pkg-apply) command.
-
-**Examples:**
-
-1. For example, current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder inside in Creatio.
-
-    You could have a package.crtcli.toml file in this directory with the following content:
-  
-    ```toml
-    [apply]
-    sorting = true
-    localization_cleanup = ["en-US", "uk-UA"]
-    ```
-
-   The package folder structure would look like:
-    - /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage
-      - Data/*
-      - Resources/*
-      - Schemas/*
-      - ...
-      - descriptor.json
-      - package.crtcli.toml
-
-    With this configuration:
-
-    - `crtcli pkg apply .` — Will apply both sorting and localization cleanup (keeping only en-US and uk-UA cultures) because they are enabled in package.crtcli.toml.
-
-    - `crtcli app pkg pull` —  Will download UsrPackage, unpack it, and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
-
-    - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
-
-
 ### .crtcli.toml
 
 The .crtcli.toml file is an optional configuration file that allows you to configure crtcli's for use across multiple nested folders.
 
-Location: .crtcli.toml in the current directory or any parent directory.
+Location: .crtcli.toml in the current directory and any parent directory.
+
+Priority: *../.crtcli.toml < ./.crtcli.toml < *../.env < ./.env < "Environment variables" < "Command line arguments"
 
 Check [toml syntax here](https://toml.io/en/v1.0.0).
 
@@ -1326,6 +1288,55 @@ For OAuth 2.0 authentication (instead of username and password):
    - `crtcli app dev restart` — Restarts the development Creatio instance (insecure .NET Framework based `https://development.creatio.com` with `Supervisor:Supervisor@1` credentials).
    
    - `crtcli app prod pkg download CrtBase` — Downloads the `CrtBase` package from the production Creatio instance using OAuth 2.0 authentication (with the `https://production-is.creatio.com` Identity Server, Client ID `my-client-id`, and Client Secret `my-client-secret`).
+
+
+### package.crtcli.toml
+
+The package.crtcli.toml file is an optional configuration file that allows you to customize crtcli's behavior for a specific package.
+
+Location: ./package.crtcli.toml within the package folder.
+
+Check [toml syntax here](https://toml.io/en/v1.0.0).
+
+**Parameters:**
+
+- `apply.sorting = <true/false>` — Enable/disable sorting transform by default in [pkg apply](#pkg-apply) command.
+
+- `apply.sorting_comparer = <comparer>` — Configures sorting transform comparer by default in [pkg apply](#pkg-apply) command.
+
+- `apply.localization_cleanup = <except-localizations>` — Enable/disable localization cleanup transform by default in [pkg apply](#pkg-apply) command.
+
+- `apply.bom_normalization = <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files by default in [pkg apply](#pkg-apply) command.
+
+**Examples:**
+
+1. For example, current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder inside in Creatio.
+
+    You could have a package.crtcli.toml file in this directory with the following content:
+  
+    ```toml
+    [apply]
+    sorting = true
+    localization_cleanup = ["en-US", "uk-UA"]
+    ```
+
+   The package folder structure would look like:
+    - /Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage
+      - Data/*
+      - Resources/*
+      - Schemas/*
+      - ...
+      - descriptor.json
+      - package.crtcli.toml
+
+    With this configuration:
+
+    - `crtcli pkg apply .` — Will apply both sorting and localization cleanup (keeping only en-US and uk-UA cultures) because they are enabled in package.crtcli.toml.
+
+    - `crtcli app pkg pull` —  Will download UsrPackage, unpack it, and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
+
+    - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
+
 
 ---
 
