@@ -15,7 +15,8 @@ mod tunnel;
 
 use crate::CommandHandledError;
 use crate::app::{CrtClient, CrtClientError, CrtCredentials, CrtSession};
-use crate::cfg::workspace::{WorkspaceAppConfig, WorkspaceConfig};
+use crate::cfg::DotConfig;
+use crate::cfg::dot::DotAppConfig;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
@@ -29,7 +30,7 @@ const DEFAULT_APP_PASSWORD: &str = "Supervisor";
 pub struct AppCommandArgs {
     /// Creatio Base URL or App Alias
     ///
-    /// Check workspace.crtcli.toml in docs for more information about app aliases
+    /// Check `.crtcli.toml` in docs for more information about app aliases
     #[arg(value_name = "URL/APP", value_hint = clap::ValueHint::Url, env = "CRTCLI_APP_URL")]
     url: String,
 
@@ -142,7 +143,7 @@ impl AppCommands {
             .install_default()
             .expect("failed to install rustls crypto provider");
 
-        let args = Self::load_and_apply_workspace_config(args)?;
+        let args = Self::load_and_apply_dot_config(args)?;
         let credentials = args.get_credentials()?;
         let client = Arc::new(Self::build_client(credentials, &args)?);
 
@@ -224,35 +225,30 @@ impl AppCommands {
         url_lowercase.starts_with("http://") || url_lowercase.starts_with("https://")
     }
 
-    fn load_and_apply_workspace_config(
+    fn load_and_apply_dot_config(
         mut args: AppCommandArgs,
     ) -> Result<AppCommandArgs, CommandDynError> {
         if Self::is_http_url_address(&args.url) {
             return Ok(args);
         }
 
-        let workspace_config = WorkspaceConfig::load_from_current_dir()?;
-        let workspace_app_config = workspace_config.apps().get(&args.url);
+        let dot_config = DotConfig::load_from_current_dir()?;
+        let dot_app_config = dot_config.apps().get(&args.url);
 
-        return if let Some(app_config) = workspace_app_config {
-            args.merge_from_workspace_app_config(app_config.to_owned());
+        return if let Some(app_config) = dot_app_config {
+            args.merge_from_dot_app_config(app_config.to_owned());
 
             Ok(args)
         } else {
-            print_app_aliases_not_found(workspace_config, &args.url);
+            print_app_aliases_not_found(dot_config, &args.url);
 
             Err(CommandHandledError(ExitCode::FAILURE).into())
         };
 
-        fn print_app_aliases_not_found(workspace_config: WorkspaceConfig, alias: &str) {
+        fn print_app_aliases_not_found(dot_config: DotConfig, alias: &str) {
             let bold = Style::new().bold();
             let bold_underline = Style::new().bold().underline();
-            let max_key_len = workspace_config
-                .apps()
-                .keys()
-                .map(|k| k.len())
-                .max()
-                .unwrap_or(0);
+            let max_key_len = dot_config.apps().keys().map(|k| k.len()).max().unwrap_or(0);
 
             eprintln!(
                 "{red_bold}error:{red_bold:#} unrecognized app alias '{orange}{alias}{orange:#}' or it is not valid http(s) Creatio Base URL",
@@ -265,7 +261,7 @@ impl AppCommands {
             eprintln!();
 
             let sorted_apps = {
-                let mut apps: Vec<_> = workspace_config.apps().iter().collect();
+                let mut apps: Vec<_> = dot_config.apps().iter().collect();
                 apps.sort_by(|k1, k2| k1.0.cmp(k2.0));
                 apps
             };
@@ -282,7 +278,7 @@ impl AppCommands {
 
             if sorted_apps.is_empty() {
                 eprintln!(
-                    "  {italic}[No apps defined along workspace.crtcli.toml files]{italic:#}",
+                    "  {italic}[No apps defined across .crtcli.toml files]{italic:#}",
                     italic = Style::new().italic(),
                 );
             }
@@ -298,7 +294,7 @@ impl AppCommands {
 }
 
 impl AppCommandArgs {
-    pub fn merge_from_workspace_app_config(&mut self, app_config: WorkspaceAppConfig) {
+    pub fn merge_from_dot_app_config(&mut self, app_config: DotAppConfig) {
         self.url = app_config.url;
         self.username = app_config.username;
         self.password = app_config.password;
