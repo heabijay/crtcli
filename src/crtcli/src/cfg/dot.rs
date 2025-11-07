@@ -10,6 +10,8 @@ pub const DOT_CONFIG_FILENAME: &str = ".crtcli.toml";
 pub struct DotConfig {
     root: Option<bool>,
 
+    default_app: Option<String>,
+
     #[serde(default)]
     apps: HashMap<String, DotAppConfig>,
 }
@@ -121,11 +123,11 @@ impl DotConfig {
         }
     }
 
-    pub fn apps(&self) -> &HashMap<String, DotAppConfig> {
-        &self.apps
-    }
-
     fn merge_other_with_less_priority(&mut self, other: Self) {
+        if self.default_app.is_none() {
+            self.default_app = other.default_app;
+        }
+
         for (app_name, app_config) in other.apps {
             if self.apps.contains_key(&app_name) {
                 continue;
@@ -137,5 +139,13 @@ impl DotConfig {
 
     fn validate(&self) -> Result<(), DotConfigValidationError> {
         Ok(())
+    }
+
+    pub fn apps(&self) -> &HashMap<String, DotAppConfig> {
+        &self.apps
+    }
+
+    pub fn default_app_name(&self) -> Option<&String> {
+        self.default_app.as_ref()
     }
 }

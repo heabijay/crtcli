@@ -30,9 +30,15 @@ const DEFAULT_APP_PASSWORD: &str = "Supervisor";
 pub struct AppCommandArgs {
     /// Creatio Base URL or App Alias
     ///
-    /// Check `.crtcli.toml` in docs for more information about app aliases
+    /// You can specify the app using one of the following methods:
+    /// - Pass the `URL/APP` as an argument to the `crtcli app` command
+    /// - Set the `CRTCLI_APP_URL` environment variable or add it to a `.env` file
+    /// - Configure the `default_app` parameter in your `.crtcli.toml` file
+    ///
+    /// Please check `.crtcli.toml` in docs for more information
     #[arg(value_name = "URL/APP", value_hint = clap::ValueHint::Url, env = "CRTCLI_APP_URL")]
-    url: String,
+    #[clap(verbatim_doc_comment)]
+    url: Option<String>,
 
     /// Creatio Username [default: Supervisor]
     #[arg(value_hint = clap::ValueHint::Other, env = "CRTCLI_APP_USERNAME")]
@@ -219,8 +225,8 @@ impl AppCommands {
         }
     }
 
-    fn is_http_url_address(url: &str) -> bool {
-        let url_lowercase = url.to_lowercase();
+    fn is_http_url_address(url: impl AsRef<str>) -> bool {
+        let url_lowercase = url.as_ref().to_lowercase();
 
         url_lowercase.starts_with("http://") || url_lowercase.starts_with("https://")
     }
@@ -228,24 +234,28 @@ impl AppCommands {
     fn load_and_apply_dot_config(
         mut args: AppCommandArgs,
     ) -> Result<AppCommandArgs, CommandDynError> {
-        if Self::is_http_url_address(&args.url) {
+        if args.url.as_ref().is_some_and(Self::is_http_url_address) {
             return Ok(args);
         }
 
         let dot_config = DotConfig::load_from_current_dir()?;
-        let dot_app_config = dot_config.apps().get(&args.url);
+        let target_app_name = args.url.as_ref().or(dot_config.default_app_name());
 
-        return if let Some(app_config) = dot_app_config {
-            args.merge_from_dot_app_config(app_config.to_owned());
+        if let Some(url) = target_app_name {
+            let app = dot_config.apps().get(url);
 
-            Ok(args)
-        } else {
-            print_app_aliases_not_found(dot_config, &args.url);
+            if let Some(app_config) = app {
+                args.merge_from_dot_app_config(app_config.to_owned());
+            } else {
+                print_app_aliases_not_found(&dot_config, url);
 
-            Err(CommandHandledError(ExitCode::FAILURE).into())
-        };
+                return Err(CommandHandledError(ExitCode::FAILURE).into());
+            }
+        }
 
-        fn print_app_aliases_not_found(dot_config: DotConfig, alias: &str) {
+        return Ok(args);
+
+        fn print_app_aliases_not_found(dot_config: &DotConfig, alias: &str) {
             let bold = Style::new().bold();
             let bold_underline = Style::new().bold().underline();
             let max_key_len = dot_config.apps().keys().map(|k| k.len()).max().unwrap_or(0);
@@ -278,7 +288,7 @@ impl AppCommands {
 
             if sorted_apps.is_empty() {
                 eprintln!(
-                    "  {italic}[No apps defined across .crtcli.toml files]{italic:#}",
+                    "  {italic}— No apps defined across .crtcli.toml files —{italic:#}",
                     italic = Style::new().italic(),
                 );
             }
@@ -295,7 +305,7 @@ impl AppCommands {
 
 impl AppCommandArgs {
     pub fn merge_from_dot_app_config(&mut self, app_config: DotAppConfig) {
-        self.url = app_config.url;
+        self.url = Some(app_config.url);
         self.username = app_config.username;
         self.password = app_config.password;
         self.oauth_url = app_config.oauth_url;
@@ -336,7 +346,11 @@ impl AppCommandArgs {
                 DEFAULT_APP_PASSWORD
             };
 
-            Ok(CrtCredentials::new(&_self.url, username, password))
+            Ok(CrtCredentials::new(
+                get_url_or_print_error(_self)?,
+                username,
+                password,
+            ))
         }
 
         fn get_oauth_credentials(
@@ -364,7 +378,7 @@ impl AppCommandArgs {
 
                 eprintln!();
                 eprintln!(
-                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> [COMMAND]"
+                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> <COMMAND>"
                 );
                 eprintln!();
                 eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
@@ -378,11 +392,49 @@ impl AppCommandArgs {
             let client_secret = _self.oauth_client_secret.as_ref().unwrap();
 
             Ok(CrtCredentials::new_oauth(
-                &_self.url,
+                get_url_or_print_error(_self)?,
                 oauth_url,
                 client_id,
                 client_secret,
             ))
+        }
+
+        fn get_url_or_print_error(
+            _self: &AppCommandArgs,
+        ) -> Result<impl AsRef<str>, CommandDynError> {
+            if let Some(url) = &_self.url {
+                return Ok(url);
+            }
+
+            let bold = Style::new().bold();
+            let bold_underline = Style::new().bold().underline();
+            let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
+
+            eprintln!(
+                "{red_bold}error:{red_bold:#} the following required arguments were not provided:",
+                red_bold = Style::new()
+                    .fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                    .bold(),
+            );
+
+            eprintln!("  {green}<URL/APP>{green:#}");
+
+            eprintln!();
+            eprintln!("You can specify the app using one of the following methods:");
+            eprintln!(" - Pass the `URL/APP` as an argument to the `crtcli app` command");
+            eprintln!(
+                " - Set the `CRTCLI_APP_URL` environment variable or add it to a `.env` file"
+            );
+            eprintln!(" - Configure the `default_app` parameter in your `.crtcli.toml` file");
+
+            eprintln!();
+            eprintln!(
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> [USERNAME] [PASSWORD] <COMMAND>"
+            );
+            eprintln!();
+            eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
+
+            Err(CommandHandledError(ExitCode::FAILURE).into())
         }
     }
 }
