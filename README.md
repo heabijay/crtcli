@@ -1228,6 +1228,8 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
 **Parameters:**
 
+- `root` — (Optional) If set to `true` in any .crtcli.toml file, then crtcli will not use any parent directory .crtcli.toml configurations after it.
+
 - `apps.<alias>.url` — The base URL of the Creatio instance.
 - `apps.<alias>.username` — (Optional) The username for authentication.
 - `apps.<alias>.password` — (Optional) The password for authentication.
