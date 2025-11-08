@@ -16,28 +16,33 @@ pub enum CrtCredentials {
 }
 
 impl CrtCredentials {
-    pub fn new(url: &str, username: &str, password: &str) -> CrtCredentials {
+    pub fn new(
+        url: impl AsRef<str>,
+        username: impl AsRef<str>,
+        password: impl AsRef<str>,
+    ) -> CrtCredentials {
         CrtCredentials::Basic {
-            url: url.trim_end_matches("/").to_owned(),
-            username: username.to_owned(),
-            password: password.to_owned(),
+            url: url.as_ref().trim_end_matches("/").to_owned(),
+            username: username.as_ref().to_owned(),
+            password: password.as_ref().to_owned(),
         }
     }
 
     pub fn new_oauth(
-        url: &str,
-        oauth_url: &str,
-        oauth_client_id: &str,
-        oauth_client_secret: &str,
+        url: impl AsRef<str>,
+        oauth_url: impl AsRef<str>,
+        oauth_client_id: impl AsRef<str>,
+        oauth_client_secret: impl AsRef<str>,
     ) -> CrtCredentials {
         CrtCredentials::OAuth {
-            url: url.trim_end_matches("/").to_owned(),
+            url: url.as_ref().trim_end_matches("/").to_owned(),
             oauth_url: oauth_url
+                .as_ref()
                 .trim_end_matches("/")
                 .trim_end_matches("/connect/token")
                 .to_owned(),
-            oauth_client_id: oauth_client_id.to_owned(),
-            oauth_client_secret: oauth_client_secret.to_owned(),
+            oauth_client_id: oauth_client_id.as_ref().to_owned(),
+            oauth_client_secret: oauth_client_secret.as_ref().to_owned(),
         }
     }
 
