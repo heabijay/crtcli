@@ -588,7 +588,7 @@ Alternative to:
 
 ```shell
 crtcli app pkg download "{package_name}" --output "tmp-pkg.zip"
-crtcli pkg unpack "tmp-pkg.zip" . --merge
+crtcli pkg unpack "tmp-pkg.zip" --destination . --merge
 crtcli pkg apply .
 rm "tmp-pkg.zip"
 ```
@@ -1109,11 +1109,11 @@ Extract a single package from a package archive (.zip or .gz). To extract multip
 
 - `<PACKAGE_FILEPATH>` (required) — Path to the package archive file.
 
-- `[DESTINATION_FOLDER]` — Destination folder where the extracted package files will be saved.
-
-    Defaults: '{Filename without extension}' folder in current folder. If this folder already exists — creates a new one with suffix '_1' and so on.
-
 **Options:**
+
+- `--destination | -d <DESTINATION_FOLDER>` — Destination folder where the extracted package files will be saved.
+
+  Defaults: '{Filename without extension}' folder in current folder. If this folder already exists — creates a new one with suffix '_1' and so on.
 
 - `--package | -p <PACKAGE_NAME>` — If the archive is a zip file containing multiple packages, specify the name of the package to extract.
 
@@ -1125,9 +1125,9 @@ And here you can use transforms from [pkg apply](#pkg-apply) command.
 
 - `crtcli pkg unpack UsrPackage_2024-12-01_21-00-00.zip` — Extracts single package from 'UsrPackage_2024-12-01_21-00-00.zip' file to folder './UsrPackage_2024-12-01_21-00-00/'
 
-- `crtcli pkg unpack UsrPackage.gz /repos/UsrPackage -mS true` — Extracts single package from 'UsrPackage.gz' file to folder './repos/UsrPackage' with merging and sorting transform.
+- `crtcli pkg unpack UsrPackage.gz -d /repos/UsrPackage -mS true` — Extracts single package from 'UsrPackage.gz' file to folder './repos/UsrPackage' with merging and sorting transform.
 
-- `crtcli pkg unpack UsrMultiplePackages_2024-12-01_21-00-00.zip UsrPackageSources -p UsrPackage` — Extracts single package 'UsrPackage' (file UsrPackage.gz) from 'UsrMultiplePackages_2024-12-01_21-00-00.zip' file to folder './UsrPackageSources/'.
+- `crtcli pkg unpack UsrMultiplePackages_2024-12-01_21-00-00.zip -d UsrPackageSources -p UsrPackage` — Extracts single package 'UsrPackage' (file UsrPackage.gz) from 'UsrMultiplePackages_2024-12-01_21-00-00.zip' file to folder './UsrPackageSources/'.
 
 
 ### pkg unpack-all
@@ -1140,11 +1140,11 @@ Extract all packages from a zip archive.
 
 - `<PACKAGE_FILEPATH>` (required) — Path to the zip package archive file.
 
-- `[DESTINATION_FOLDER]` — Destination folder where all extracted package files will be saved.
+**Options:**
+
+- `--destination | -d <DESTINATION_FOLDER>` — Destination folder where the extracted package files will be saved.
 
   Defaults: '{Filename without extension}' folder in current folder. If this folder already exists — creates a new one with suffix '_1' and so on.
-
-**Options:**
 
 - `--merge | -m` — If destination_folder already exists you will receive error about this by default. However, you can use this merge option to extract to same exist folder with overwriting only different files.
 
@@ -1161,7 +1161,7 @@ For example, file 'MyPackage.zip' contains one 'UsrPackage' package, and file 'M
     - UsrPackage/
       - ...
 
-- `crtcli pkg unpack-all MyMultiplePackages.zip /repos/ -mL 'en-US'` — Extracts packages from 'MyMultiplePackages.zip' file to folder '/repos/' with merging and localization cleanup transform except 'en-US' culture.
+- `crtcli pkg unpack-all MyMultiplePackages.zip -d /repos/ -mL 'en-US'` — Extracts packages from 'MyMultiplePackages.zip' file to folder '/repos/' with merging and localization cleanup transform except 'en-US' culture.
 
     The output folder structure will be:
   - /repos/

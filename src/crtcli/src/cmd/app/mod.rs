@@ -28,7 +28,7 @@ const DEFAULT_APP_PASSWORD: &str = "Supervisor";
 
 #[derive(Debug, Args, Clone)]
 pub struct AppCommandArgs {
-    /// Creatio Base URL or App Alias
+    /// Creatio Base URL or App alias
     ///
     /// You can specify the app using one of the following methods:
     /// - Pass the `URL/APP` as an argument to the `crtcli app` command

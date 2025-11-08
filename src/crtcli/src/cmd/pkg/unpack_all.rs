@@ -11,7 +11,7 @@ pub struct UnpackAllCommand {
     package_filepath: PathBuf,
 
     /// Destination folder where all extracted package files will be saved
-    #[arg(value_hint = clap::ValueHint::DirPath)]
+    #[arg(short, long = "destination", value_hint = clap::ValueHint::DirPath)]
     destination_folder: Option<PathBuf>,
 
     /// If destination folder is not empty, attempt to merge package files (smart merge)

@@ -15,7 +15,7 @@ pub struct UnpackCommand {
     package_filepath: PathBuf,
 
     /// Destination folder where the extracted package files will be saved
-    #[arg(value_hint = clap::ValueHint::DirPath)]
+    #[arg(short, long = "destination", value_hint = clap::ValueHint::DirPath)]
     destination_folder: Option<PathBuf>,
 
     /// If the archive is a zip file containing multiple packages, specify the name of the package to extract.
