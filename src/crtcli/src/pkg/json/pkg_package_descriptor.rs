@@ -1,4 +1,4 @@
-use crate::pkg::json_wrappers::pkg_json_wrapper::PkgJsonWrapper;
+use crate::pkg::json::pkg_json_wrapper::PkgJsonWrapper;
 use serde_json::Value;
 use std::ops::Deref;
 use thiserror::Error;
@@ -55,24 +55,34 @@ impl PkgPackageDescriptorJsonWrapper {
         &mut (*self.descriptor_mut())["UId"]
     }
 
-    fn depends_on(&self) -> &Value {
-        &self.descriptor()["DependsOn"]
+    pub fn depends_on(&self) -> Option<Vec<PkgPackageDescriptorDependOnItem<'_>>> {
+        self.descriptor()["DependsOn"]
+            .as_array()
+            .map(|x| x.iter().map(PkgPackageDescriptorDependOnItem).collect())
     }
 
     fn depends_on_mut(&mut self) -> &mut Value {
         &mut self.descriptor_mut()["DependsOn"]
     }
 
-    fn pkg_type(&self) -> u64 {
+    pub fn pkg_type(&self) -> u64 {
         self.descriptor()["Type"].as_u64().unwrap_or(0)
     }
 
-    fn pkg_type_exact(&self) -> Option<u64> {
+    pub fn pkg_type_exact(&self) -> Option<u64> {
         self.descriptor()["Type"].as_u64()
     }
 
-    fn pkg_type_on_mut(&mut self) -> &mut Value {
+    pub fn pkg_type_on_mut(&mut self) -> &mut Value {
         &mut self.descriptor_mut()["Type"]
+    }
+
+    pub fn project_path(&self) -> Option<&str> {
+        (*self.descriptor())["ProjectPath"].as_str()
+    }
+
+    pub fn project_path_mut(&mut self) -> &mut Value {
+        &mut (*self.descriptor_mut())["ProjectPath"]
     }
 
     pub fn apply_sorting(&mut self) -> Result<&mut Self, PkgPackageDescriptorSortingError> {
@@ -84,5 +94,26 @@ impl PkgPackageDescriptorJsonWrapper {
         columns.sort_by(|k1, k2| k1["UId"].as_str().cmp(&k2["UId"].as_str()));
 
         Ok(self)
+    }
+}
+
+pub struct PkgPackageDescriptorDependOnItem<'a>(&'a Value);
+
+#[allow(dead_code)]
+impl PkgPackageDescriptorDependOnItem<'_> {
+    pub fn uid(&self) -> Option<&str> {
+        self.0["UId"].as_str()
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.0["Name"].as_str()
+    }
+
+    pub fn pkg_type(&self) -> u64 {
+        self.0["Type"].as_u64().unwrap_or(0)
+    }
+
+    pub fn pkg_type_exact(&self) -> Option<u64> {
+        self.0["Type"].as_u64()
     }
 }

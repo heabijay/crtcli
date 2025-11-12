@@ -1,6 +1,10 @@
+use crate::pkg::json::{
+    PkgJsonWrapper, PkgJsonWrapperCreateError, PkgPackageDescriptorJsonWrapper,
+};
 use crate::pkg::*;
+use anstyle::{AnsiColor, Color, Style};
 use flate2::read::GzDecoder;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt};
@@ -94,8 +98,8 @@ pub async fn is_gzip_async_stream(
 
 #[derive(Error, Debug)]
 pub enum GetPackageNameFromFolderError {
-    #[error("unable to read package descriptor: {0}")]
-    PkgJsonWrapperCreate(#[from] json_wrappers::PkgJsonWrapperCreateError),
+    #[error("cannot read package descriptor: {0}")]
+    PkgJsonWrapperCreate(#[from] PkgJsonWrapperCreateError),
 
     #[error("descriptor was correctly read from folder, but filename was not found")]
     PackageNameIsNone,
@@ -108,9 +112,9 @@ pub fn get_package_name_from_current_dir() -> Result<String, GetPackageNameFromF
 pub fn get_package_name_from_folder(
     pkg_folder: &Path,
 ) -> Result<String, GetPackageNameFromFolderError> {
-    let pkg_descriptor = crate::pkg::json_wrappers::PkgPackageDescriptorJsonWrapper::from(
-        json_wrappers::PkgJsonWrapper::from_file(&pkg_folder.join(paths::PKG_DESCRIPTOR_FILE))?,
-    );
+    let pkg_descriptor = PkgPackageDescriptorJsonWrapper::from(PkgJsonWrapper::from_file(
+        &pkg_folder.join(paths::PKG_DESCRIPTOR_FILE),
+    )?);
 
     pkg_descriptor
         .name()
@@ -156,13 +160,12 @@ pub enum GetPackageDescriptorFromGzipReaderError {
     DescriptorNotFound,
 
     #[error("failed to parse gzip package descriptor: {0}")]
-    Parsing(#[from] json_wrappers::PkgJsonWrapperCreateError),
+    Parsing(#[from] PkgJsonWrapperCreateError),
 }
 
 pub fn get_package_descriptors_from_package_reader(
     mut reader: &mut (impl Read + Seek),
-) -> Result<Vec<json_wrappers::PkgPackageDescriptorJsonWrapper>, GetPackageDescriptorFromReaderError>
-{
+) -> Result<Vec<PkgPackageDescriptorJsonWrapper>, GetPackageDescriptorFromReaderError> {
     let position = reader.stream_position()?;
 
     let mut results = vec![];
@@ -196,10 +199,7 @@ pub fn get_package_descriptors_from_package_reader(
 
     fn get_package_descriptor_as_gzip(
         reader: &mut impl Read,
-    ) -> Result<
-        json_wrappers::PkgPackageDescriptorJsonWrapper,
-        GetPackageDescriptorFromGzipReaderError,
-    > {
+    ) -> Result<PkgPackageDescriptorJsonWrapper, GetPackageDescriptorFromGzipReaderError> {
         let descriptor = bundling::PkgGZipDecoder::new(GzDecoder::new(reader))
             .filter_map(|f| -> Option<Result<_, _>> {
                 match f {
@@ -215,10 +215,67 @@ pub fn get_package_descriptors_from_package_reader(
         let descriptor =
             descriptor.ok_or(GetPackageDescriptorFromGzipReaderError::DescriptorNotFound)??;
 
-        let descriptor = json_wrappers::PkgPackageDescriptorJsonWrapper::from(
-            json_wrappers::PkgJsonWrapper::new(&descriptor.content)?,
-        );
+        let descriptor =
+            PkgPackageDescriptorJsonWrapper::from(PkgJsonWrapper::new(&descriptor.content)?);
 
         Ok(descriptor)
+    }
+}
+
+pub fn cmp_file_content_and_apply_with_log(
+    file_path: &Path,
+    relative_file_path: &str,
+    source_content: Option<Vec<u8>>,
+    pending_content: Option<Vec<u8>>,
+    check_only: bool,
+    stdout: &mut impl Write,
+) -> Result<bool, std::io::Error> {
+    match (source_content, pending_content) {
+        (Some(source_content), Some(pending_content)) if source_content != pending_content => {
+            if check_only {
+                writeln!(stdout, "\tto be modified:\t{}", relative_file_path).unwrap();
+            } else {
+                std::fs::write(file_path, pending_content)?;
+
+                writeln!(stdout, "\tmodified:\t{}", relative_file_path).unwrap();
+            }
+
+            Ok(true)
+        }
+        (Some(_), None) => {
+            if check_only {
+                writeln!(
+                    stdout,
+                    "{style}\tto be deleted:\t{}{style:#}",
+                    relative_file_path,
+                    style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                )
+                .unwrap();
+            } else {
+                std::fs::remove_file(file_path)?;
+
+                writeln!(
+                    stdout,
+                    "{style}\tdeleted:\t{}{style:#}",
+                    relative_file_path,
+                    style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+                )
+                .unwrap();
+            }
+
+            Ok(true)
+        }
+        (None, Some(pending_content)) => {
+            if check_only {
+                writeln!(stdout, "\tto be created:\t{}", relative_file_path).unwrap();
+            } else {
+                std::fs::write(file_path, pending_content)?;
+
+                writeln!(stdout, "\tcreated:\t{}", relative_file_path).unwrap();
+            }
+
+            Ok(true)
+        }
+        _ => Ok(false),
     }
 }

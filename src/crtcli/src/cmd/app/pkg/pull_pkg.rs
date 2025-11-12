@@ -29,7 +29,7 @@ pub struct PullPkgCommand {
     packages_map: Vec<PackageDestinationArg>,
 
     #[command(flatten)]
-    apply_features: Option<crate::pkg::PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
 }
 
 #[derive(Debug, Error)]

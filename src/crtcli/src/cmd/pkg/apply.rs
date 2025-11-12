@@ -2,7 +2,12 @@ use crate::cfg::PkgConfig;
 use crate::cfg::package::combine_apply_features_from_args_and_config;
 use crate::cmd::cli::{CliCommand, CommandDynError, CommandResult};
 use crate::pkg::bundling;
-use crate::pkg::transforms::*;
+use crate::pkg::transforms::post::{
+    CombinedPkgFolderPostTransformError, PkgApplyPostFeatures, PkgFolderPostTransform,
+};
+use crate::pkg::transforms::{
+    CombinedPkgFileTransform, CombinedPkgFileTransformError, PkgApplyFeatures, PkgFileTransform,
+};
 use crate::pkg::utils::{WalkOverPackageFilesContentError, walk_over_package_files};
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
@@ -18,7 +23,10 @@ pub struct ApplyCommand {
     pub packages_folders: Vec<PathBuf>,
 
     #[command(flatten)]
-    pub apply_features: Option<crate::pkg::PkgApplyFeatures>,
+    pub apply_features: Option<PkgApplyFeatures>,
+
+    #[command(flatten)]
+    pub apply_post_features: Option<PkgApplyPostFeatures>,
 
     /// Apply transforms only to a specific file within the package folder
     #[arg(short = 'f', long, value_hint = clap::ValueHint::FilePath)]
@@ -39,6 +47,9 @@ enum ApplyCommandError {
 
     #[error("unable to apply features to {0}: {1}")]
     ApplyTransforms(String, #[source] CombinedPkgFileTransformError),
+
+    #[error("unable to apply post features: {0}")]
+    ApplyPostTransforms(#[from] CombinedPkgFolderPostTransformError),
 
     #[error("unable to change file {0}: {1}")]
     FileChangeAccessError(PathBuf, #[source] std::io::Error),
@@ -97,6 +108,14 @@ impl CliCommand for ApplyCommand {
                 _self.apply_features.as_ref(),
                 pkg_config.as_ref(),
             );
+
+            // TODO: Not here
+            _self
+                .apply_post_features
+                .as_ref()
+                .expect("post features not specified")
+                .build_combined_transform()
+                .transform(package_folder, false)?; // TODO: Set check only right
 
             let apply_features = match apply_features {
                 Some(f) => f,
@@ -165,7 +184,7 @@ impl CliCommand for ApplyCommand {
                 })
                 .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
-            let converted_content = transform
+            let pending_content = transform
                 .transform(
                     &file.filename, // No need to use file.to_native_path_string because in this case the file was read from the native package folder
                     file.content.clone(),
@@ -174,46 +193,15 @@ impl CliCommand for ApplyCommand {
                     ApplyCommandError::ApplyTransforms(relative_path.display().to_string(), err)
                 })?;
 
-            if let Some(content) = converted_content {
-                if content != file.content {
-                    if _self.check_only {
-                        writeln!(stdout, "\tto be modified:\t{}", file.filename).unwrap();
-                    } else {
-                        std::fs::write(&file_path, content).map_err(|err| {
-                            ApplyCommandError::FileChangeAccessError(file_path, err)
-                        })?;
-
-                        writeln!(stdout, "\tmodified:\t{}", file.filename).unwrap();
-                    }
-
-                    return Ok(true);
-                }
-            } else {
-                if _self.check_only {
-                    writeln!(
-                        stdout,
-                        "{style}\tto be deleted:\t{}{style:#}",
-                        file.filename,
-                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
-                    )
-                    .unwrap();
-                } else {
-                    std::fs::remove_file(&file_path)
-                        .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
-
-                    writeln!(
-                        stdout,
-                        "{style}\tdeleted:\t{}{style:#}",
-                        file.filename,
-                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
-                    )
-                    .unwrap();
-                }
-
-                return Ok(true);
-            }
-
-            Ok(false)
+            Ok(crate::pkg::utils::cmp_file_content_and_apply_with_log(
+                &file_path,
+                &file.filename,
+                Some(file.content),
+                pending_content,
+                _self.check_only,
+                &mut stdout,
+            )
+            .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?)
         }
     }
 }

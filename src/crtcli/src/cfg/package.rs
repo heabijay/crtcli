@@ -1,4 +1,5 @@
-use crate::pkg::PkgApplyFeatures;
+use crate::pkg::transforms::PkgApplyFeatures;
+use crate::pkg::transforms::post::PkgApplyPostFeatures;
 use serde::Deserialize;
 use std::path::Path;
 use thiserror::Error;
@@ -7,7 +8,16 @@ pub const PKG_CONFIG_FILENAME: &str = "package.crtcli.toml";
 
 #[derive(Debug, Deserialize)]
 pub struct PkgConfig {
-    apply: PkgApplyFeatures,
+    apply: PkgConfigApply,
+}
+
+#[derive(Debug, Deserialize)]
+struct PkgConfigApply {
+    #[serde(flatten)]
+    apply_features: PkgApplyFeatures,
+
+    #[serde(flatten)]
+    apply_post_features: PkgApplyPostFeatures,
 }
 
 #[derive(Debug, Error)]
@@ -21,7 +31,11 @@ pub enum PkgConfigError {
 
 impl PkgConfig {
     pub fn apply(&self) -> &PkgApplyFeatures {
-        &self.apply
+        &self.apply.apply_features
+    }
+
+    pub fn apply_post(&self) -> &PkgApplyPostFeatures {
+        &self.apply.apply_post_features
     }
 
     pub fn from_str(config_str: &str) -> Result<PkgConfig, PkgConfigError> {

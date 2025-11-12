@@ -1,4 +1,4 @@
-use crate::pkg::json_wrappers::PkgJsonWrapper;
+use crate::pkg::json::PkgJsonWrapper;
 use regex::Regex;
 use serde_json::Value;
 use std::cmp::Ordering;

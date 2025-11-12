@@ -27,7 +27,7 @@ pub struct UnpackCommand {
     merge: bool,
 
     #[command(flatten)]
-    apply_features: Option<crate::pkg::PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
 }
 
 #[derive(Error, Debug)]

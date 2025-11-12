@@ -1,5 +1,5 @@
 use crate::pkg::transforms::SortingComparer;
-use crate::pkg::xml_wrappers::*;
+use crate::pkg::xml::*;
 use crate::utils::bom;
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, Writer};
@@ -101,4 +101,23 @@ pub fn apply_sorting(
 
 fn is_items_group_start(e: &BytesStart) -> bool {
     e.name().as_ref() == b"Items"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sorting() {
+        let input = tests_data::resource_tests_data::INPUT.as_bytes();
+        let expected_output =
+            tests_data::resource_tests_data::RESOURCE_SORTING_EXPECTED_OUTPUT.as_bytes();
+
+        let output = apply_sorting(input, SortingComparer::Alnum).unwrap();
+
+        pretty_assertions::assert_eq!(
+            String::from_utf8_lossy(expected_output),
+            String::from_utf8_lossy(&output)
+        );
+    }
 }

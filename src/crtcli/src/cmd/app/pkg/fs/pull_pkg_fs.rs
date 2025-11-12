@@ -16,7 +16,7 @@ pub struct PullPkgFsCommand {
     packages_folders: Vec<PathBuf>,
 
     #[command(flatten)]
-    apply_features: Option<crate::pkg::PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
 }
 
 #[async_trait]
@@ -46,6 +46,7 @@ impl AppCommand for PullPkgFsCommand {
             packages_folders: packages_folders.to_owned(),
             file: None,
             apply_features: self.apply_features.clone(),
+            apply_post_features: None, // TODO
             check_only: false,
             no_feature_present_warning_disabled: true,
         }

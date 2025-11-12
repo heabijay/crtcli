@@ -19,7 +19,7 @@ pub struct UnpackAllCommand {
     merge: bool,
 
     #[command(flatten)]
-    apply_features: crate::pkg::PkgApplyFeatures,
+    apply_features: crate::pkg::transforms::PkgApplyFeatures,
 }
 
 #[derive(Error, Debug)]

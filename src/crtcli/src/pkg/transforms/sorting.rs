@@ -1,6 +1,6 @@
-use crate::pkg::json_wrappers::*;
+use crate::pkg::json::*;
 use crate::pkg::transforms::PkgFileTransform;
-use crate::pkg::xml_wrappers::*;
+use crate::pkg::xml::*;
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
