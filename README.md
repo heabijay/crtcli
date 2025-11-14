@@ -1348,7 +1348,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
     With this configuration:
 
-    - `crtcli pkg apply .` — Will apply both sorting and localization cleanup (keeping only en-US and uk-UA cultures) because they are enabled in package.crtcli.toml.
+    - `crtcli pkg apply` — Will apply both sorting and localization cleanup (keeping only en-US and uk-UA cultures) because they are enabled in package.crtcli.toml.
 
     - `crtcli app pkg pull` —  Will download UsrPackage, unpack it, and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
 

@@ -16,6 +16,10 @@ impl CombinedPkgFileTransform {
         self.transforms.push(Box::new(transform));
         self
     }
+
+    pub const fn is_empty(&self) -> bool {
+        self.transforms.is_empty()
+    }
 }
 
 impl PkgFileTransform for CombinedPkgFileTransform {

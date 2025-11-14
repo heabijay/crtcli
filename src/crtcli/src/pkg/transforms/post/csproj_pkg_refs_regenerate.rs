@@ -81,16 +81,20 @@ impl PkgFolderPostTransform for CsprojPkgRefsRegeneratePkgFolderPostTransform {
             )
         })?;
 
-        crate::pkg::utils::cmp_file_content_and_apply_with_log(
-            &csproj_path,
-            project_path,
-            Some(source_content),
-            Some(result_content),
-            check_only,
-            &mut std::io::stdout(),
-        )
-        .map_err(|err| {
-            CsprojPkgRefsRegeneratePkgFolderPostTransformError::Write(csproj_path.clone(), err)
-        })
+        if source_content == result_content {
+            Ok(false)
+        } else {
+            if check_only {
+                println!("\tto regenerate:\t{}", project_path);
+            } else {
+                std::fs::write(&csproj_path, result_content).map_err(|err| {
+                    CsprojPkgRefsRegeneratePkgFolderPostTransformError::Write(csproj_path, err)
+                })?;
+
+                println!("\tregenerated:\t{}", project_path);
+            }
+
+            Ok(true)
+        }
     }
 }

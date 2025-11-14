@@ -157,20 +157,20 @@ pub fn modify_package_references(
             return Ok(());
         }
 
-        write_indent_if_present(writer, indent.clone(), 1);
-
         if add_configuration_dll {
+            write_indent_if_present(writer, indent.clone(), 1);
+
             write_std_package_reference(
                 writer,
                 TERRASOFT_CONFIGURATION,
                 TERRASOFT_CONFIGURATION_HINT_PATH,
                 indent.as_ref(),
             );
-
-            write_indent_if_present(writer, indent.clone(), 1);
         }
 
-        for (i, pkg_name) in pkg_names.iter().enumerate() {
+        for pkg_name in pkg_names.iter() {
+            write_indent_if_present(writer, indent.clone(), 1);
+
             let pkg_name = pkg_name.as_ref();
 
             write_std_package_reference(
@@ -181,10 +181,6 @@ pub fn modify_package_references(
                 ),
                 indent.as_ref(),
             );
-
-            if i < pkg_names.len() - 1 {
-                write_indent_if_present(writer, indent.clone(), 1);
-            }
         }
 
         write_indent_if_present(writer, indent, 0);
@@ -486,6 +482,117 @@ mod tests {
 
         let add_configuration_dll = false;
         let packages: [&str; 0] = [];
+
+        let output =
+            super::modify_package_references(input, add_configuration_dll, &packages).unwrap();
+
+        pretty_assertions::assert_eq!(
+            String::from_utf8_lossy(expected_output),
+            String::from_utf8_lossy(&output)
+        );
+    }
+
+    #[test]
+    fn modify_package_references_simple_only_configuration_dll() {
+        let input = br#"
+		<Project Sdk="Microsoft.NET.Sdk">
+			<PropertyGroup>
+				<AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+				<CoreTargetFramework Condition="'$(CoreTargetFramework)' == ''">net472</CoreTargetFramework>
+				<TargetFramework>$(CoreTargetFramework)</TargetFramework>
+			</PropertyGroup>
+			<ItemGroup Label="Package References">
+				<Reference Include="Terrasoft.Configuration">
+					<HintPath>$(RelativePkgFolderPath)/../bin/Terrasoft.Configuration.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+			</ItemGroup>
+		</Project>
+		"#;
+
+        let expected_output = br#"
+		<Project Sdk="Microsoft.NET.Sdk">
+			<PropertyGroup>
+				<AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+				<CoreTargetFramework Condition="'$(CoreTargetFramework)' == ''">net472</CoreTargetFramework>
+				<TargetFramework>$(CoreTargetFramework)</TargetFramework>
+			</PropertyGroup>
+			<ItemGroup Label="Package References">
+				<Reference Include="Terrasoft.Configuration">
+					<HintPath>$(RelativePkgFolderPath)/../bin/Terrasoft.Configuration.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+			</ItemGroup>
+		</Project>
+		"#;
+
+        let add_configuration_dll = true;
+        let packages: [&str; 0] = [];
+
+        let output =
+            super::modify_package_references(input, add_configuration_dll, &packages).unwrap();
+
+        pretty_assertions::assert_eq!(
+            String::from_utf8_lossy(expected_output),
+            String::from_utf8_lossy(&output)
+        );
+    }
+
+    #[test]
+    fn modify_package_references_simple_without_configuration_dll() {
+        let input = br#"
+		<Project Sdk="Microsoft.NET.Sdk">
+			<PropertyGroup>
+				<AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+				<CoreTargetFramework Condition="'$(CoreTargetFramework)' == ''">net472</CoreTargetFramework>
+				<TargetFramework>$(CoreTargetFramework)</TargetFramework>
+			</PropertyGroup>
+			<ItemGroup Label="Package References">
+				<Reference Include="Terrasoft.Configuration">
+					<HintPath>$(RelativePkgFolderPath)/../bin/Terrasoft.Configuration.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+			</ItemGroup>
+		</Project>
+		"#;
+
+        let expected_output = br#"
+		<Project Sdk="Microsoft.NET.Sdk">
+			<PropertyGroup>
+				<AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+				<CoreTargetFramework Condition="'$(CoreTargetFramework)' == ''">net472</CoreTargetFramework>
+				<TargetFramework>$(CoreTargetFramework)</TargetFramework>
+			</PropertyGroup>
+			<ItemGroup Label="Package References">
+				<Reference Include="CrtBaseConsts">
+					<HintPath>$(RelativePkgFolderPath)/CrtBaseConsts/$(StandalonePackageAssemblyPath)/CrtBaseConsts.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+				<Reference Include="CrtCore">
+					<HintPath>$(RelativePkgFolderPath)/CrtCore/$(StandalonePackageAssemblyPath)/CrtCore.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+				<Reference Include="CrtCoreBase">
+					<HintPath>$(RelativePkgFolderPath)/CrtCoreBase/$(StandalonePackageAssemblyPath)/CrtCoreBase.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+				<Reference Include="SsoSettings">
+					<HintPath>$(RelativePkgFolderPath)/SsoSettings/$(StandalonePackageAssemblyPath)/SsoSettings.dll</HintPath>
+					<SpecificVersion>False</SpecificVersion>
+					<Private>False</Private>
+				</Reference>
+			</ItemGroup>
+		</Project>
+		"#;
+
+        let add_configuration_dll = false;
+        let packages = ["CrtBaseConsts", "CrtCore", "CrtCoreBase", "SsoSettings"];
 
         let output =
             super::modify_package_references(input, add_configuration_dll, &packages).unwrap();

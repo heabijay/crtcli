@@ -1,10 +1,11 @@
 use crate::app::{CrtClient, CrtClientError};
 use crate::cfg::PkgConfig;
-use crate::cfg::package::combine_apply_features_from_args_and_config;
+use crate::cfg::package::combine_apply_config_from_args_and_config;
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::cli::CommandResult;
 use crate::pkg::bundling::extractor::*;
+use crate::pkg::transforms::post::PkgFolderPostTransform;
 use crate::pkg::utils::{get_package_name_from_current_dir, get_package_name_from_folder};
 use anstyle::{AnsiColor, Color, Style};
 use async_trait::async_trait;
@@ -30,6 +31,9 @@ pub struct PullPkgCommand {
 
     #[command(flatten)]
     apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
+
+    #[command(flatten)]
+    apply_post_features: Option<crate::pkg::transforms::post::PkgApplyPostFeatures>,
 }
 
 #[derive(Debug, Error)]
@@ -42,6 +46,9 @@ pub enum PullPkgCommandError {
 
     #[error("cannot unpack package: {0}")]
     ExtractPackage(#[from] ExtractSingleZipPackageError),
+
+    #[error("failed to execute post apply: {0}")]
+    PostApply(#[from] crate::pkg::transforms::post::CombinedPkgFolderPostTransformError),
 }
 
 #[derive(Debug, Clone)]
@@ -172,9 +179,12 @@ impl AppCommand for PullPkgCommand {
 
             let pkg_config = PkgConfig::from_package_folder(&package_map.destination_folder)?;
 
-            let apply_features = combine_apply_features_from_args_and_config(
-                self.apply_features.as_ref(),
-                pkg_config.as_ref(),
+            let apply_config = combine_apply_config_from_args_and_config(
+                (
+                    self.apply_features.as_ref(),
+                    self.apply_post_features.as_ref(),
+                ),
+                pkg_config.as_ref().map(|x| x.apply()),
             )
             .unwrap_or_default();
 
@@ -183,7 +193,7 @@ impl AppCommand for PullPkgCommand {
                     FilesAlreadyExistsInFolderStrategy::SmartMerge,
                 )
                 .print_merge_log(true)
-                .with_transform(apply_features.build_combined_transform());
+                .with_transform(apply_config.apply().build_combined_transform());
 
             extract_single_zip_package_to_folder(
                 std::io::Cursor::new(&package_data),
@@ -192,6 +202,11 @@ impl AppCommand for PullPkgCommand {
                 &extract_config,
             )
             .map_err(PullPkgCommandError::ExtractPackage)?;
+
+            apply_config
+                .apply_post()
+                .build_combined_transform()
+                .transform(&package_map.destination_folder, false)?;
         }
 
         spinner!(

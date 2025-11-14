@@ -17,6 +17,10 @@ impl CombinedPkgFolderPostTransform {
         self.transforms.push(Box::new(transform));
         self
     }
+
+    pub const fn is_empty(&self) -> bool {
+        self.transforms.is_empty()
+    }
 }
 
 impl PkgFolderPostTransform for CombinedPkgFolderPostTransform {

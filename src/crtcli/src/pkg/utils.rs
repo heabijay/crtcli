@@ -233,7 +233,7 @@ pub fn cmp_file_content_and_apply_with_log(
     match (source_content, pending_content) {
         (Some(source_content), Some(pending_content)) if source_content != pending_content => {
             if check_only {
-                writeln!(stdout, "\tto be modified:\t{}", relative_file_path).unwrap();
+                writeln!(stdout, "\tto change:\t{}", relative_file_path).unwrap();
             } else {
                 std::fs::write(file_path, pending_content)?;
 
@@ -246,7 +246,7 @@ pub fn cmp_file_content_and_apply_with_log(
             if check_only {
                 writeln!(
                     stdout,
-                    "{style}\tto be deleted:\t{}{style:#}",
+                    "{style}\tto delete:\t{}{style:#}",
                     relative_file_path,
                     style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
                 )
@@ -267,7 +267,7 @@ pub fn cmp_file_content_and_apply_with_log(
         }
         (None, Some(pending_content)) => {
             if check_only {
-                writeln!(stdout, "\tto be created:\t{}", relative_file_path).unwrap();
+                writeln!(stdout, "\tto create:\t{}", relative_file_path).unwrap();
             } else {
                 std::fs::write(file_path, pending_content)?;
 
