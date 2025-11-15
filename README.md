@@ -1330,7 +1330,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
 - `apply.bom_normalization = <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files by default in [pkg apply](#pkg-apply) command.
 
-- `app.post_csproj_pkg_refs_regenerate = <true/false>` — Regenerates the package assembly "Files/*.csproj" by default in [pkg apply](#pkg-apply) command.
+- `apply.post_csproj_pkg_refs_regenerate = <true/false>` — Regenerates the package assembly "Files/*.csproj" by default in [pkg apply](#pkg-apply) command.
 
 **Examples:**
 

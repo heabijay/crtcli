@@ -46,10 +46,10 @@ enum ApplyCommandError {
     #[error("failed to access package file path: {0}")]
     WalkOverPackageFilesContent(#[from] WalkOverPackageFilesContentError),
 
-    #[error("unable to apply features to {0}: {1}")]
+    #[error("failed to apply features to {0}: {1}")]
     ApplyTransforms(String, #[source] CombinedPkgFileTransformError),
 
-    #[error("unable to apply post features: {0}")]
+    #[error("failed to apply post transforms: {0}")]
     ApplyPostTransforms(#[from] CombinedPkgFolderPostTransformError),
 
     #[error("unable to change file {0}: {1}")]
