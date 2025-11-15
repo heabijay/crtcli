@@ -1031,7 +1031,7 @@ This is useful for standardizing package structure, cleaning up localization fil
   - Schemas/**/properties.json
   - SqlSchemas/**/descriptor.json
 
-- `--apply-post-csproj-pkg-refs-regenerate` — Regenerates the package assembly "Files/*.csproj" based on the dependencies in descriptor.json.
+- `--apply-post-csproj-pkg-refs-regenerate <true/false>` — Regenerates the package assembly "Files/*.csproj" based on the dependencies in descriptor.json.
 
   _Affects:_
   - Files/*.csproj
