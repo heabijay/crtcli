@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 #[derive(Args, Debug, Default, Deserialize, Clone)]
 pub struct PkgApplyPostFeatures {
-    /// TODO
+    /// Regenerates the package assembly "Files/*.csproj" based on the dependencies in descriptor.json
     #[arg(long)]
     #[serde(rename = "post_csproj_pkg_refs_regenerate")]
     apply_post_csproj_pkg_refs_regenerate: Option<bool>,

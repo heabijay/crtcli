@@ -228,7 +228,7 @@ impl AppCommand for TunnelCommand {
 
             eprintln!();
             eprintln!(
-                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app <URL/APP> tunnel -L{bold:#} <[bind_address:]port:host:host_port>"
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app tunnel -L{bold:#} <[bind_address:]port:host:host_port>"
             );
             eprintln!();
             eprintln!("For more information, try '{bold}--help{bold:#}'.");

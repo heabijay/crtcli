@@ -306,7 +306,7 @@ impl AppCommands {
 
             eprintln!();
             eprintln!(
-                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> [COMMAND]"
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} [URL/APP] [COMMAND]"
             );
             eprintln!();
             eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
@@ -408,7 +408,7 @@ impl AppCommandArgs {
 
                 eprintln!();
                 eprintln!(
-                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> [COMMAND]"
+                    "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} [URL/APP] {bold}--oauth-url{bold:#} <OAUTH_URL> {bold}--oauth-client-id{bold:#} <OAUTH_CLIENT_ID> {bold}--oauth-client-secret{bold:#} <OAUTH_CLIENT_SECRET> [COMMAND]"
                 );
                 eprintln!();
                 eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");
@@ -447,7 +447,7 @@ impl AppCommandArgs {
                     .bold(),
             );
 
-            eprintln!("  {green}<URL/APP>{green:#}");
+            eprintln!("  {green}[URL/APP]{green:#}");
 
             eprintln!();
             eprintln!("You can specify the app using one of the following methods:");
@@ -459,7 +459,7 @@ impl AppCommandArgs {
 
             eprintln!();
             eprintln!(
-                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} <URL/APP> [USERNAME] [PASSWORD] [COMMAND]"
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} [URL/APP] [USERNAME] [PASSWORD] [COMMAND]"
             );
             eprintln!();
             eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");

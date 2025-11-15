@@ -1031,6 +1031,11 @@ This is useful for standardizing package structure, cleaning up localization fil
   - Schemas/**/properties.json
   - SqlSchemas/**/descriptor.json
 
+- `--apply-post-csproj-pkg-refs-regenerate` — Regenerates the package assembly "Files/*.csproj" based on the dependencies in descriptor.json.
+
+  _Affects:_
+  - Files/*.csproj
+
 \* Check [package.crtcli.toml](#packagecrtclitoml) to configure default apply transforms.
 
 **Examples:**
@@ -1325,6 +1330,8 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
 - `apply.bom_normalization = <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files by default in [pkg apply](#pkg-apply) command.
 
+- `app.post_csproj_pkg_refs_regenerate = <true/false>` — Regenerates the package assembly "Files/*.csproj" by default in [pkg apply](#pkg-apply) command.
+
 **Examples:**
 
 1. For example, current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/UsrPackage' which is package folder inside in Creatio.
@@ -1335,6 +1342,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
     [apply]
     sorting = true
     localization_cleanup = ["en-US", "uk-UA"]
+    post_csproj_pkg_refs_regenerate = true
     ```
 
    The package folder structure would look like:
@@ -1348,11 +1356,11 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
     With this configuration:
 
-    - `crtcli pkg apply` — Will apply both sorting and localization cleanup (keeping only en-US and uk-UA cultures) because they are enabled in package.crtcli.toml.
+    - `crtcli pkg apply` — Will apply sorting, localization cleanup (keeping only en-US and uk-UA cultures) and regenerates package Files/*.csproj because they are enabled in package.crtcli.toml.
 
-    - `crtcli app pkg pull` —  Will download UsrPackage, unpack it, and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
+    - `crtcli app pkg pull` — Will download UsrPackage, unpack it, and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
 
-    - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting and localization cleanup transforms defined in package.crtcli.toml.
+    - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
 
 
 ---
