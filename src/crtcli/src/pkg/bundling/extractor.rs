@@ -346,7 +346,7 @@ pub fn extract_zip_package_to_folder(
     reader: impl Read + Seek,
     destination_folder: &Path,
     config: &PackageToFolderExtractorConfig,
-) -> Result<(), ExtractZipPackageError> {
+) -> Result<Vec<PathBuf>, ExtractZipPackageError> {
     let mut zip = ZipArchive::new(reader).map_err(ExtractZipPackageError::OpenZipFileForReading)?;
 
     if config.files_already_exists_in_folder_strategy
@@ -354,6 +354,8 @@ pub fn extract_zip_package_to_folder(
     {
         validate_folder_is_empty(destination_folder)?;
     }
+
+    let mut package_folders = Vec::with_capacity(zip.len());
 
     for i in 0..zip.len() {
         let gzip = zip
@@ -366,15 +368,17 @@ pub fn extract_zip_package_to_folder(
             .unwrap_or(gzip.name())
             .to_owned();
 
-        let destination_folder = destination_folder.join(&gzip_filename);
+        let package_folder = destination_folder.join(&gzip_filename);
 
-        extract_gzip_package_to_folder(gzip, destination_folder.as_path(), config).map_err(
-            |err| ExtractZipPackageError::ExtractGZipPackage {
+        extract_gzip_package_to_folder(gzip, package_folder.as_path(), config).map_err(|err| {
+            ExtractZipPackageError::ExtractGZipPackage {
                 filename: gzip_filename,
                 source: err,
-            },
-        )?;
+            }
+        })?;
+
+        package_folders.push(package_folder);
     }
 
-    Ok(())
+    Ok(package_folders)
 }

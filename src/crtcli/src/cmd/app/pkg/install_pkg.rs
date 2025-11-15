@@ -321,7 +321,7 @@ where
     async fn apply_options_before_install(
         client: &Arc<CrtClient>,
         options: &InstallPkgCommandOptions,
-        descriptors: &Vec<crate::pkg::json_wrappers::PkgPackageDescriptorJsonWrapper>,
+        descriptors: &Vec<crate::pkg::json::PkgPackageDescriptorJsonWrapper>,
     ) -> Result<(), InstallPkgCommandError> {
         if options.force || options.force_and_clear_localizations {
             for descriptor in descriptors {

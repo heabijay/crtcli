@@ -1,8 +1,14 @@
 use crate::cfg::PkgConfig;
-use crate::cfg::package::combine_apply_features_from_args_and_config;
+use crate::cfg::package::combine_apply_config_from_args_and_config;
 use crate::cmd::cli::{CliCommand, CommandDynError, CommandResult};
 use crate::pkg::bundling;
-use crate::pkg::transforms::*;
+use crate::pkg::transforms::post::{
+    CombinedPkgFolderPostTransform, CombinedPkgFolderPostTransformError, PkgApplyPostFeatures,
+    PkgFolderPostTransform,
+};
+use crate::pkg::transforms::{
+    CombinedPkgFileTransform, CombinedPkgFileTransformError, PkgApplyFeatures, PkgFileTransform,
+};
 use crate::pkg::utils::{WalkOverPackageFilesContentError, walk_over_package_files};
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
@@ -18,7 +24,10 @@ pub struct ApplyCommand {
     pub packages_folders: Vec<PathBuf>,
 
     #[command(flatten)]
-    pub apply_features: Option<crate::pkg::PkgApplyFeatures>,
+    pub apply_features: Option<PkgApplyFeatures>,
+
+    #[command(flatten)]
+    pub apply_post_features: Option<PkgApplyPostFeatures>,
 
     /// Apply transforms only to a specific file within the package folder
     #[arg(short = 'f', long, value_hint = clap::ValueHint::FilePath)]
@@ -37,8 +46,11 @@ enum ApplyCommandError {
     #[error("failed to access package file path: {0}")]
     WalkOverPackageFilesContent(#[from] WalkOverPackageFilesContentError),
 
-    #[error("unable to apply features to {0}: {1}")]
+    #[error("failed to apply features to {0}: {1}")]
     ApplyTransforms(String, #[source] CombinedPkgFileTransformError),
+
+    #[error("failed to apply post transforms: {0}")]
+    ApplyPostTransforms(#[from] CombinedPkgFolderPostTransformError),
 
     #[error("unable to change file {0}: {1}")]
     FileChangeAccessError(PathBuf, #[source] std::io::Error),
@@ -93,12 +105,15 @@ impl CliCommand for ApplyCommand {
         ) -> Result<bool, CommandDynError> {
             let pkg_config = PkgConfig::from_package_folder(package_folder)?;
 
-            let apply_features = combine_apply_features_from_args_and_config(
-                _self.apply_features.as_ref(),
-                pkg_config.as_ref(),
+            let apply_config = combine_apply_config_from_args_and_config(
+                (
+                    _self.apply_features.as_ref(),
+                    _self.apply_post_features.as_ref(),
+                ),
+                pkg_config.as_ref().map(|x| x.apply()),
             );
 
-            let apply_features = match apply_features {
+            let apply_config = match apply_config {
                 Some(f) => f,
                 None if _self.no_feature_present_warning_disabled => return Ok(false),
                 None => {
@@ -112,9 +127,32 @@ impl CliCommand for ApplyCommand {
                 }
             };
 
-            let transform = apply_features.build_combined_transform();
-            let mut stdout = stdout().lock();
+            let transforms = apply_config.apply().build_combined_transform();
+            let post_transforms = apply_config.apply_post().build_combined_transform();
 
+            let mut any_applied = false;
+
+            if apply_file_based_transforms(_self, package_folder, &transforms)? {
+                any_applied = true;
+            }
+
+            if apply_post_transforms(_self, package_folder, &post_transforms)? {
+                any_applied = true;
+            }
+
+            Ok(any_applied)
+        }
+
+        fn apply_file_based_transforms(
+            _self: &ApplyCommand,
+            package_folder: &Path,
+            transforms: &CombinedPkgFileTransform,
+        ) -> Result<bool, CommandDynError> {
+            if transforms.is_empty() {
+                return Ok(false);
+            }
+
+            let mut stdout = stdout().lock();
             let mut any_applied = false;
 
             match &_self.file {
@@ -124,7 +162,7 @@ impl CliCommand for ApplyCommand {
                             .map_err(WalkOverPackageFilesContentError::FolderAccess)
                             .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
 
-                        if apply_file(_self, package_folder, &mut stdout, &transform, file_path)? {
+                        if apply_file(_self, package_folder, &mut stdout, transforms, file_path)? {
                             any_applied = true;
                         };
                     }
@@ -134,7 +172,7 @@ impl CliCommand for ApplyCommand {
                         _self,
                         package_folder,
                         &mut stdout,
-                        &transform,
+                        transforms,
                         for_single_file.to_owned(),
                     )? {
                         any_applied = true;
@@ -142,78 +180,64 @@ impl CliCommand for ApplyCommand {
                 }
             }
 
-            Ok(any_applied)
+            return Ok(any_applied);
+
+            fn apply_file(
+                _self: &ApplyCommand,
+                package_folder: &Path,
+                mut stdout: impl Write,
+                transform: &CombinedPkgFileTransform,
+                file_path: PathBuf,
+            ) -> Result<bool, CommandDynError> {
+                let relative_path = file_path.strip_prefix(package_folder).unwrap_or(&file_path);
+
+                if !transform.is_applicable(relative_path.to_str().unwrap()) {
+                    return Ok(false);
+                }
+
+                let file =
+                    bundling::PkgGZipFile::open_fs_file_relative(package_folder, relative_path)
+                        .map_err(|err| WalkOverPackageFilesContentError::FileAccess {
+                            path: file_path.clone(),
+                            source: err,
+                        })
+                        .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
+
+                let pending_content = transform
+                    .transform(
+                        &file.filename, // No need to use file.to_native_path_string because in this case the file was read from the native package folder
+                        file.content.clone(),
+                    )
+                    .map_err(|err| {
+                        ApplyCommandError::ApplyTransforms(relative_path.display().to_string(), err)
+                    })?;
+
+                Ok(crate::pkg::utils::cmp_file_content_and_apply_with_log(
+                    &file_path,
+                    &file.filename,
+                    Some(file.content),
+                    pending_content,
+                    _self.check_only,
+                    &mut stdout,
+                )
+                .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?)
+            }
         }
 
-        fn apply_file(
+        fn apply_post_transforms(
             _self: &ApplyCommand,
             package_folder: &Path,
-            mut stdout: impl Write,
-            transform: &CombinedPkgFileTransform,
-            file_path: PathBuf,
+            transforms: &CombinedPkgFolderPostTransform,
         ) -> Result<bool, CommandDynError> {
-            let relative_path = file_path.strip_prefix(package_folder).unwrap_or(&file_path);
-
-            if !transform.is_applicable(relative_path.to_str().unwrap()) {
+            if transforms.is_empty() {
                 return Ok(false);
             }
 
-            let file = bundling::PkgGZipFile::open_fs_file_relative(package_folder, relative_path)
-                .map_err(|err| WalkOverPackageFilesContentError::FileAccess {
-                    path: file_path.clone(),
-                    source: err,
-                })
-                .map_err(ApplyCommandError::WalkOverPackageFilesContent)?;
-
-            let converted_content = transform
-                .transform(
-                    &file.filename, // No need to use file.to_native_path_string because in this case the file was read from the native package folder
-                    file.content.clone(),
-                )
-                .map_err(|err| {
-                    ApplyCommandError::ApplyTransforms(relative_path.display().to_string(), err)
-                })?;
-
-            if let Some(content) = converted_content {
-                if content != file.content {
-                    if _self.check_only {
-                        writeln!(stdout, "\tto be modified:\t{}", file.filename).unwrap();
-                    } else {
-                        std::fs::write(&file_path, content).map_err(|err| {
-                            ApplyCommandError::FileChangeAccessError(file_path, err)
-                        })?;
-
-                        writeln!(stdout, "\tmodified:\t{}", file.filename).unwrap();
-                    }
-
-                    return Ok(true);
-                }
-            } else {
-                if _self.check_only {
-                    writeln!(
-                        stdout,
-                        "{style}\tto be deleted:\t{}{style:#}",
-                        file.filename,
-                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
-                    )
-                    .unwrap();
-                } else {
-                    std::fs::remove_file(&file_path)
-                        .map_err(|err| ApplyCommandError::FileChangeAccessError(file_path, err))?;
-
-                    writeln!(
-                        stdout,
-                        "{style}\tdeleted:\t{}{style:#}",
-                        file.filename,
-                        style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
-                    )
-                    .unwrap();
-                }
-
-                return Ok(true);
+            if _self.file.is_some() {
+                Err("apply post transforms currently do not support the --file option")?
             }
 
-            Ok(false)
+            Ok(transforms.transform(package_folder, _self.check_only)?)
         }
     }
 }

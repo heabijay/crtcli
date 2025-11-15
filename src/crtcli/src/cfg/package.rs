@@ -1,4 +1,5 @@
-use crate::pkg::PkgApplyFeatures;
+use crate::pkg::transforms::PkgApplyFeatures;
+use crate::pkg::transforms::post::PkgApplyPostFeatures;
 use serde::Deserialize;
 use std::path::Path;
 use thiserror::Error;
@@ -7,7 +8,16 @@ pub const PKG_CONFIG_FILENAME: &str = "package.crtcli.toml";
 
 #[derive(Debug, Deserialize)]
 pub struct PkgConfig {
-    apply: PkgApplyFeatures,
+    apply: PkgConfigApply,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct PkgConfigApply {
+    #[serde(flatten)]
+    apply_features: PkgApplyFeatures,
+
+    #[serde(flatten)]
+    apply_post_features: PkgApplyPostFeatures,
 }
 
 #[derive(Debug, Error)]
@@ -20,7 +30,7 @@ pub enum PkgConfigError {
 }
 
 impl PkgConfig {
-    pub fn apply(&self) -> &PkgApplyFeatures {
+    pub fn apply(&self) -> &PkgConfigApply {
         &self.apply
     }
 
@@ -47,11 +57,40 @@ impl PkgConfig {
     }
 }
 
-pub fn combine_apply_features_from_args_and_config(
-    args_features: Option<&PkgApplyFeatures>,
-    pkg_config: Option<&PkgConfig>,
-) -> Option<PkgApplyFeatures> {
-    args_features
-        .map(|c| c.combine(pkg_config.map(|c| c.apply())))
-        .or_else(|| pkg_config.map(|c| c.apply().clone()))
+impl PkgConfigApply {
+    pub fn apply(&self) -> &PkgApplyFeatures {
+        &self.apply_features
+    }
+
+    pub fn apply_post(&self) -> &PkgApplyPostFeatures {
+        &self.apply_post_features
+    }
+
+    pub fn combine(&self, other: Option<&PkgConfigApply>) -> PkgConfigApply {
+        PkgConfigApply {
+            apply_features: self
+                .apply_features
+                .combine(other.map(|x| &x.apply_features)),
+            apply_post_features: self
+                .apply_post_features
+                .combine(other.map(|x| &x.apply_post_features)),
+        }
+    }
+}
+
+pub fn combine_apply_config_from_args_and_config(
+    (arg_features, arg_post_features): (Option<&PkgApplyFeatures>, Option<&PkgApplyPostFeatures>),
+    pkg_config: Option<&PkgConfigApply>,
+) -> Option<PkgConfigApply> {
+    if arg_features.is_none() && arg_post_features.is_none() && pkg_config.is_none() {
+        return None;
+    }
+
+    Some(
+        PkgConfigApply {
+            apply_features: arg_features.map(|x| x.to_owned()).unwrap_or_default(),
+            apply_post_features: arg_post_features.map(|x| x.to_owned()).unwrap_or_default(),
+        }
+        .combine(pkg_config),
+    )
 }

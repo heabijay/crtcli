@@ -1,5 +1,6 @@
 use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::bundling::extractor::*;
+use crate::pkg::transforms::post::{CombinedPkgFolderPostTransformError, PkgFolderPostTransform};
 use clap::Args;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -19,7 +20,10 @@ pub struct UnpackAllCommand {
     merge: bool,
 
     #[command(flatten)]
-    apply_features: crate::pkg::PkgApplyFeatures,
+    apply_features: crate::pkg::transforms::PkgApplyFeatures,
+
+    #[command(flatten)]
+    apply_post_features: crate::pkg::transforms::post::PkgApplyPostFeatures,
 }
 
 #[derive(Error, Debug)]
@@ -32,6 +36,9 @@ enum UnpackAllCommandError {
 
     #[error("{0}")]
     ExtractZipPackage(#[from] ExtractZipPackageError),
+
+    #[error("failed to apply post transforms for package folder {0}: {1}")]
+    ApplyPostTransforms(PathBuf, #[source] CombinedPkgFolderPostTransformError),
 }
 
 impl CliCommand for UnpackAllCommand {
@@ -60,8 +67,16 @@ impl CliCommand for UnpackAllCommand {
             })
             .with_transform(self.apply_features.build_combined_transform());
 
-        extract_zip_package_to_folder(file, &destination_folder, &config)
+        let package_folders = extract_zip_package_to_folder(file, &destination_folder, &config)
             .map_err(UnpackAllCommandError::ExtractZipPackage)?;
+
+        let post_transforms = self.apply_post_features.build_combined_transform();
+
+        for package_folder in package_folders {
+            post_transforms
+                .transform(&package_folder, false)
+                .map_err(|err| UnpackAllCommandError::ApplyPostTransforms(package_folder, err))?;
+        }
 
         println!("{}", destination_folder.display());
 

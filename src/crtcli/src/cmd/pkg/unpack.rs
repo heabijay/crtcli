@@ -1,7 +1,8 @@
 use crate::cfg::PkgConfig;
-use crate::cfg::package::combine_apply_features_from_args_and_config;
+use crate::cfg::package::combine_apply_config_from_args_and_config;
 use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::bundling::extractor::*;
+use crate::pkg::transforms::post::PkgFolderPostTransform;
 use clap::Args;
 use std::io::{Seek, SeekFrom};
 use std::path::PathBuf;
@@ -27,7 +28,10 @@ pub struct UnpackCommand {
     merge: bool,
 
     #[command(flatten)]
-    apply_features: Option<crate::pkg::PkgApplyFeatures>,
+    apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
+
+    #[command(flatten)]
+    apply_post_features: Option<crate::pkg::transforms::post::PkgApplyPostFeatures>,
 }
 
 #[derive(Error, Debug)]
@@ -77,9 +81,12 @@ impl CliCommand for UnpackCommand {
 
         let pkg_config = PkgConfig::from_package_folder(&destination_folder)?;
 
-        let apply_features = combine_apply_features_from_args_and_config(
-            self.apply_features.as_ref(),
-            pkg_config.as_ref(),
+        let apply_config = combine_apply_config_from_args_and_config(
+            (
+                self.apply_features.as_ref(),
+                self.apply_post_features.as_ref(),
+            ),
+            pkg_config.as_ref().map(|x| x.apply()),
         )
         .unwrap_or_default();
 
@@ -88,7 +95,7 @@ impl CliCommand for UnpackCommand {
                 true => FilesAlreadyExistsInFolderStrategy::SmartMerge,
                 false => FilesAlreadyExistsInFolderStrategy::ThrowError,
             })
-            .with_transform(apply_features.build_combined_transform());
+            .with_transform(apply_config.apply().build_combined_transform());
 
         let mut file = std::fs::File::open(self.package_filepath)
             .map_err(UnpackCommandError::ReadPackageFile)?;
@@ -132,6 +139,11 @@ impl CliCommand for UnpackCommand {
                 Err(UnpackCommandError::ExtractAsSingleZipPackage(zip_result.unwrap_err()).into())
             };
         }
+
+        apply_config
+            .apply_post()
+            .build_combined_transform()
+            .transform(&destination_folder, false)?;
 
         println!("{}", destination_folder.display());
 

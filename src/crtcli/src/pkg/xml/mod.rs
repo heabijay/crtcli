@@ -8,7 +8,7 @@ pub mod csproj;
 pub mod resource;
 
 #[cfg(test)]
-mod tests;
+mod tests_data;
 
 #[derive(Debug)]
 struct EventBlocks<'a> {
@@ -44,6 +44,25 @@ fn xml_read_event_blocks<'a>(
                 return Ok((event_blocks, e));
             }
             e => event_blocks.push(xml_read_event_block(reader, e)?),
+        }
+    }
+}
+
+fn xml_skip_event_blocks(reader: &mut Reader<&[u8]>) -> Result<(), XmlReadEventBlockError> {
+    let mut depth = 0;
+
+    loop {
+        match reader.read_event()? {
+            Event::Start(_) => depth += 1,
+            Event::End(_) => {
+                depth -= 1;
+
+                if depth < 0 {
+                    return Ok(());
+                }
+            }
+            Event::Eof => return Err(XmlReadEventBlockError::UnexpectedEof),
+            _ => {}
         }
     }
 }
