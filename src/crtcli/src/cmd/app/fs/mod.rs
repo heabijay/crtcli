@@ -47,9 +47,14 @@ fn print_fs_sync_result(result: &FileSystemSynchronizationResultResponse) {
         for package in &result.changes {
             writeln!(
                 stdout,
-                "Package {bold}{name}{bold:#} - {state:?}:",
+                "Package {bold}{name}{bold:#} {state}{colon}",
                 name = package.workspace_item.name,
-                state = package.workspace_item.state
+                state = package
+                    .workspace_item
+                    .state
+                    .to_string()
+                    .to_ascii_lowercase(),
+                colon = if package.items.is_empty() { "" } else { ":" }
             )
             .unwrap();
 

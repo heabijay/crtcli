@@ -3,6 +3,7 @@ use crate::app::{CrtRequestBuilderExt, StandardServiceError, StandardServiceResp
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::fmt::{Debug, Display};
 
 pub struct AppInstallerService<'c>(&'c CrtClient);
 
@@ -199,6 +200,15 @@ pub enum FileSystemSynchronizationObjectState {
     Conflicted = 5,
 }
 
+impl Display for FileSystemSynchronizationObjectState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::NotChanged => write!(f, "Not changed"),
+            _ => Debug::fmt(&self, f),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum FileSystemSynchronizationObjectType {
     Package = 0,
@@ -209,6 +219,12 @@ pub enum FileSystemSynchronizationObjectType {
     CoreResource = 5,
     SchemaResource = 6,
     FileContent = 7,
+}
+
+impl Display for FileSystemSynchronizationObjectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self, f)
+    }
 }
 
 impl FileSystemSynchronizationObjectType {
