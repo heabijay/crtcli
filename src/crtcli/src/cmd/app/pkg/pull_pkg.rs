@@ -77,7 +77,18 @@ impl TryFrom<&str> for PackageDestinationArg {
         let (package_name, destination_folder) = value
             .split_once(":")
             .map(|(package_name, destination_folder)| {
-                (package_name.trim(), destination_folder.trim())
+                let package_name = package_name.trim();
+                let destination_folder = destination_folder.trim();
+
+                // For syntax like `UsrPackage:` -> 'UsrPackage to ./UsrPackage folder'
+                let destination_folder =
+                    if destination_folder.is_empty() && !package_name.is_empty() {
+                        package_name
+                    } else {
+                        destination_folder
+                    };
+
+                (package_name, destination_folder)
             })
             .unwrap_or((value, ""));
 

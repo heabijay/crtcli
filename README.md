@@ -605,7 +605,14 @@ but faster due to in memory processing, merging only changes and more feature-ri
 
   Defaults: 
   - Package: Tries to determine package name from destination folder (From file ./descriptor.json)
-  - Destination: Current directory
+  - Destination: Current directory if not specified, or the folder with the same name as the package if left empty. 
+  
+  Examples:
+  - `UsrPackage` means "UsrPackage" to current folder.
+  - `UsrPackage:.` means "UsrPackage" to current folder.
+  - `UsrPackage:` means "UsrPackage" to "./UsrPackage" folder (e.g. destination is empty).
+  - `UsrPackage:/repos/UsrPackage` means "UsrPackage" to "/repos/UsrPackage" folder.
+  - `:./repos/UsrPackage` means "UsrPackage" (inferred from the destination folder) to "./repos/UsrPackage" folder.
 
 **Options:**
 
@@ -622,6 +629,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 - `crtcli app pkg pull` — Downloads the package from the current directory from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app pkg pull UsrPackage2` — Downloads the 'UsrPackage2' package from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
+
+- `crtcli app https://customer-dev.creatio.com -i pkg pull UsrPackage1: UsrPackage2:` — Downloads the 'UsrPackage1' and 'UsrPackage2 'packages from insecure Creatio 'https://customer-dev.creatio.com' using Supervisor:Supervisor credentials, and unpacks them into the './UsrPackage1' and './UsrPackage2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app pkg pull UsrPackage3:/repos/Pkg3 UsrPackage2:/repos/Pkg2` — Downloads the 'UsrPackage3' and 'UsrPackage2' packages from the default Creatio instance and unpacks them into the '/repos/Pkg3' and '/repos/Pkg2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 

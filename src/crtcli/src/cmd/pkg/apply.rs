@@ -72,7 +72,7 @@ impl CliCommand for ApplyCommand {
         for package_folder in packages_folders {
             if packages_folders.len() > 1 {
                 println!(
-                    "{verb} {bold}{package_folder}{bold:#}:",
+                    "  {verb} {bold}{package_folder}{bold:#}...",
                     verb = if self.check_only {
                         "Checking"
                     } else {
