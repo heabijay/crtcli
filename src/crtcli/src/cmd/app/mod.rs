@@ -435,8 +435,6 @@ impl AppCommandArgs {
             }
 
             let bold = Style::new().bold();
-            let bold_underline = Style::new().bold().underline();
-            let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
 
             eprintln!(
                 "{red_bold}error:{red_bold:#} the following required arguments were not provided:",
@@ -445,7 +443,10 @@ impl AppCommandArgs {
                     .bold(),
             );
 
-            eprintln!("  {green}[URL/APP]{green:#}");
+            eprintln!(
+                "  {green}[URL/APP]{green:#}",
+                green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)))
+            );
 
             eprintln!();
             eprintln!("You can specify the app using one of the following methods:");
@@ -457,7 +458,8 @@ impl AppCommandArgs {
 
             eprintln!();
             eprintln!(
-                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} [URL/APP] [USERNAME] [PASSWORD] [COMMAND]"
+                "{bold_underline}Usage:{bold_underline:#} {bold}crtcli app{bold:#} [URL/APP] [USERNAME] [PASSWORD] [COMMAND]",
+                bold_underline = Style::new().bold().underline(),
             );
             eprintln!();
             eprintln!("For more information, try '{bold}crtcli app --help{bold:#}'.");

@@ -1,14 +1,15 @@
 use crate::app::CrtClient;
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
-use crate::pkg::utils::get_package_name_from_current_dir;
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use anstyle::Style;
 use clap::Args;
 use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct LockPkgCommand {
-    /// A space-separated or comma-separated list of package names
+    /// A space-separated or comma-separated list of package names (default: packages names from ./workspace.crtcli.toml or ./descriptor.json)
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     package_names: Vec<String>,
 }
@@ -16,7 +17,11 @@ pub struct LockPkgCommand {
 impl AppCommand for LockPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let package_names = if self.package_names.is_empty() {
-            &vec![get_package_name_from_current_dir()?]
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.package_name().map(|x| x.into_owned()))
+                .collect::<Result<Vec<String>, _>>()?
         } else {
             &self.package_names
         };

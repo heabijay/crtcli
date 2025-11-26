@@ -1,7 +1,9 @@
 use crate::app::CrtClient;
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::fs::prepare_pkg_fs_folder;
 use crate::cmd::cli::CommandResult;
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use crate::pkg::utils::get_package_name_from_folder;
 use clap::Args;
 use std::path::PathBuf;
@@ -9,7 +11,7 @@ use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct PushPkgFsCommand {
-    /// Packages folders where package was already pulled previously (default: current directory)
+    /// Packages folders where package was already pulled previously (default: packages folders from ./workspace.crtcli.toml or current directory)
     /// (Sample: Terrasoft.Configuration/Pkg/.../)
     #[arg(long = "package-folder", value_hint = clap::ValueHint::DirPath)]
     packages_folders: Vec<PathBuf>,
@@ -26,7 +28,11 @@ pub struct PushPkgFsCommand {
 impl AppCommand for PushPkgFsCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let packages_folders = if self.packages_folders.is_empty() {
-            &vec![PathBuf::from(".")]
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.path().to_path_buf())
+                .collect()
         } else {
             &self.packages_folders
         };

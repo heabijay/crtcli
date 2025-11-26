@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-pub const DOT_CONFIG_FILENAME: &str = ".crtcli.toml";
+const DOT_CONFIG_FILENAME: &str = ".crtcli.toml";
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct DotConfig {

@@ -1,6 +1,7 @@
-use crate::cfg::PkgConfig;
 use crate::cfg::package::combine_apply_config_from_args_and_config;
+use crate::cfg::{PkgConfig, WorkspaceConfig};
 use crate::cmd::cli::{CliCommand, CommandDynError, CommandResult};
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use crate::pkg::bundling;
 use crate::pkg::transforms::post::{
     CombinedPkgFolderPostTransform, CombinedPkgFolderPostTransformError, PkgApplyPostFeatures,
@@ -19,7 +20,7 @@ use thiserror::Error;
 
 #[derive(Debug, Args)]
 pub struct ApplyCommand {
-    /// Paths to the packages folders (default: current directory)
+    /// Paths to the packages folders (default: packages folders from ./workspace.crtcli.toml or current directory)
     #[arg(value_hint = clap::ValueHint::DirPath)]
     pub packages_folders: Vec<PathBuf>,
 
@@ -65,7 +66,11 @@ enum ApplyCommandError {
 impl CliCommand for ApplyCommand {
     fn run(self) -> CommandResult {
         let packages_folders = if self.packages_folders.is_empty() {
-            &vec![PathBuf::from(".")]
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.path().to_path_buf())
+                .collect()
         } else {
             &self.packages_folders
         };

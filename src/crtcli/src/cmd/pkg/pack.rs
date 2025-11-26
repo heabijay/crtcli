@@ -1,4 +1,6 @@
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::cli::{CliCommand, CommandResult};
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use crate::pkg::bundling::packer::*;
 use clap::{Args, ValueEnum};
 use std::path::PathBuf;
@@ -7,7 +9,7 @@ use zip::CompressionMethod;
 
 #[derive(Debug, Args)]
 pub struct PackCommand {
-    /// Source folders containing packages to be packaged (default: current directory)
+    /// Source folders containing packages to be packaged (default: packages folders from ./workspace.crtcli.toml or current directory)
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
     packages_folders: Vec<PathBuf>,
 
@@ -55,7 +57,11 @@ enum PackCommandError {
 impl CliCommand for PackCommand {
     fn run(self) -> CommandResult {
         let packages_folders = if self.packages_folders.is_empty() {
-            &vec![PathBuf::from(".")]
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.path().to_path_buf())
+                .collect()
         } else {
             &self.packages_folders
         };
