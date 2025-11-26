@@ -36,18 +36,24 @@ pub enum CsprojPkgRefsRegeneratePkgFolderPostTransformError {
 impl PkgFolderPostTransform for CsprojPkgRefsRegeneratePkgFolderPostTransform {
     type Error = CsprojPkgRefsRegeneratePkgFolderPostTransformError;
 
-    fn transform(&self, pkg_folder: &Path, check_only: bool) -> Result<bool, Self::Error> {
+    fn transform(
+        &self,
+        pkg_folder: &Path,
+        check_only: bool,
+        mut stdout: impl std::io::Write,
+    ) -> Result<bool, Self::Error> {
         let descriptor = PkgPackageDescriptorJsonWrapper::from(PkgJsonWrapper::from_file(
             &pkg_folder.join(paths::PKG_DESCRIPTOR_FILE),
         )?);
 
         let Some(project_path) = descriptor.project_path() else {
-            println!(
+            writeln!(
+                stdout,
                 "{style}warning: $.Descriptor.ProjectPath value was not found in descriptor.json. Skipping csproj pkg refs regeneration{style:#}",
                 style = Style::new()
                     .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
                     .dimmed(),
-            );
+            ).unwrap();
 
             return Ok(false);
         };
@@ -85,13 +91,13 @@ impl PkgFolderPostTransform for CsprojPkgRefsRegeneratePkgFolderPostTransform {
             Ok(false)
         } else {
             if check_only {
-                println!("\tto regenerate:\t{}", project_path);
+                writeln!(stdout, "\tto regenerate:\t{}", project_path).unwrap();
             } else {
                 std::fs::write(&csproj_path, result_content).map_err(|err| {
                     CsprojPkgRefsRegeneratePkgFolderPostTransformError::Write(csproj_path, err)
                 })?;
 
-                println!("\tregenerated:\t{}", project_path);
+                writeln!(stdout, "\tregenerated:\t{}", project_path).unwrap();
             }
 
             Ok(true)

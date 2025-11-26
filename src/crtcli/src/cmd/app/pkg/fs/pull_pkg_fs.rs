@@ -49,6 +49,7 @@ impl AppCommand for PullPkgFsCommand {
             apply_features: self.apply_features.clone(),
             apply_post_features: self.apply_post_features.clone(),
             check_only: false,
+            nothing_to_do_message_disabled: true,
             no_feature_present_warning_disabled: true,
         }
         .run()?;

@@ -1,6 +1,7 @@
 use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::bundling::extractor::*;
 use crate::pkg::transforms::post::{CombinedPkgFolderPostTransformError, PkgFolderPostTransform};
+use anstream::stderr;
 use clap::Args;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -74,7 +75,7 @@ impl CliCommand for UnpackAllCommand {
 
         for package_folder in package_folders {
             post_transforms
-                .transform(&package_folder, false)
+                .transform(&package_folder, false, stderr())
                 .map_err(|err| UnpackAllCommandError::ApplyPostTransforms(package_folder, err))?;
         }
 

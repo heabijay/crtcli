@@ -380,7 +380,7 @@ impl AppCommand for TunnelCommand {
                         if let Some(Ok(event::Event::Key(key_event))) = event_stream.next().await
                             && is_close_event(key_event)
                         {
-                            let _ = cancellation_token.cancel();
+                            cancellation_token.cancel();
                             break;
                         }
 
@@ -453,7 +453,7 @@ impl AppCommand for TunnelCommand {
             let (mut tcp_read, mut tcp_write) = tokio::io::split(tcp_stream);
             let (mut ws_write, mut ws_read) = websocket.split();
 
-            let _ = tokio::select! {
+            tokio::select! {
                 _ = forward_tcp_to_ws(&mut tcp_read, &mut ws_write, &connection_context) => {},
                 _ = forward_ws_to_tcp(&mut ws_read, &mut tcp_write, &connection_context) => {},
             };

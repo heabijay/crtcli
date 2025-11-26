@@ -228,7 +228,7 @@ pub fn cmp_file_content_and_apply_with_log(
     source_content: Option<Vec<u8>>,
     pending_content: Option<Vec<u8>>,
     check_only: bool,
-    stdout: &mut impl Write,
+    mut stdout: impl Write,
 ) -> Result<bool, std::io::Error> {
     match (source_content, pending_content) {
         (Some(source_content), Some(pending_content)) if source_content != pending_content => {

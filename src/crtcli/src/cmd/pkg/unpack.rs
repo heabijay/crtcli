@@ -3,6 +3,7 @@ use crate::cfg::package::combine_apply_config_from_args_and_config;
 use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::bundling::extractor::*;
 use crate::pkg::transforms::post::PkgFolderPostTransform;
+use anstream::stderr;
 use clap::Args;
 use std::io::{Seek, SeekFrom};
 use std::path::PathBuf;
@@ -143,7 +144,7 @@ impl CliCommand for UnpackCommand {
         apply_config
             .apply_post()
             .build_combined_transform()
-            .transform(&destination_folder, false)?;
+            .transform(&destination_folder, false, stderr())?;
 
         println!("{}", destination_folder.display());
 

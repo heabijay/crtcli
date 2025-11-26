@@ -12,5 +12,10 @@ use std::path::Path;
 pub trait PkgFolderPostTransform {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    fn transform(&self, pkg_folder: &Path, check_only: bool) -> Result<bool, Self::Error>;
+    fn transform(
+        &self,
+        pkg_folder: &Path,
+        check_only: bool,
+        stdout: impl std::io::Write,
+    ) -> Result<bool, Self::Error>;
 }

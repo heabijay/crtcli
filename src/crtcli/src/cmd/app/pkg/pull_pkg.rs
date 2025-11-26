@@ -7,6 +7,7 @@ use crate::cmd::cli::CommandResult;
 use crate::pkg::bundling::extractor::*;
 use crate::pkg::transforms::post::PkgFolderPostTransform;
 use crate::pkg::utils::{get_package_name_from_current_dir, get_package_name_from_folder};
+use anstream::stderr;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use clap::builder::{ValueParser, ValueParserFactory};
@@ -215,7 +216,7 @@ impl AppCommand for PullPkgCommand {
             apply_config
                 .apply_post()
                 .build_combined_transform()
-                .transform(&package_map.destination_folder, false)?;
+                .transform(&package_map.destination_folder, false, stderr())?;
         }
 
         spinner!(

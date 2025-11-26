@@ -38,6 +38,9 @@ pub struct ApplyCommand {
     pub check_only: bool,
 
     #[clap(skip)]
+    pub nothing_to_do_message_disabled: bool,
+
+    #[clap(skip)]
     pub no_feature_present_warning_disabled: bool,
 }
 
@@ -68,29 +71,24 @@ impl CliCommand for ApplyCommand {
         };
 
         let mut any_applied = false;
+        let mut stdout = stdout().lock();
 
         for package_folder in packages_folders {
-            if packages_folders.len() > 1 {
-                println!(
-                    "  {verb} {bold}{package_folder}{bold:#}...",
-                    verb = if self.check_only {
-                        "Checking"
-                    } else {
-                        "Applying"
-                    },
-                    package_folder = package_folder.display(),
-                    bold = Style::new().bold(),
-                )
+            let mut stdout_wrapper = CurrentPackagePrinterStdoutWrapper::new(
+                &mut stdout,
+                packages_folders,
+                package_folder,
+                self.check_only,
+                !self.nothing_to_do_message_disabled,
+            );
+
+            if apply_package_folder(&self, package_folder, &mut stdout_wrapper)? {
+                any_applied = true;
+            } else {
+                stdout_wrapper.try_print_nothing_to_do();
             }
 
-            if apply_package_folder(&self, package_folder)? {
-                any_applied = true;
-            } else if packages_folders.len() > 1 {
-                println!(
-                    "\t{style}— Nothing to do —{style:#}",
-                    style = Style::new().italic().dimmed()
-                );
-            }
+            stdout_wrapper.graceful_drop();
         }
 
         if self.check_only && any_applied {
@@ -102,6 +100,7 @@ impl CliCommand for ApplyCommand {
         fn apply_package_folder(
             _self: &ApplyCommand,
             package_folder: &Path,
+            mut stdout: impl Write,
         ) -> Result<bool, CommandDynError> {
             let pkg_config = PkgConfig::from_package_folder(package_folder)?;
 
@@ -117,12 +116,14 @@ impl CliCommand for ApplyCommand {
                 Some(f) => f,
                 None if _self.no_feature_present_warning_disabled => return Ok(false),
                 None => {
-                    println!(
+                    writeln!(
+                        stdout,
                         "{style}warning: no feature is present, please use an option like --apply-sorting to do something{style:#}",
                         style = Style::new()
                             .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
                             .dimmed(),
-                    );
+                    ).unwrap();
+
                     return Ok(false);
                 }
             };
@@ -132,11 +133,11 @@ impl CliCommand for ApplyCommand {
 
             let mut any_applied = false;
 
-            if apply_file_based_transforms(_self, package_folder, &transforms)? {
+            if apply_file_based_transforms(_self, package_folder, &mut stdout, &transforms)? {
                 any_applied = true;
             }
 
-            if apply_post_transforms(_self, package_folder, &post_transforms)? {
+            if apply_post_transforms(_self, package_folder, &mut stdout, &post_transforms)? {
                 any_applied = true;
             }
 
@@ -146,13 +147,13 @@ impl CliCommand for ApplyCommand {
         fn apply_file_based_transforms(
             _self: &ApplyCommand,
             package_folder: &Path,
+            mut stdout: impl Write,
             transforms: &CombinedPkgFileTransform,
         ) -> Result<bool, CommandDynError> {
             if transforms.is_empty() {
                 return Ok(false);
             }
 
-            let mut stdout = stdout().lock();
             let mut any_applied = false;
 
             match &_self.file {
@@ -227,6 +228,7 @@ impl CliCommand for ApplyCommand {
         fn apply_post_transforms(
             _self: &ApplyCommand,
             package_folder: &Path,
+            stdout: impl Write,
             transforms: &CombinedPkgFolderPostTransform,
         ) -> Result<bool, CommandDynError> {
             if transforms.is_empty() {
@@ -237,7 +239,126 @@ impl CliCommand for ApplyCommand {
                 Err("apply post transforms currently do not support the --file option")?
             }
 
-            Ok(transforms.transform(package_folder, _self.check_only)?)
+            Ok(transforms.transform(package_folder, _self.check_only, stdout)?)
+        }
+    }
+}
+
+struct CurrentPackagePrinterStdoutWrapper<'a, W>
+where
+    W: Write,
+{
+    inner: W,
+    package_folder: &'a Path,
+    packages_folders: &'a Vec<PathBuf>,
+    should_check_only: bool,
+    should_print_nothing_to_do: bool,
+
+    _package_title_printed: bool,
+    _graceful_drop_submitted: bool,
+}
+
+impl<W> CurrentPackagePrinterStdoutWrapper<'_, W>
+where
+    W: Write,
+{
+    fn new<'a>(
+        inner: W,
+        packages_folders: &'a Vec<PathBuf>,
+        package_folder: &'a Path,
+        should_check_only: bool,
+        should_print_nothing_to_do: bool,
+    ) -> CurrentPackagePrinterStdoutWrapper<'a, W> {
+        let mut wrapper = CurrentPackagePrinterStdoutWrapper {
+            inner,
+            packages_folders,
+            package_folder,
+            should_check_only,
+            should_print_nothing_to_do,
+            _graceful_drop_submitted: false,
+            _package_title_printed: false,
+        };
+
+        if should_print_nothing_to_do {
+            wrapper.try_print_package_title();
+        }
+
+        wrapper
+    }
+
+    fn try_print_package_title(&mut self) -> bool {
+        if self.packages_folders.len() <= 1 {
+            return false;
+        }
+
+        if self._package_title_printed {
+            return false;
+        }
+
+        writeln!(
+            self.inner,
+            "  {verb} {bold}{package_folder}{bold:#}...",
+            verb = if self.should_check_only {
+                "Checking"
+            } else {
+                "Applying"
+            },
+            package_folder = self.package_folder.display(),
+            bold = Style::new().bold(),
+        )
+        .unwrap();
+
+        self._package_title_printed = true;
+
+        true
+    }
+
+    pub fn try_print_nothing_to_do(&mut self) -> bool {
+        if self.packages_folders.len() <= 1 {
+            return false;
+        }
+
+        if !self.should_print_nothing_to_do {
+            return false;
+        }
+
+        writeln!(
+            self.inner,
+            "\t{style}— Nothing to do —{style:#}",
+            style = Style::new().italic().dimmed()
+        )
+        .unwrap();
+
+        true
+    }
+
+    pub fn graceful_drop(&mut self) {
+        self._graceful_drop_submitted = true;
+    }
+}
+
+impl<W> Write for CurrentPackagePrinterStdoutWrapper<'_, W>
+where
+    W: Write,
+{
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.try_print_package_title();
+
+        self.inner.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+impl<W> Drop for CurrentPackagePrinterStdoutWrapper<'_, W>
+where
+    W: Write,
+{
+    fn drop(&mut self) {
+        if !self._graceful_drop_submitted {
+            self.try_print_package_title();
         }
     }
 }

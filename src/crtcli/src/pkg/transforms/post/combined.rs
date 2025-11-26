@@ -26,11 +26,16 @@ impl CombinedPkgFolderPostTransform {
 impl PkgFolderPostTransform for CombinedPkgFolderPostTransform {
     type Error = CombinedPkgFolderPostTransformError;
 
-    fn transform(&self, pkg_folder: &Path, check_only: bool) -> Result<bool, Self::Error> {
+    fn transform(
+        &self,
+        pkg_folder: &Path,
+        check_only: bool,
+        mut stdout: impl std::io::Write,
+    ) -> Result<bool, Self::Error> {
         let mut any_applied = false;
 
         for transform in &self.transforms {
-            if transform.transform_dyn(pkg_folder, check_only)? {
+            if transform.transform_dyn(pkg_folder, check_only, &mut stdout)? {
                 any_applied = true;
             }
         }
@@ -73,6 +78,7 @@ trait DynPkgFolderPostTransform {
         &self,
         pkg_folder: &Path,
         check_only: bool,
+        stdout: &'_ mut dyn std::io::Write,
     ) -> Result<bool, Box<dyn Error + Send + Sync>>;
 }
 
@@ -84,8 +90,9 @@ where
         &self,
         pkg_folder: &Path,
         check_only: bool,
+        stdout: &'_ mut dyn std::io::Write,
     ) -> Result<bool, Box<dyn Error + Send + Sync>> {
-        self.transform(pkg_folder, check_only)
+        self.transform(pkg_folder, check_only, stdout)
             .map_err(|e| Box::new(e) as _)
     }
 }
