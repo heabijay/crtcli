@@ -3,7 +3,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::app::fs::print_fs_sync_result;
 use crate::cmd::cli::CommandResult;
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use std::sync::Arc;
 
@@ -14,7 +13,6 @@ pub struct PullFsCommand {
     pub packages: Vec<String>,
 }
 
-#[async_trait]
 impl AppCommand for PullFsCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let bold = Style::new().bold();

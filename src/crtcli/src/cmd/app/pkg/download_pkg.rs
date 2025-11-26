@@ -3,7 +3,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use crate::pkg::utils::get_package_name_from_current_dir;
 use anstyle::Style;
-use async_trait::async_trait;
 use clap::Args;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -24,7 +23,6 @@ pub struct DownloadPkgCommand {
     output: Option<PathBuf>,
 }
 
-#[async_trait]
 impl AppCommand for DownloadPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let output_path = match &self.output {

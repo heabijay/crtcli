@@ -2,7 +2,6 @@ use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use crate::pkg::utils::GetPackageNameFromFolderError;
-use async_trait::async_trait;
 use clap::Subcommand;
 use std::sync::Arc;
 use thiserror::Error;
@@ -60,7 +59,6 @@ pub enum PkgCommands {
     Unlock(unlock_pkg::UnlockPkgCommand),
 }
 
-#[async_trait]
 impl AppCommand for PkgCommands {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         match self {

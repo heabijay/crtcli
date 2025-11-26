@@ -5,7 +5,6 @@ use crate::cmd::app::pkg::install_pkg::*;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use crate::pkg::bundling::packer::*;
 use crate::pkg::utils::get_package_name_from_folder;
-use async_trait::async_trait;
 use clap::Args;
 use flate2::Compression;
 use std::io::Cursor;
@@ -38,7 +37,6 @@ pub enum PushPkgCommandError {
     InstallPackage(#[from] InstallPkgCommandError),
 }
 
-#[async_trait]
 impl AppCommand for PushPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let source_folder: &[PathBuf] = if self.source_folders.is_empty() {

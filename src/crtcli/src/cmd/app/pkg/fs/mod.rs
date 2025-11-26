@@ -1,7 +1,6 @@
 use crate::app::CrtClient;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
-use async_trait::async_trait;
 use clap::Subcommand;
 use std::path::Path;
 use std::sync::Arc;
@@ -21,7 +20,6 @@ pub enum PkgFsCommands {
     Push(push_pkg_fs::PushPkgFsCommand),
 }
 
-#[async_trait]
 impl AppCommand for PkgFsCommands {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         match self {

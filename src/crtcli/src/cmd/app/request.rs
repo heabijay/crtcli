@@ -3,7 +3,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use anstream::{stderr, stdout};
 use anstyle::Style;
-use async_trait::async_trait;
 use clap::Args;
 use clap::builder::{ValueParser, ValueParserFactory};
 use reqwest::Method;
@@ -99,7 +98,6 @@ impl RequestData {
     }
 }
 
-#[async_trait]
 impl AppCommand for RequestCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let url = self

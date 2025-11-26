@@ -3,7 +3,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use anstream::stdout;
 use anstyle::Style;
-use async_trait::async_trait;
 use clap::Args;
 use std::sync::Arc;
 
@@ -14,7 +13,6 @@ pub struct PkgsCommand {
     json: bool,
 }
 
-#[async_trait]
 impl AppCommand for PkgsCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let packages = client.workspace_explorer_service().get_packages().await?;

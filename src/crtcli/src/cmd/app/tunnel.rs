@@ -4,7 +4,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use crate::cmd::utils::{humanize_bytes, humanize_duration_time_precise};
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use clap::builder::{ValueParser, ValueParserFactory};
 use crossterm::event::EventStream;
@@ -121,7 +120,6 @@ impl ValueParserFactory for ForwardMappingArg {
     }
 }
 
-#[async_trait]
 impl AppCommand for TunnelCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         ensure_has_creatio_permissions(&client).await?;

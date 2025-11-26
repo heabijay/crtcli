@@ -20,7 +20,6 @@ use crate::cfg::DotConfig;
 use crate::cfg::dot::DotAppConfig;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::{Args, CommandFactory, Subcommand};
 use std::sync::Arc;
 
@@ -90,7 +89,6 @@ pub struct AppCommandArgs {
     clear_session_cache: bool,
 }
 
-#[async_trait]
 pub trait AppCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult;
 }

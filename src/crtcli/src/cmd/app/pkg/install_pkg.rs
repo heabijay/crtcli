@@ -2,7 +2,6 @@ use crate::app::{CrtClient, CrtClientError, InstallLogWatcherBuilder, InstallLog
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use std::io::{Cursor, Read, Seek, Write, stdin};
 use std::path::{Path, PathBuf};
@@ -83,7 +82,6 @@ enum BeforeInstallPkgCombineError {
     Zip(#[from] ZipError),
 }
 
-#[async_trait]
 impl AppCommand for InstallPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let (package_content, package_name) = if self.filepaths.len() == 1 {

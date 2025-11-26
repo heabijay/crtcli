@@ -3,7 +3,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use crate::pkg::utils::get_package_name_from_current_dir;
 use anstyle::Style;
-use async_trait::async_trait;
 use clap::Args;
 use std::sync::Arc;
 
@@ -14,7 +13,6 @@ pub struct LockPkgCommand {
     package_names: Vec<String>,
 }
 
-#[async_trait]
 impl AppCommand for LockPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let package_names = if self.package_names.is_empty() {

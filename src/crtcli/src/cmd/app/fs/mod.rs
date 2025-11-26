@@ -9,7 +9,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Subcommand;
 use std::io::Write;
 use std::sync::Arc;
@@ -26,7 +25,6 @@ pub enum FsCommands {
     Push(push_fs::PushFsCommand),
 }
 
-#[async_trait]
 impl AppCommand for FsCommands {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         match self {

@@ -3,7 +3,6 @@ use crate::app::sql::SqlRunner;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use anstyle::Style;
-use async_trait::async_trait;
 use clap::{Args, ValueEnum};
 use serde::Serialize;
 use std::io::{IsTerminal, Read, stdin};
@@ -35,7 +34,6 @@ enum SqlRunnerSelect {
     SqlConsole,
 }
 
-#[async_trait]
 impl AppCommand for SqlCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let sql = match (self.sql.as_ref(), self.file.as_ref()) {

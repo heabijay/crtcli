@@ -5,7 +5,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::cli::{CommandDynError, CommandResult};
 use anstream::stdout;
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use std::io::Write;
 use std::sync::Arc;
@@ -28,7 +27,6 @@ pub enum CompileCommandError {
     AppRestart(#[source] CommandDynError),
 }
 
-#[async_trait]
 impl AppCommand for CompileCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let progress = spinner_precise!(

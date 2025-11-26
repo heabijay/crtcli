@@ -2,7 +2,6 @@ use crate::app::{CrtClient, InstallLogWatcherBuilder, InstallLogWatcherEvent};
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use std::sync::Arc;
 
@@ -13,7 +12,6 @@ pub struct InstallLogCommand {
     watch: bool,
 }
 
-#[async_trait]
 impl AppCommand for InstallLogCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         if self.watch {

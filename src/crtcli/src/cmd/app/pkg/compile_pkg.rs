@@ -4,7 +4,6 @@ use crate::cmd::app::{AppCommand, print_build_response};
 use crate::cmd::cli::CommandResult;
 use crate::pkg::utils::get_package_name_from_current_dir;
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use std::error::Error;
 use std::sync::Arc;
@@ -31,7 +30,6 @@ pub enum CompilePkgCommandError {
     AppRestart(#[source] Box<dyn Error + Send + Sync>),
 }
 
-#[async_trait]
 impl AppCommand for CompilePkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let packages_names = if self.packages_names.is_empty() {

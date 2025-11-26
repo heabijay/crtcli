@@ -8,7 +8,6 @@ use crate::pkg::bundling::extractor::*;
 use crate::pkg::transforms::post::PkgFolderPostTransform;
 use crate::pkg::utils::{get_package_name_from_current_dir, get_package_name_from_folder};
 use anstyle::{AnsiColor, Color, Style};
-use async_trait::async_trait;
 use clap::Args;
 use clap::builder::{ValueParser, ValueParserFactory};
 use std::path::PathBuf;
@@ -126,7 +125,6 @@ impl ValueParserFactory for PackageDestinationArg {
     }
 }
 
-#[async_trait]
 impl AppCommand for PullPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let current_dir = PathBuf::from(".");

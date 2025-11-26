@@ -3,7 +3,6 @@ use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::fs::prepare_pkg_fs_folder;
 use crate::cmd::cli::{CliCommand, CommandResult};
 use crate::pkg::utils::get_package_name_from_folder;
-use async_trait::async_trait;
 use clap::Args;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,7 +21,6 @@ pub struct PullPkgFsCommand {
     apply_post_features: Option<crate::pkg::transforms::post::PkgApplyPostFeatures>,
 }
 
-#[async_trait]
 impl AppCommand for PullPkgFsCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let packages_folders = if self.packages_folders.is_empty() {
