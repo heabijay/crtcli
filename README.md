@@ -1377,7 +1377,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
 ### workspace.crtcli.toml
 
-The workspace.crtcli.toml file is an optional configuration file that allows you to use crtcli with multiple packages (package folders) at once, preserving idiomatic command syntax.
+The workspace.crtcli.toml file is an optional configuration file that allows you to easily use crtcli with multiple packages (package folders) at once, preserving idiomatic command syntax.
 
 Location: ./workspace.crtcli.toml in the current directory.
 
