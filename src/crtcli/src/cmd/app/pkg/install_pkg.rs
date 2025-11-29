@@ -297,7 +297,7 @@ where
 
     if options.compile_package {
         crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
-            packages_names: descriptors
+            package_names: descriptors
                 .iter()
                 .filter_map(|d| d.value.as_str().map(|s| s.to_owned()))
                 .collect(),

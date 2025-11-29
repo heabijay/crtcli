@@ -1,4 +1,6 @@
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::cli::{CliCommand, CommandResult};
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use crate::pkg::bundling::packer::*;
 use clap::{Args, ValueEnum};
 use std::path::PathBuf;
@@ -7,9 +9,9 @@ use zip::CompressionMethod;
 
 #[derive(Debug, Args)]
 pub struct PackCommand {
-    /// Source folders containing packages to be packaged (default: current directory)
+    /// Source folders containing packages to be packaged (default: package folders from ./workspace.crtcli.toml or current directory)
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
-    packages_folders: Vec<PathBuf>,
+    package_folders: Vec<PathBuf>,
 
     /// Output path where the output package archive will be saved (default: current directory & auto-generated name)
     ///
@@ -54,10 +56,14 @@ enum PackCommandError {
 
 impl CliCommand for PackCommand {
     fn run(self) -> CommandResult {
-        let packages_folders = if self.packages_folders.is_empty() {
-            &vec![PathBuf::from(".")]
+        let package_folders = if self.package_folders.is_empty() {
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.path().to_path_buf())
+                .collect()
         } else {
-            &self.packages_folders
+            &self.package_folders
         };
 
         let output_path = match &self.output {
@@ -66,9 +72,9 @@ impl CliCommand for PackCommand {
         };
 
         let output_path = output_has_filename_or!(output_path, {
-            let filename = if packages_folders.len() == 1 {
+            let filename = if package_folders.len() == 1 {
                 let pkg_name =
-                    crate::pkg::utils::get_package_name_from_folder(&packages_folders[0])?;
+                    crate::pkg::utils::get_package_name_from_folder(&package_folders[0])?;
 
                 match self.format {
                     PackFormat::Gzip => &format!("{pkg_name}.gz"),
@@ -109,13 +115,13 @@ impl CliCommand for PackCommand {
 
         match self.format {
             PackFormat::Gzip => {
-                if packages_folders.len() > 1 {
+                if package_folders.len() > 1 {
                     Err(PackCommandError::MultiplePackagesIntoGzip)?
                 }
 
-                pack_gzip_package_from_folder(&packages_folders[0], file, gzip_config)?
+                pack_gzip_package_from_folder(&package_folders[0], file, gzip_config)?
             }
-            PackFormat::Zip => pack_zip_package_from_folders(packages_folders, file, &zip_config)?,
+            PackFormat::Zip => pack_zip_package_from_folders(package_folders, file, &zip_config)?,
         }
 
         println!("{}", output_path.display());

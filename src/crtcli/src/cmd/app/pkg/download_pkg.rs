@@ -1,7 +1,8 @@
 use crate::app::CrtClient;
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
-use crate::pkg::utils::get_package_name_from_current_dir;
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use anstyle::Style;
 use clap::Args;
 use std::path::PathBuf;
@@ -9,7 +10,7 @@ use std::sync::Arc;
 
 #[derive(Args, Debug)]
 pub struct DownloadPkgCommand {
-    /// A space-separated or comma-separated list of package names to download. Example: "CrtBase,CrtCore"
+    /// A space-separated or comma-separated list of package names to download. Example: "CrtBase,CrtCore" (default: packages names from ./workspace.crtcli.toml or ./descriptor.json)
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
     packages: Vec<String>,
 
@@ -31,7 +32,11 @@ impl AppCommand for DownloadPkgCommand {
         };
 
         let packages = if self.packages.is_empty() {
-            &vec![get_package_name_from_current_dir()?]
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.package_name().map(|x| x.into_owned()))
+                .collect::<Result<Vec<String>, _>>()?
         } else {
             &self.packages
         };

@@ -1,8 +1,9 @@
 use crate::app::CrtClient;
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::app;
 use crate::cmd::app::{AppCommand, print_build_response};
 use crate::cmd::cli::CommandResult;
-use crate::pkg::utils::get_package_name_from_current_dir;
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use std::error::Error;
@@ -11,9 +12,9 @@ use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct CompilePkgCommand {
-    /// A space-separated or comma-separated list of package names to compile (default: package name from ./descriptor.json)
+    /// A space-separated or comma-separated list of package names to compile (default: packages names from ./workspace.crtcli.toml or ./descriptor.json)
     #[arg(value_delimiter = ',', value_hint = clap::ValueHint::Other)]
-    pub packages_names: Vec<String>,
+    pub package_names: Vec<String>,
 
     /// Use Rebuild method instead of just Build
     #[arg(short = 'f', long)]
@@ -32,13 +33,17 @@ pub enum CompilePkgCommandError {
 
 impl AppCommand for CompilePkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
-        let packages_names = if self.packages_names.is_empty() {
-            &vec![get_package_name_from_current_dir()?]
+        let package_names = if self.package_names.is_empty() {
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.package_name().map(|x| x.into_owned()))
+                .collect::<Result<Vec<String>, _>>()?
         } else {
-            &self.packages_names
+            &self.package_names
         };
 
-        if packages_names.len() > 1 {
+        if package_names.len() > 1 {
             eprintln!(
                 "{style}warning (pkg-compile): multiple packages are specified, crtcli prefer to use app compile in this case{style:#}",
                 style = Style::new()
@@ -54,7 +59,7 @@ impl AppCommand for CompilePkgCommand {
             .await;
         }
 
-        let package_name = packages_names[0].as_str();
+        let package_name = package_names[0].as_str();
 
         let progress = spinner_precise!(
             "{operation_str} {bold}{package_name}{bold:#} package at {bold}{url}{bold:#}",

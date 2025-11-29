@@ -101,12 +101,8 @@ pub enum GetPackageNameFromFolderError {
     #[error("cannot read package descriptor: {0}")]
     PkgJsonWrapperCreate(#[from] PkgJsonWrapperCreateError),
 
-    #[error("descriptor was correctly read from folder, but filename was not found")]
+    #[error("descriptor was correctly read from folder, but $.Descriptor.Name is null")]
     PackageNameIsNone,
-}
-
-pub fn get_package_name_from_current_dir() -> Result<String, GetPackageNameFromFolderError> {
-    get_package_name_from_folder(&PathBuf::from("."))
 }
 
 pub fn get_package_name_from_folder(

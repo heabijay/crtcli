@@ -1,8 +1,10 @@
 use crate::app::CrtClient;
+use crate::cfg::WorkspaceConfig;
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::app::pkg::install_pkg::*;
 use crate::cmd::cli::{CommandDynError, CommandResult};
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use crate::pkg::bundling::packer::*;
 use crate::pkg::utils::get_package_name_from_folder;
 use clap::Args;
@@ -14,7 +16,7 @@ use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct PushPkgCommand {
-    /// Folders containing packages to be packed and installed (default: current directory)
+    /// Folders containing packages to be packed and installed (default: package folders from ./workspace.crtcli.toml or current directory)
     #[arg(value_name = "SOURCE_FOLDERS", value_hint = clap::ValueHint::DirPath)]
     source_folders: Vec<PathBuf>,
 
@@ -39,8 +41,12 @@ pub enum PushPkgCommandError {
 
 impl AppCommand for PushPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
-        let source_folder: &[PathBuf] = if self.source_folders.is_empty() {
-            &[PathBuf::from(".")]
+        let source_folder: &Vec<PathBuf> = if self.source_folders.is_empty() {
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(|p| p.path().to_path_buf())
+                .collect()
         } else {
             &self.source_folders
         };

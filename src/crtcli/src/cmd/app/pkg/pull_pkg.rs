@@ -1,12 +1,13 @@
 use crate::app::{CrtClient, CrtClientError};
-use crate::cfg::PkgConfig;
 use crate::cfg::package::combine_apply_config_from_args_and_config;
+use crate::cfg::{PkgConfig, WorkspaceConfig};
 use crate::cmd::app::AppCommand;
 use crate::cmd::app::pkg::DetectTargetPackageNameError;
 use crate::cmd::cli::CommandResult;
+use crate::cmd::pkg::WorkspaceConfigCmdPkgExt;
 use crate::pkg::bundling::extractor::*;
 use crate::pkg::transforms::post::PkgFolderPostTransform;
-use crate::pkg::utils::{get_package_name_from_current_dir, get_package_name_from_folder};
+use crate::pkg::utils::{GetPackageNameFromFolderError, get_package_name_from_folder};
 use anstream::stderr;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
@@ -18,11 +19,12 @@ use tokio::io::AsyncReadExt;
 
 #[derive(Args, Debug)]
 pub struct PullPkgCommand {
-    /// Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs) (default: package name in ./descriptor.json of current folder)
+    /// Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs) (default: packages from ./workspace.crtcli.toml or ./descriptor.json)
     ///
     /// Examples:
     /// `crtcli app pkg pull` (Pulls package from `./descriptor.json` to current dir)
     /// `crtcli app pkg pull UsrPackage` (Pulls `UsrPackage` to current dir)
+    /// `crtcli app pkg pull UsrPackage:` (Pulls `UsrPackage` to `./UsrPackage`)
     /// `crtcli app pkg pull UsrPackage:Src,UsrPackage2:Src2` (Pulls `UsrPackage` to `./Src`, `UsrPackage2` to `./Src2`)
     /// `crtcli app pkg pull :Src` (Pulls package from `./Src/descriptor.json` to `./Src`)
     #[arg(value_name = "PACKAGE:DESTINATION", value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
@@ -130,11 +132,19 @@ impl AppCommand for PullPkgCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         let current_dir = PathBuf::from(".");
 
-        let packages_map: &[_] = if self.packages_map.is_empty() {
-            &[PackageDestinationArg {
-                package_name: get_package_name_from_current_dir()?,
-                destination_folder: current_dir.clone(),
-            }]
+        let packages_map: &Vec<PackageDestinationArg> = if self.packages_map.is_empty() {
+            &WorkspaceConfig::load_default_from_current_dir()?
+                .packages_or_print_error()?
+                .iter()
+                .map(
+                    |p| -> Result<PackageDestinationArg, GetPackageNameFromFolderError> {
+                        Ok(PackageDestinationArg {
+                            package_name: p.package_name()?.into_owned(),
+                            destination_folder: p.path().to_path_buf(),
+                        })
+                    },
+                )
+                .collect::<Result<Vec<PackageDestinationArg>, _>>()?
         } else {
             &self.packages_map
         };

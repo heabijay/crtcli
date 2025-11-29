@@ -4,7 +4,7 @@ use serde::Deserialize;
 use std::path::Path;
 use thiserror::Error;
 
-pub const PKG_CONFIG_FILENAME: &str = "package.crtcli.toml";
+const PKG_CONFIG_FILENAME: &str = "package.crtcli.toml";
 
 #[derive(Debug, Deserialize)]
 pub struct PkgConfig {
