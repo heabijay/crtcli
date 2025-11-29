@@ -24,9 +24,13 @@ pub struct UnpackCommand {
     #[arg(short, long = "package", value_hint = clap::ValueHint::Other)]
     package_name: Option<String>,
 
-    /// If destination folder is not empty, attempt to merge package files (smart merge)
+    /// If destination folder is not empty, attempt to merge package files
     #[arg(short, long)]
     merge: bool,
+
+    // TODO
+    #[arg(long)]
+    smart_merge: bool,
 
     #[command(flatten)]
     apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
@@ -91,10 +95,16 @@ impl CliCommand for UnpackCommand {
         )
         .unwrap_or_default();
 
+        let smart_merge = self.smart_merge
+            || pkg_config
+                .and_then(|x| x.unpack().smart_merge())
+                .unwrap_or_default();
+
         let extractor_config = PackageToFolderExtractorConfig::default()
-            .with_files_already_exists_in_folder_strategy(match self.merge {
-                true => FilesAlreadyExistsInFolderStrategy::SmartMerge,
-                false => FilesAlreadyExistsInFolderStrategy::ThrowError,
+            .with_files_already_exists_in_folder_strategy(match (self.merge, smart_merge) {
+                (_, true) => FilesAlreadyExistsInFolderStrategy::SmartMerge,
+                (true, false) => FilesAlreadyExistsInFolderStrategy::Merge,
+                _ => FilesAlreadyExistsInFolderStrategy::ThrowError,
             })
             .with_transform(apply_config.apply().build_combined_transform());
 

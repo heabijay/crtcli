@@ -5,8 +5,11 @@ use crate::pkg::bundling::utils::{
 use crate::pkg::transforms::*;
 use crate::pkg::utils::contains_hidden_path;
 use anstyle::{AnsiColor, Color, Style};
+use std::borrow::Cow;
+use std::cell::LazyCell;
 use std::collections::HashSet;
 use std::io::{Read, Seek};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use zip::ZipArchive;
@@ -84,15 +87,14 @@ pub enum ExtractZipPackageError {
 pub enum FilesAlreadyExistsInFolderStrategy {
     #[default]
     ThrowError,
+    Merge,
     SmartMerge,
 }
 
 #[derive(Default, Debug)]
 pub struct PackageToFolderExtractorConfig {
     files_already_exists_in_folder_strategy: FilesAlreadyExistsInFolderStrategy,
-
     file_transform: CombinedPkgFileTransform,
-
     print_merge_log: bool,
 }
 
@@ -116,12 +118,12 @@ impl PackageToFolderExtractorConfig {
     }
 }
 
-struct SmartMergeContext {
+struct MergeContext {
     destination_folder: PathBuf,
     files: HashSet<PathBuf>,
 }
 
-impl SmartMergeContext {
+impl MergeContext {
     pub fn new(destination_folder: PathBuf) -> Self {
         Self {
             destination_folder,
@@ -133,16 +135,19 @@ impl SmartMergeContext {
         destination_folder: &Path,
         config: &PackageToFolderExtractorConfig,
     ) -> Option<Self> {
-        if config.files_already_exists_in_folder_strategy
-            == FilesAlreadyExistsInFolderStrategy::SmartMerge
-        {
-            Some(Self::new(destination_folder.to_path_buf()))
-        } else {
-            None
+        match config.files_already_exists_in_folder_strategy {
+            FilesAlreadyExistsInFolderStrategy::Merge
+            | FilesAlreadyExistsInFolderStrategy::SmartMerge => {
+                Some(Self::new(destination_folder.to_path_buf()))
+            }
+            FilesAlreadyExistsInFolderStrategy::ThrowError => None,
         }
     }
 
-    pub fn execute(self, config: &PackageToFolderExtractorConfig) -> Result<(), std::io::Error> {
+    pub fn execute_remove(
+        self,
+        config: &PackageToFolderExtractorConfig,
+    ) -> Result<(), std::io::Error> {
         let pkg_folders = crate::pkg::paths::PKG_FOLDERS
             .iter()
             .map(|&p| self.destination_folder.join(p))
@@ -151,13 +156,22 @@ impl SmartMergeContext {
         for folder in pkg_folders {
             remove_dir_all_files_predicate(&folder, |f| {
                 let path = f.path();
-                let path_without_dest = path.strip_prefix(&self.destination_folder).unwrap();
-                let result = !self.files.contains(path) && !contains_hidden_path(path_without_dest);
+                let relative_path = path.strip_prefix(&self.destination_folder).unwrap();
+                let result = !self.files.contains(path)
+                    && !contains_hidden_path(relative_path)
+                    && !check_pkg_file_content_equal(
+                        config,
+                        relative_path.to_str().unwrap(),
+                        Some(LazyCell::new(|| {
+                            Cow::Owned(std::fs::read(path).unwrap_or_default())
+                        })),
+                        None,
+                    );
 
                 if result && config.print_merge_log {
                     eprintln!(
                         "{style}\tdeleted:\t{}{style:#}",
-                        path_without_dest.display(),
+                        relative_path.display(),
                         style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
                     );
                 }
@@ -177,8 +191,7 @@ pub fn extract_gzip_package_to_folder(
 ) -> Result<(), ExtractGzipPackageError> {
     prepare_destination_folder(destination_folder, config)?;
 
-    let mut smart_merge_ctx = SmartMergeContext::new_if_needed(destination_folder, config);
-
+    let mut merge_ctx = MergeContext::new_if_needed(destination_folder, config);
     let decoder = PkgGZipDecoder::from(gzip_reader);
 
     for file in decoder {
@@ -220,13 +233,13 @@ pub fn extract_gzip_package_to_folder(
             })?;
         }
 
-        if let Some(x) = smart_merge_ctx.as_mut() {
+        if let Some(x) = merge_ctx.as_mut() {
             x.files.insert(destination_path);
         }
     }
 
-    smart_merge_ctx.map(|ctx| {
-        ctx.execute(config)
+    merge_ctx.map(|ctx| {
+        ctx.execute_remove(config)
             .map_err(ExtractGzipPackageError::DeleteFilesDuringMerge)
     });
 
@@ -261,10 +274,46 @@ pub fn extract_gzip_package_to_folder(
         relative_path: &str,
         destination_path_parent: &Path,
         destination_path: &Path,
-        content: &Vec<u8>,
+        content: &[u8],
         config: &PackageToFolderExtractorConfig,
     ) -> Result<bool, ExtractGzipPackageError> {
-        if !destination_path.exists() {
+        if destination_path.exists() {
+            match config.files_already_exists_in_folder_strategy {
+                FilesAlreadyExistsInFolderStrategy::ThrowError => {
+                    Err(ExtractGzipPackageError::FolderIsNotEmpty(
+                        FolderIsEmptyValidationError::FilesAlreadyExistsInFolder {
+                            folder_path: destination_path_parent.to_path_buf(),
+                        },
+                    ))
+                }
+                FilesAlreadyExistsInFolderStrategy::Merge
+                | FilesAlreadyExistsInFolderStrategy::SmartMerge => {
+                    if check_pkg_file_content_equal(
+                        config,
+                        relative_path,
+                        Some(LazyCell::new(|| {
+                            Cow::Owned(std::fs::read(destination_path).unwrap_or_default())
+                        })),
+                        Some(content),
+                    ) {
+                        Ok(false)
+                    } else {
+                        if config.print_merge_log {
+                            eprintln!("\tmodified:\t{relative_path}");
+                        }
+
+                        Ok(true)
+                    }
+                }
+            }
+        } else if check_pkg_file_content_equal(
+            config,
+            relative_path,
+            None::<LazyCell<Cow<'_, [u8]>, fn() -> Cow<'static, [u8]>>>,
+            Some(content),
+        ) {
+            Ok(false)
+        } else {
             if config.print_merge_log {
                 eprintln!(
                     "{style}\tcreated:\t{relative_path}{style:#}",
@@ -272,28 +321,7 @@ pub fn extract_gzip_package_to_folder(
                 );
             }
 
-            return Ok(true);
-        }
-
-        match config.files_already_exists_in_folder_strategy {
-            FilesAlreadyExistsInFolderStrategy::ThrowError => {
-                Err(ExtractGzipPackageError::FolderIsNotEmpty(
-                    FolderIsEmptyValidationError::FilesAlreadyExistsInFolder {
-                        folder_path: destination_path_parent.to_path_buf(),
-                    },
-                ))
-            }
-            FilesAlreadyExistsInFolderStrategy::SmartMerge => {
-                let result = std::fs::read(destination_path)
-                    .ok()
-                    .is_some_and(|exists_content| exists_content != *content);
-
-                if result && config.print_merge_log {
-                    eprintln!("\tmodified:\t{relative_path}");
-                }
-
-                Ok(result)
-            }
+            Ok(true)
         }
     }
 }
@@ -381,4 +409,73 @@ pub fn extract_zip_package_to_folder(
     }
 
     Ok(package_folders)
+}
+
+fn check_pkg_file_content_equal<'a>(
+    config: &PackageToFolderExtractorConfig,
+    relative_path: &str,
+    source: Option<LazyCell<Cow<'a, [u8]>, impl FnOnce() -> Cow<'a, [u8]>>>,
+    target: Option<&[u8]>,
+) -> bool {
+    if source.is_none() && target.is_none() {
+        return true;
+    }
+
+    if matches!(
+        config.files_already_exists_in_folder_strategy,
+        FilesAlreadyExistsInFolderStrategy::SmartMerge
+    ) && let Some(result) = smart_equality_check(relative_path, &source, &target)
+    {
+        return result;
+    }
+
+    return match (target, source) {
+        (Some(t), Some(s)) => s.deref().as_ref() == t,
+        _ => false,
+    };
+
+    fn smart_equality_check<'a>(
+        relative_path: &str,
+        source: &Option<LazyCell<Cow<'a, [u8]>, impl FnOnce() -> Cow<'a, [u8]>>>,
+        target: &Option<&[u8]>,
+    ) -> Option<bool> {
+        if crate::pkg::json::PKG_SCHEMAS_CS_PATH_REGEX.is_match(relative_path)
+            && target.is_none_or(|x| x.is_empty())
+            && source.as_ref().is_none_or(|x| x.is_empty())
+        {
+            return Some(true);
+        }
+
+        if crate::pkg::json::PKG_SCHEMAS_DESCRIPTOR_PATH_REGEX.is_match(relative_path)
+            && let Some(target_content) = target
+            && let Some(source_content) = source
+        {
+            let mut source = crate::pkg::json::PkgSchemasDescriptorJsonWrapper::from(
+                crate::pkg::json::PkgJsonWrapper::new(source_content).unwrap(),
+            );
+
+            let mut target = crate::pkg::json::PkgSchemasDescriptorJsonWrapper::from(
+                crate::pkg::json::PkgJsonWrapper::new(target_content).unwrap(),
+            );
+
+            *source.modified_on_utc_mut() = target.modified_on_utc_mut().clone();
+            *source.caption_mut() = target.caption_mut().clone();
+
+            if source
+                .depends_on_mut()
+                .as_array()
+                .is_none_or(|x| x.is_empty())
+                && target
+                    .depends_on_mut()
+                    .as_array()
+                    .is_none_or(|x| x.is_empty())
+            {
+                *source.depends_on_mut() = target.depends_on_mut().clone();
+            }
+
+            return Some(source.deref() == target.deref());
+        }
+
+        None
+    }
 }
