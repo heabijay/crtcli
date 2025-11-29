@@ -8,7 +8,14 @@ const PKG_CONFIG_FILENAME: &str = "package.crtcli.toml";
 
 #[derive(Debug, Deserialize)]
 pub struct PkgConfig {
+    #[serde(default)]
     apply: PkgConfigApply,
+
+    #[serde(default)]
+    pull: PkgConfigPull,
+
+    #[serde(default)]
+    unpack: PkgConfigUnpack,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -18,6 +25,16 @@ pub struct PkgConfigApply {
 
     #[serde(flatten)]
     apply_post_features: PkgApplyPostFeatures,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct PkgConfigPull {
+    smart_merge: Option<bool>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct PkgConfigUnpack {
+    smart_merge: Option<bool>,
 }
 
 #[derive(Debug, Error)]
@@ -32,6 +49,14 @@ pub enum PkgConfigError {
 impl PkgConfig {
     pub fn apply(&self) -> &PkgConfigApply {
         &self.apply
+    }
+
+    pub fn pull(&self) -> &PkgConfigPull {
+        &self.pull
+    }
+
+    pub fn unpack(&self) -> &PkgConfigUnpack {
+        &self.unpack
     }
 
     pub fn from_str(config_str: &str) -> Result<PkgConfig, PkgConfigError> {
@@ -75,6 +100,18 @@ impl PkgConfigApply {
                 .apply_post_features
                 .combine(other.map(|x| &x.apply_post_features)),
         }
+    }
+}
+
+impl PkgConfigPull {
+    pub fn smart_merge(&self) -> Option<bool> {
+        self.smart_merge
+    }
+}
+
+impl PkgConfigUnpack {
+    pub fn smart_merge(&self) -> Option<bool> {
+        self.smart_merge
     }
 }
 

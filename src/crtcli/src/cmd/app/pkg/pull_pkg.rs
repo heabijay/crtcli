@@ -31,6 +31,10 @@ pub struct PullPkgCommand {
     #[clap(verbatim_doc_comment)]
     packages_map: Vec<PackageDestinationArg>,
 
+    /// TODO
+    #[arg(long)]
+    smart_merge: bool,
+
     #[command(flatten)]
     apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
 
@@ -208,10 +212,17 @@ impl AppCommand for PullPkgCommand {
             )
             .unwrap_or_default();
 
+            let smart_merge = self.smart_merge
+                || pkg_config
+                    .and_then(|x| x.pull().smart_merge().or(x.unpack().smart_merge()))
+                    .unwrap_or_default();
+
             let extract_config = PackageToFolderExtractorConfig::default()
-                .with_files_already_exists_in_folder_strategy(
-                    FilesAlreadyExistsInFolderStrategy::SmartMerge,
-                )
+                .with_files_already_exists_in_folder_strategy(if smart_merge {
+                    FilesAlreadyExistsInFolderStrategy::SmartMerge
+                } else {
+                    FilesAlreadyExistsInFolderStrategy::Merge
+                })
                 .print_merge_log(true)
                 .with_transform(apply_config.apply().build_combined_transform());
 
