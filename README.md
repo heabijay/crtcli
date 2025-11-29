@@ -64,9 +64,10 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
       - [x] [unpack](#pkg-unpack)
       - [x] [unpack-all](#pkg-unpack-all)
 - **[Config files](#config-files)**
-  - [dotenv (.env) files](#dotenv-env-files)
+  - [.env files](#env-files)
   - [.crtcli.toml](#crtclitoml)
   - [package.crtcli.toml](#packagecrtclitoml)
+  - [workspace.crtcli.toml](#workspacecrtclitoml)
 
 
 ## Commands / Features
@@ -91,7 +92,7 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
 
 Commands to interact with Creatio application instance.
 
-Please check [dotenv (.env) files](#dotenv-env-files) and [.crtcli.toml](#crtclitoml) for simplified commands usage.
+Please check [.env files](#env-files) and [.crtcli.toml](#crtclitoml) for simplified commands usage.
 
 **Aliases:** `a` (full command: `crtcli a ...`)
 
@@ -256,7 +257,7 @@ Print last package installation log.
 
 Commands to manipulate with packages in Creatio.
 
-Many of these commands will attempt to infer the target package name from the current working directory if it's a package folder (contains a descriptor.json file).
+Many of these commands will attempt to infer the target package name(s) or package folder(s) from the current working directory if it's a package folder (contains a descriptor.json file) or from [workspace.crtcli.toml](#workspacecrtclitoml) if present.
 
 **Aliases:** `p` (full command: `crtcli app p ...` or `crtcli a p ...`)
 
@@ -267,9 +268,9 @@ Compiles a specific package within the Creatio instance.
 
 **Arguments:**
 
-- `[PACKAGES_NAMES]` — A space-separated or comma-separated list of package names to compile.
+- `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to compile.
 
-  Defaults: If omitted, crtcli will try to determine the package name from the current directory (by looking for descriptor.json).
+  Defaults: If omitted, crtcli will try to determine the package name(s) from the current directory (by looking for [workspace.crtcli.toml](#workspacecrtclitoml) or descriptor.json).
 
   Note: When multiple packages are specified, crtcli currently prefers to use `app compile`. If you need to compile packages separately, use a command chain like: `crtcli app pkg compile {PACKAGE_NAME} && crtcli app pkg compile {PACKAGE_NAME2}`.
 
@@ -300,7 +301,7 @@ Downloads packages from the Creatio instance as a zip archive.
 
 - `[PACKAGES]` — A space-separated or comma-separated list of package names to download. 
 
-  Defaults: If omitted, crtcli will try to determine the package name from the current directory (by looking for descriptor.json).
+  Defaults: If omitted, crtcli will try to determine the package name(s) from the current directory (by looking for [workspace.crtcli.toml](#workspacecrtclitoml) or descriptor.json).
 
 **Options:**
 
@@ -351,9 +352,9 @@ crtcli pkg apply .
 
 **Options:**
 
-- `--package-folder <PACKAGES_FOLDERS>` — Packages folders where package was already pulled previously.
+- `--package-folder <PACKAGE_FOLDERS>` — Package folders where package was already pulled previously.
 
-  Defaults: Current directory
+  Defaults: Current directory, or package folders from [workspace.crtcli.toml](#workspacecrtclitoml) if present.
 
   Sample: <Creatio_Dir>/Terrasoft.Configuration/Pkg/<Package_Name>
 
@@ -385,9 +386,9 @@ crtcli app pkg compile "{package_name}" -r
 
 **Options:**
 
-- `--package-folder <PACKAGES_FOLDERS>` — Packages folders where package was already pulled previously.
+- `--package-folder <PACKAGE_FOLDERS>` — Package folders where package was already pulled previously.
 
-  Defaults: Current directory
+  Defaults: Current directory, or package folders from [workspace.crtcli.toml](#workspacecrtclitoml) if present.
 
   Sample: <Creatio_Dir>/Terrasoft.Configuration/Pkg/<Package_Name>
 
@@ -573,7 +574,7 @@ WHERE "Name" = '{package_name}';
 
 - `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to lock.
 
-  Defaults: Tries to determine package name from current folder as package folder. (From file ./descriptor.json)
+  Defaults: If omitted, crtcli will try to determine the package name(s) from the current directory (by looking for [workspace.crtcli.toml](#workspacecrtclitoml) or descriptor.json).
 
 **Examples:**
 
@@ -613,6 +614,8 @@ but faster due to in memory processing, merging only changes and more feature-ri
   - `UsrPackage:` means "UsrPackage" to "./UsrPackage" folder (e.g. destination is empty).
   - `UsrPackage:/repos/UsrPackage` means "UsrPackage" to "/repos/UsrPackage" folder.
   - `:./repos/UsrPackage` means "UsrPackage" (inferred from the destination folder) to "./repos/UsrPackage" folder.
+
+  \* When [workspace.crtcli.toml](#workspacecrtclitoml) present, it uses packages and their package folders from it.
 
 **Options:**
 
@@ -655,7 +658,7 @@ but it works faster due to in memory processing and merging only changes and als
 
 - `<SOURCE_FOLDERS>` — Folder containing the package to be packed and installed. You can specify multiple source folders to install several packages at once.
 
-  Defaults: Current directory
+  Defaults: Current directory or package folders from [workspace.crtcli.toml](#workspacecrtclitoml) if present.
 
 **Options:**
 
@@ -690,7 +693,7 @@ WHERE "Name" = '{package_name}';
 
 - `[PACKAGE_NAMES]` — A space-separated or comma-separated list of package names to unlock.
 
-  Defaults: Tries to determine package name from current folder as package folder. (From file ./descriptor.json)
+  Defaults: If omitted, crtcli will try to determine the package name(s) from the current directory (by looking for [workspace.crtcli.toml](#workspacecrtclitoml) or descriptor.json).
 
 **Examples:**
 
@@ -984,15 +987,15 @@ Commands for working with Creatio package files (.zip, .gz) or package folders l
 
 ### pkg apply
 
-Applies transformations to the contents of a packages folders. 
+Applies transformations to the contents of a package folders. 
 
 This is useful for standardizing package structure, cleaning up localization files, and improving version control diffs, etc.
 
 **Arguments:**
 
-- `[PACKAGES_FOLDERS]` — Paths to the packages folders.
+- `[PACKAGE_FOLDERS]` — Paths to the package folders.
 
-  Defaults: Current directory
+  Defaults: Current directory or package folders from [workspace.crtcli.toml](#workspacecrtclitoml) if present.
 
 **Options:**
 
@@ -1074,9 +1077,9 @@ Excluded: Hidden folders and files (names starting with .).
 
 **Arguments:**
 
-- `[PACKAGES_FOLDERS]` — Source folders containing the package files to be packaged.
+- `[PACKAGE_FOLDERS]` — Source folders containing the package files to be packaged.
 
-  Defaults: Current directory
+  Defaults: Current directory, or package folders from [workspace.crtcli.toml](#workspacecrtclitoml) if present.
 
 **Options:**
 
@@ -1192,7 +1195,7 @@ For example, file 'MyPackage.zip' contains one 'UsrPackage' package, and file 'M
 ## Config files
 
 
-### dotenv (.env) files
+### .env files
 
 crtcli supports .env files for storing environment variables, simplifying command usage by avoiding repetitive argument entry.
 
@@ -1370,6 +1373,124 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
     - `crtcli app pkg pull` — Will download UsrPackage, unpack it, and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
 
     - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
+
+
+### workspace.crtcli.toml
+
+The workspace.crtcli.toml file is an optional configuration file that allows you to use crtcli with multiple packages (package folders) at once, preserving idiomatic command syntax.
+
+Location: ./workspace.crtcli.toml in the current directory.
+
+Check [toml syntax here](https://toml.io/en/v1.0.0).
+
+**Parameters:**
+
+- `packages` — A collection of packages to operate on.
+- `packages[].path` — The path to the package folder.
+
+**Examples:**
+
+1. For example, assume the current directory is `/Creatio_8.1.5.2176/Terrasoft.Configuration`.
+
+   You could have a workspace.crtcli.toml file in this directory with the following content:
+
+    ```toml
+    packages = [
+        { path = "Pkg/UsrPackage" },
+        { path = "Pkg/UsrPackage2" },
+        { path = "Pkg/UsrPackage3" },
+    ]
+    ```
+
+   The current folder structure would look like this:
+    - /Creatio_8.1.5.2176/Terrasoft.Configuration
+      - Pkg
+        - UsrPackage
+          - ...
+          - descriptor.json
+          - package.crtcli.toml
+        - UsrPackage2
+          - ...
+          - descriptor.json
+          - package.crtcli.toml
+        - UsrPackage3
+          - ...
+          - descriptor.json
+          - package.crtcli.toml
+      - workspace.crtcli.toml
+  
+     With this configuration:
+  
+    - `crtcli app pkg compile [OPTIONS]` — Is equivalent to:
+       ```shell
+       crtcli app pkg compile [OPTIONS] \
+         UsrPackage \
+         UsrPackage2 \
+         UsrPackage3
+       ```
+    - `crtcli app pkg download [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg download [OPTIONS] \
+          UsrPackage \
+          UsrPackage2 \
+          UsrPackage3
+        ```
+    - `crtcli app pkg fs pull [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg fs pull [OPTIONS] \
+          --package-folder Pkg/UsrPackage \
+          --package-folder Pkg/UsrPackage2 \
+          --package-folder Pkg/UsrPackage3
+        ```
+    - `crtcli app pkg fs push [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg fs push [OPTIONS] \
+          --package-folder Pkg/UsrPackage \
+          --package-folder Pkg/UsrPackage2 \
+          --package-folder Pkg/UsrPackage3
+        ```
+    - `crtcli app pkg lock [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg lock [OPTIONS] \
+          UsrPackage \
+          UsrPackage2 \
+          UsrPackage3
+        ```
+    - `crtcli app pkg pull [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg pull [OPTIONS] \
+          UsrPackage:Pkg/UsrPackage \
+          UsrPackage2:Pkg/UsrPackage2 \
+          UsrPackage3:Pkg/UsrPackage3
+        ```
+    - `crtcli app pkg push [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg push [OPTIONS] \
+          Pkg/UsrPackage \
+          Pkg/UsrPackage2 \
+          Pkg/UsrPackage3
+        ```
+    - `crtcli app pkg unlock [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli app pkg unlock [OPTIONS] \
+          UsrPackage \
+          UsrPackage2 \
+          UsrPackage3
+        ```
+    - `crtcli pkg apply [OPTIONS]` — Is equivalent to:
+        ```shell
+        crtcli pkg apply [OPTIONS] \
+          Pkg/UsrPackage \
+          Pkg/UsrPackage2 \
+          Pkg/UsrPackage3
+        ```
+    - `crtcli pkg pack [OPTIONS]` — Is equivalent to:
+      ```shell
+      crtcli pkg pack [OPTIONS] \
+        Pkg/UsrPackage \
+        Pkg/UsrPackage2 \
+        Pkg/UsrPackage3
+      ```
 
 
 ---

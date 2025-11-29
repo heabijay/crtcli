@@ -13,7 +13,7 @@ mod unpack_all;
 
 #[derive(Debug, Subcommand)]
 pub enum PkgCommands {
-    /// Applies transformations to the contents of a packages folders
+    /// Applies transformations to the contents of a package folders
     Apply(apply::ApplyCommand),
 
     /// Creates a package archive (.zip or .gz) from package folders
@@ -77,7 +77,7 @@ impl WorkspaceConfigCmdPkgExt for WorkspaceConfig {
         );
 
         eprintln!();
-        eprintln!("For more information, try '{bold}crtcli [OPTIONS] [COMMAND] --help{bold:#}'.");
+        eprintln!("For more information, try '{bold}crtcli [COMMAND] --help{bold:#}'.");
 
         Err(CommandHandledError(ExitCode::FAILURE).into())
     }

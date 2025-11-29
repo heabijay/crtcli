@@ -16,7 +16,7 @@ use thiserror::Error;
 
 #[derive(Args, Debug)]
 pub struct PushPkgCommand {
-    /// Folders containing packages to be packed and installed (default: packages folders from ./workspace.crtcli.toml or current directory)
+    /// Folders containing packages to be packed and installed (default: package folders from ./workspace.crtcli.toml or current directory)
     #[arg(value_name = "SOURCE_FOLDERS", value_hint = clap::ValueHint::DirPath)]
     source_folders: Vec<PathBuf>,
 

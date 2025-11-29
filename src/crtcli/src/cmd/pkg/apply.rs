@@ -20,9 +20,9 @@ use thiserror::Error;
 
 #[derive(Debug, Args)]
 pub struct ApplyCommand {
-    /// Paths to the packages folders (default: packages folders from ./workspace.crtcli.toml or current directory)
+    /// Paths to the package folders (default: package folders from ./workspace.crtcli.toml or current directory)
     #[arg(value_hint = clap::ValueHint::DirPath)]
-    pub packages_folders: Vec<PathBuf>,
+    pub package_folders: Vec<PathBuf>,
 
     #[command(flatten)]
     pub apply_features: Option<PkgApplyFeatures>,
@@ -65,23 +65,23 @@ enum ApplyCommandError {
 
 impl CliCommand for ApplyCommand {
     fn run(self) -> CommandResult {
-        let packages_folders = if self.packages_folders.is_empty() {
+        let package_folders = if self.package_folders.is_empty() {
             &WorkspaceConfig::load_default_from_current_dir()?
                 .packages_or_print_error()?
                 .iter()
                 .map(|p| p.path().to_path_buf())
                 .collect()
         } else {
-            &self.packages_folders
+            &self.package_folders
         };
 
         let mut any_applied = false;
         let mut stdout = stdout().lock();
 
-        for package_folder in packages_folders {
+        for package_folder in package_folders {
             let mut stdout_wrapper = CurrentPackagePrinterStdoutWrapper::new(
                 &mut stdout,
-                packages_folders,
+                package_folders,
                 package_folder,
                 self.check_only,
                 !self.nothing_to_do_message_disabled,
@@ -255,7 +255,7 @@ where
 {
     inner: W,
     package_folder: &'a Path,
-    packages_folders: &'a Vec<PathBuf>,
+    package_folders: &'a Vec<PathBuf>,
     should_check_only: bool,
     should_print_nothing_to_do: bool,
 
@@ -269,14 +269,14 @@ where
 {
     fn new<'a>(
         inner: W,
-        packages_folders: &'a Vec<PathBuf>,
+        package_folders: &'a Vec<PathBuf>,
         package_folder: &'a Path,
         should_check_only: bool,
         should_print_nothing_to_do: bool,
     ) -> CurrentPackagePrinterStdoutWrapper<'a, W> {
         let mut wrapper = CurrentPackagePrinterStdoutWrapper {
             inner,
-            packages_folders,
+            package_folders,
             package_folder,
             should_check_only,
             should_print_nothing_to_do,
@@ -292,7 +292,7 @@ where
     }
 
     fn try_print_package_title(&mut self) -> bool {
-        if self.packages_folders.len() <= 1 {
+        if self.package_folders.len() <= 1 {
             return false;
         }
 
@@ -319,7 +319,7 @@ where
     }
 
     pub fn try_print_nothing_to_do(&mut self) -> bool {
-        if self.packages_folders.len() <= 1 {
+        if self.package_folders.len() <= 1 {
             return false;
         }
 
