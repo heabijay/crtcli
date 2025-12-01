@@ -1,5 +1,44 @@
 # crtcli Changelog
 
+## [0.3.0](https://github.com/heabijay/crtcli/releases/tag/v0.3.0) (2025-12-01)
+
+### Added
+
+ - Binary data support from stdin for the `app request` command
+
+ - `--watch` flag for the `app install` command to display log updates in real-time
+
+ - Multi-package support for `app pkg compile`, `app pkg fs pull`, `app pkg fs push`, `app pkg lock`, `app pkg unlock`, and `pkg apply` ([#32](https://github.com/heabijay/crtcli/pull/32))
+
+ - Support for multiple package file arguments in the `app pkg install` command ([#32](https://github.com/heabijay/crtcli/pull/32))
+
+ - Alias `ua` for the `pkg unpack-all` command (e.g., `crtcli pkg ua` or `crtcli p ua`) ([#32](https://github.com/heabijay/crtcli/pull/32))
+
+ - `default_app` property in the `.crtcli.toml` configuration file ([#34](https://github.com/heabijay/crtcli/pull/34))
+
+ - New post-transform option to regenerate `.csproj` package references for `pkg apply`-related commands ([#35](https://github.com/heabijay/crtcli/pull/35))
+
+ - Use empty destinations (e.g., `UsrPackage:`) to unpack package to current directory with package name (e.g., `./UsrPackage`) in the `app pkg pull` command
+
+ - New `workspace.crtcli.toml` configuration file designed to manage multiple packages simultaneously ([#36](https://github.com/heabijay/crtcli/pull/36))
+
+ - Smart merge option for `pkg unpack` and `app pkg pull` commands to minimize insignificant schema differences ([#37](https://github.com/heabijay/crtcli/pull/37))
+
+### Changed
+
+ - The `pkg apply` and `pkg pack` commands now default to the current directory if no package folder is specified ([#32](https://github.com/heabijay/crtcli/pull/32))
+
+ - Renamed the legacy `workspace.crtcli.toml` to `.crtcli.toml`. The structure remains the same, with a new optional `root` property ([#33](https://github.com/heabijay/crtcli/pull/33))
+
+ - Replaced the positional "destination" argument with the `--destination` (`-d`) option in the `pkg unpack` command
+
+ - Replaced the `--force-new-session` option with `--clear-session-cache` in the `app` command
+
+### Breaking Change
+
+ - Due to the config file rename ([#33](https://github.com/heabijay/crtcli/pull/33)), existing `workspace.crtcli.toml` files must be renamed to `.crtcli.toml` for a seamless transition
+
+
 ## [0.2.1](https://github.com/heabijay/crtcli/releases/tag/v0.2.1) (2025-10-05)
 
 ### Added
