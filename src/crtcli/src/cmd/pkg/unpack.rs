@@ -20,7 +20,7 @@ pub struct UnpackCommand {
     #[arg(short, long = "destination", value_hint = clap::ValueHint::DirPath)]
     destination_folder: Option<PathBuf>,
 
-    /// If the archive is a zip file containing multiple packages, specify the name of the package to extract.
+    /// If the archive is a zip file containing multiple packages, specify the name of the package to extract
     #[arg(short, long = "package", value_hint = clap::ValueHint::Other)]
     package_name: Option<String>,
 
@@ -28,7 +28,7 @@ pub struct UnpackCommand {
     #[arg(short, long)]
     merge: bool,
 
-    // TODO
+    /// Enables smart merge strategies that ignore insignificant differences (check docs for more info)
     #[arg(long)]
     smart_merge: bool,
 

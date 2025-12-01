@@ -20,7 +20,7 @@ pub struct UnpackAllCommand {
     #[arg(short, long)]
     merge: bool,
 
-    // TODO
+    /// Enables smart merge strategies that ignore insignificant differences (check docs for more info)
     #[arg(long)]
     smart_merge: bool,
 
