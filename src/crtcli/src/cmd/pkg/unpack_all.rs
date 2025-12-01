@@ -16,9 +16,13 @@ pub struct UnpackAllCommand {
     #[arg(short, long = "destination", value_hint = clap::ValueHint::DirPath)]
     destination_folder: Option<PathBuf>,
 
-    /// If destination folder is not empty, attempt to merge package files (smart merge)
+    /// If destination folder is not empty, attempt to merge package files
     #[arg(short, long)]
     merge: bool,
+
+    /// Enables smart merge strategies that ignore insignificant differences (check docs for more info)
+    #[arg(long)]
+    smart_merge: bool,
 
     #[command(flatten)]
     apply_features: crate::pkg::transforms::PkgApplyFeatures,
@@ -62,9 +66,10 @@ impl CliCommand for UnpackAllCommand {
             .map_err(UnpackAllCommandError::FileAccess)?;
 
         let config = PackageToFolderExtractorConfig::default()
-            .with_files_already_exists_in_folder_strategy(match self.merge {
-                true => FilesAlreadyExistsInFolderStrategy::SmartMerge,
-                false => FilesAlreadyExistsInFolderStrategy::ThrowError,
+            .with_files_already_exists_in_folder_strategy(match (self.merge, self.smart_merge) {
+                (_, true) => FilesAlreadyExistsInFolderStrategy::SmartMerge,
+                (true, false) => FilesAlreadyExistsInFolderStrategy::Merge,
+                _ => FilesAlreadyExistsInFolderStrategy::ThrowError,
             })
             .with_transform(self.apply_features.build_combined_transform());
 

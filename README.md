@@ -619,9 +619,24 @@ but faster due to in memory processing, merging only changes and more feature-ri
 
 **Options:**
 
-Here you can use transforms from [pkg apply](#pkg-apply) command.
+- `--smart-merge` — Enables smart merge strategies that ignore insignificant differences caused by downloading packages from different Creatio instances.
 
-\* Check [package.crtcli.toml](#packagecrtclitoml) to configure default apply transforms.
+  This option helps improve package version control diffs when working with Creatio without File System Development (FSD) mode.
+
+  The following changes are ignored:
+
+  - _Schemas/**/descriptor.json_
+    - $.Descriptor.ModifiedOnUtc (!)
+    - $.Descriptor.Caption
+    - $.Descriptor.DependsOn (Missing property equals to an empty array)
+
+  - _Schemas/**/*.cs_ (Missing file equals to an empty file)
+
+  \* Same functionality as the `--smart-merge` option in the [pkg unpack](#pkg-unpack) command.
+
+And here you can use transforms from [pkg apply](#pkg-apply) command.
+
+\* Check [package.crtcli.toml](#packagecrtclitoml) to configure default options and apply transforms.
 
 **Examples:**
 
@@ -630,6 +645,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 - `crtcli app https://localhost:5000 -i pkg pull UsrCustomPackage:/repos/UsrCustomPackage -S true` — Downloads package 'UsrCustomPackage', from insecure Creatio 'https://localhost:5000' using Supervisor:Supervisor credentials, and unpacks it into /repos/UsrCustomPackage folder with sorting transform.
 
 - `crtcli app pkg pull` — Downloads the package from the current directory from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
+
+- `crtcli app pkg pull --smart-merge` — Downloads the package from the current directory from the default Creatio instance and unpacks it into the current folder using smart merge with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app pkg pull UsrPackage2` — Downloads the 'UsrPackage2' package from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
@@ -1140,6 +1157,23 @@ Extract a single package from a package archive (.zip or .gz). To extract multip
 
 - `--merge | -m` — If destination_folder already exists you will receive error about this by default. However, you can use this merge option to extract to same exist folder with overwriting only different files.
 
+- `--smart-merge` — Enables smart merge strategies that ignore insignificant differences caused by downloading packages from different Creatio instances.
+
+  This option helps improve package version control diffs when working with Creatio without File System Development (FSD) mode.
+
+  The following changes are ignored:
+
+  - _Schemas/**/descriptor.json_
+    - $.Descriptor.ModifiedOnUtc (!)
+    - $.Descriptor.Caption
+    - $.Descriptor.DependsOn (Missing property equals to an empty array)
+
+  - _Schemas/**/*.cs_ (Missing file equals to an empty file)
+
+  \* Check [package.crtcli.toml](#packagecrtclitoml) to enable this option by default.
+
+  \*\* Same functionality as the `--smart-merge` option in the [app pkg pull](#app-pkg-pull) command.
+
 And here you can use transforms from [pkg apply](#pkg-apply) command.
 
 **Examples:**
@@ -1149,6 +1183,8 @@ And here you can use transforms from [pkg apply](#pkg-apply) command.
 - `crtcli pkg unpack UsrPackage.gz -d /repos/UsrPackage -mS true` — Extracts single package from 'UsrPackage.gz' file to folder './repos/UsrPackage' with merging and sorting transform.
 
 - `crtcli pkg unpack UsrMultiplePackages_2024-12-01_21-00-00.zip -d UsrPackageSources -p UsrPackage` — Extracts single package 'UsrPackage' (file UsrPackage.gz) from 'UsrMultiplePackages_2024-12-01_21-00-00.zip' file to folder './UsrPackageSources/'.
+
+- `crtcli pkg unpack UsrPackage_2024-12-01_21-00-00.zip -d /repos/UsrPackage -S true --smart-merge` — Extracts single package from 'UsrPackage_2024-12-01_21-00-00.zip' file to folder './repos/UsrPackage' with smart merging strategies and sorting transform.
 
 
 ### pkg unpack-all
@@ -1168,6 +1204,8 @@ Extract all packages from a zip archive.
   Defaults: '{Filename without extension}' folder in current folder. If this folder already exists — creates a new one with suffix '_1' and so on.
 
 - `--merge | -m` — If destination_folder already exists you will receive error about this by default. However, you can use this merge option to extract to same exist folder with overwriting only different files.
+
+- `--smart-merge` — Enables smart merge strategies that ignore insignificant differences caused by downloading packages from different Creatio instances. Check the [pkg unpack](#pkg-unpack) command documentation for more information.
 
 And here you can use transforms from [pkg apply](#pkg-apply) command.
 
@@ -1334,15 +1372,21 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
 **Parameters:**
 
-- `apply.sorting = <true/false>` — Enable/disable sorting transform by default in [pkg apply](#pkg-apply) command.
+- `apply` — Configuration settings for apply-related operations.
 
-- `apply.sorting_comparer = <comparer>` — Configures sorting transform comparer by default in [pkg apply](#pkg-apply) command.
+- `apply.sorting = <true/false>` — Enables or disables the sorting transformation by default in the [pkg apply](#pkg-apply) command.
+- `apply.sorting_comparer = <comparer>` — Specifies the comparer to use for the sorting transformation in the [pkg apply](#pkg-apply) command.
+- `apply.localization_cleanup = <except-localizations>` — Configures the localization cleanup transformation (defining exceptions) by default in the [pkg apply](#pkg-apply) command.
+- `apply.bom_normalization = <add/remove>` — Controls Byte Order Mark (BOM) normalization (adding or removing it) for package schema files in the [pkg apply](#pkg-apply) command.
+- `apply.post_csproj_pkg_refs_regenerate = <true/false>` — Enables or disables the regeneration of package assembly project files (Files/*.csproj) in the [pkg apply](#pkg-apply) command.
 
-- `apply.localization_cleanup = <except-localizations>` — Enable/disable localization cleanup transform by default in [pkg apply](#pkg-apply) command.
+- `pull` — Configuration settings for pull-related operations.
 
-- `apply.bom_normalization = <add/remove>` — Normalizes a Byte Order Mark (BOM) in package schema files by default in [pkg apply](#pkg-apply) command.
+- `pull.smart_merge = <true/false>` — Enables or disables the smart merge strategy by default for the [app pkg pull](#app-pkg-pull) command.
 
-- `apply.post_csproj_pkg_refs_regenerate = <true/false>` — Regenerates the package assembly "Files/*.csproj" by default in [pkg apply](#pkg-apply) command.
+- `unpack` — Configuration settings for unpack-related operations.
+
+- `unpack.smart_merge = <true/false>` — Enables or disables the smart merge strategy by default for the [pkg unpack](#pkg-unpack) command and dependent commands (such as [app pkg pull](#app-pkg-pull)).
 
 **Examples:**
 
@@ -1355,6 +1399,9 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
     sorting = true
     localization_cleanup = ["en-US", "uk-UA"]
     post_csproj_pkg_refs_regenerate = true
+   
+    [pull]
+    smart_merge = true
     ```
 
    The package folder structure would look like:
@@ -1370,7 +1417,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 
     - `crtcli pkg apply` — Will apply sorting, localization cleanup (keeping only en-US and uk-UA cultures) and regenerates package Files/*.csproj because they are enabled in package.crtcli.toml.
 
-    - `crtcli app pkg pull` — Will download UsrPackage, unpack it, and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
+    - `crtcli app pkg pull` — Will download UsrPackage, unpack it to current directory using smart merge, and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
 
     - `crtcli app pkg fs pull` — Will download UsrPackage to the file system and apply the sorting, localization cleanup and regenerates package Files/*.csproj transforms defined in package.crtcli.toml.
 
@@ -1386,6 +1433,7 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
 **Parameters:**
 
 - `packages` — A collection of packages to operate on.
+
 - `packages[].path` — The path to the package folder.
 
 **Examples:**
