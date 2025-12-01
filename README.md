@@ -646,6 +646,8 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg pull` — Downloads the package from the current directory from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
+- `crtcli app pkg pull --smart-merge` — Downloads the package from the current directory from the default Creatio instance and unpacks it into the current folder using smart merge with default transforms applied. Check [app](#app) command to configure default Creatio instance.
+
 - `crtcli app pkg pull UsrPackage2` — Downloads the 'UsrPackage2' package from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app https://customer-dev.creatio.com -i pkg pull UsrPackage1: UsrPackage2:` — Downloads the 'UsrPackage1' and 'UsrPackage2 'packages from insecure Creatio 'https://customer-dev.creatio.com' using Supervisor:Supervisor credentials, and unpacks them into the './UsrPackage1' and './UsrPackage2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
