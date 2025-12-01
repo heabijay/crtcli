@@ -1,7 +1,7 @@
 [package]
 name = "crtcli"
 description = "Command-line tool for interacting with Creatio and Creatio packages"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 authors = ["heabijay <heabijay@gmail.com>"]
 repository = "https://github.com/heabijay/crtcli"
