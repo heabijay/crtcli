@@ -299,7 +299,7 @@ where
         crate::cmd::app::pkg::compile_pkg::CompilePkgCommand {
             package_names: descriptors
                 .iter()
-                .filter_map(|d| d.value.as_str().map(|s| s.to_owned()))
+                .filter_map(|d| d.name().map(|s| s.to_owned()))
                 .collect(),
             force_rebuild: false,
             restart: options.restart,

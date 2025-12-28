@@ -98,23 +98,26 @@ pub async fn is_gzip_async_stream(
 
 #[derive(Error, Debug)]
 pub enum GetPackageNameFromFolderError {
-    #[error("cannot read package descriptor: {0}")]
-    PkgJsonWrapperCreate(#[from] PkgJsonWrapperCreateError),
+    #[error("cannot read package descriptor ({0}): {1}")]
+    PkgJsonWrapperCreate(PathBuf, #[source] PkgJsonWrapperCreateError),
 
-    #[error("descriptor was correctly read from folder, but $.Descriptor.Name is null")]
-    PackageNameIsNone,
+    #[error("descriptor ({0}) was correctly read from folder, but $.Descriptor.Name is null")]
+    PackageNameIsNone(PathBuf),
 }
 
 pub fn get_package_name_from_folder(
     pkg_folder: &Path,
 ) -> Result<String, GetPackageNameFromFolderError> {
-    let pkg_descriptor = PkgPackageDescriptorJsonWrapper::from(PkgJsonWrapper::from_file(
-        &pkg_folder.join(paths::PKG_DESCRIPTOR_FILE),
-    )?);
+    let pkg_descriptor_path = pkg_folder.join(paths::PKG_DESCRIPTOR_FILE);
+    let pkg_descriptor = PkgPackageDescriptorJsonWrapper::from(
+        PkgJsonWrapper::from_file(&pkg_descriptor_path).map_err(|err| {
+            GetPackageNameFromFolderError::PkgJsonWrapperCreate(pkg_descriptor_path.clone(), err)
+        })?,
+    );
 
     pkg_descriptor
         .name()
-        .ok_or(GetPackageNameFromFolderError::PackageNameIsNone)
+        .ok_or_else(|| GetPackageNameFromFolderError::PackageNameIsNone(pkg_descriptor_path))
         .map(|x| x.to_owned())
 }
 

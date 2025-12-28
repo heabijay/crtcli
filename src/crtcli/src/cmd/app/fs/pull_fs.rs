@@ -23,7 +23,7 @@ impl AppCommand for PullFsCommand {
         let progress = spinner!(
             "Pulling {target} to filesystem from {bold}{url}{bold:#}",
             target = match &self.packages.len() {
-                0 => "all packages".to_string(),
+                0 => "all packages".to_owned(),
                 1 => format!("{bold}{}{bold:#} package", &self.packages[0]),
                 _ => format!("{bold}{}{bold:#} packages", &self.packages.join(", ")),
             },
@@ -47,7 +47,7 @@ impl AppCommand for PullFsCommand {
         eprintln!(
             "{green}✔ {target} {green}successfully pulled to filesystem from {green_bold}{url}{green_bold:#}{green}!{green:#}",
             target = match &self.packages.len() {
-                0 => "All packages".to_string(),
+                0 => "All packages".to_owned(),
                 1 => format!("Package {green_bold}{}{green_bold:#}", &self.packages[0]),
                 _ => format!(
                     "Packages {green_bold}{}{green_bold:#}",
