@@ -117,7 +117,9 @@ pub fn get_package_name_from_folder(
 
     pkg_descriptor
         .name()
-        .ok_or_else(|| GetPackageNameFromFolderError::PackageNameIsNone(pkg_descriptor_path))
+        .ok_or(GetPackageNameFromFolderError::PackageNameIsNone(
+            pkg_descriptor_path,
+        ))
         .map(|x| x.to_owned())
 }
 

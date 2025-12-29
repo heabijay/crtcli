@@ -1,13 +1,12 @@
-use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
+#[derive(Debug, Clone, Eq, PartialEq, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 pub enum CrtSession {
     Cookie(CrtSessionCookie),
     OAuthSession(CrtSessionOAuth),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
+#[derive(Debug, Clone, Eq, PartialEq, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 pub struct CrtSessionCookie {
     aspxauth: String,
     bpmcsrf: String,
@@ -15,7 +14,17 @@ pub struct CrtSessionCookie {
     bpmsessionid: Option<String>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Eq,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+)]
 pub struct CrtSessionOAuth {
     access_token: String,
     expires_in: i64,

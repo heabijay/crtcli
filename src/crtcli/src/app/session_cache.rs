@@ -1,47 +1,60 @@
 use crate::app::{CrtCredentials, CrtSession};
-use bincode::{Decode, Encode};
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env::temp_dir;
-use std::fs::File;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::RwLock;
 use time::OffsetDateTime;
 
-#[derive(Debug, Encode, Decode, Clone)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 struct CrtSessionCacheEntry {
     created_timestamp: i64,
     value: CrtSession,
 }
 
 trait CrtSessionCacheStorage: Send + Sync {
-    fn get(&self) -> Cow<'_, HashMap<u64, CrtSessionCacheEntry>>;
+    fn read<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&HashMap<u64, CrtSessionCacheEntry>) -> R;
 
-    fn set(&self, value: Cow<HashMap<u64, CrtSessionCacheEntry>>);
+    fn update<F>(&self, f: F)
+    where
+        F: FnOnce(&mut HashMap<u64, CrtSessionCacheEntry>);
 }
 
 struct BinaryFileCrtSessionCacheStorage {
     filepath: PathBuf,
 }
 
-impl CrtSessionCacheStorage for BinaryFileCrtSessionCacheStorage {
-    fn get(&self) -> Cow<'_, HashMap<u64, CrtSessionCacheEntry>> {
-        let cache: HashMap<u64, CrtSessionCacheEntry> = File::open(&self.filepath)
+impl BinaryFileCrtSessionCacheStorage {
+    fn load(&self) -> HashMap<u64, CrtSessionCacheEntry> {
+        std::fs::read(&self.filepath)
             .ok()
-            .and_then(|mut f| {
-                bincode::decode_from_std_read(&mut f, bincode::config::standard()).ok()
-            })
-            .unwrap_or_default();
+            .and_then(|bytes| rkyv::from_bytes::<_, rkyv::rancor::Error>(&bytes).ok())
+            .unwrap_or_default()
+    }
+}
 
-        Cow::Owned(cache)
+impl CrtSessionCacheStorage for BinaryFileCrtSessionCacheStorage {
+    fn read<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&HashMap<u64, CrtSessionCacheEntry>) -> R,
+    {
+        let cache = self.load();
+        f(&cache)
     }
 
-    fn set(&self, value: Cow<HashMap<u64, CrtSessionCacheEntry>>) {
-        let _ = File::create(&self.filepath).is_ok_and(|mut file| {
-            bincode::encode_into_std_write(value.as_ref(), &mut file, bincode::config::standard())
-                .is_ok()
-        });
+    fn update<F>(&self, f: F)
+    where
+        F: FnOnce(&mut HashMap<u64, CrtSessionCacheEntry>),
+    {
+        let mut cache = self.load();
+
+        f(&mut cache);
+
+        if let Ok(bytes) = rkyv::to_bytes::<rkyv::rancor::Error>(&cache) {
+            let _ = std::fs::write(&self.filepath, bytes);
+        }
     }
 }
 
@@ -57,12 +70,20 @@ impl MemoryCrtSessionCacheStorage {
 }
 
 impl CrtSessionCacheStorage for MemoryCrtSessionCacheStorage {
-    fn get(&self) -> Cow<'_, HashMap<u64, CrtSessionCacheEntry>> {
-        Cow::Owned(self.cache.read().unwrap().clone())
+    fn read<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&HashMap<u64, CrtSessionCacheEntry>) -> R,
+    {
+        let guard = self.cache.read().unwrap();
+        f(&guard)
     }
 
-    fn set(&self, value: Cow<HashMap<u64, CrtSessionCacheEntry>>) {
-        *self.cache.write().unwrap() = value.into_owned();
+    fn update<F>(&self, f: F)
+    where
+        F: FnOnce(&mut HashMap<u64, CrtSessionCacheEntry>),
+    {
+        let mut guard = self.cache.write().unwrap();
+        f(&mut guard);
     }
 }
 
@@ -104,18 +125,19 @@ where
     S: CrtSessionCacheStorage,
 {
     fn clear_all(&self) {
-        self.storage.set(Default::default());
+        self.storage.update(|cache| cache.clear());
     }
 
     fn get_entry(&self, credentials: &CrtCredentials) -> Option<CrtSession> {
         let hash = Self::hash_credentials(credentials);
+        let outdated_since = Self::get_outdated_since_timestamp();
 
-        let cache = self.storage.get();
-        let entry = cache.get(&hash);
-
-        entry
-            .filter(|x| x.created_timestamp > Self::get_outdated_since_timestamp())
-            .map(|x| x.value.clone())
+        self.storage.read(|cache| {
+            cache
+                .get(&hash)
+                .filter(|x| x.created_timestamp > outdated_since)
+                .map(|x| x.value.clone())
+        })
     }
 
     fn set_entry(&self, credentials: &CrtCredentials, session: CrtSession) {
@@ -123,33 +145,29 @@ where
         let now = OffsetDateTime::now_utc().unix_timestamp();
         let default_outdated_since = Self::get_outdated_since_timestamp();
 
-        let mut cache = self.storage.get().into_owned();
+        self.storage.update(|cache| {
+            cache.insert(
+                hash,
+                CrtSessionCacheEntry {
+                    created_timestamp: now,
+                    value: session,
+                },
+            );
 
-        cache.insert(
-            hash,
-            CrtSessionCacheEntry {
-                created_timestamp: OffsetDateTime::now_utc().unix_timestamp(),
-                value: session,
-            },
-        );
-
-        cache.retain(|_, x| match &x.value {
-            CrtSession::OAuthSession(oauth_session) => {
-                x.created_timestamp + oauth_session.expires_in() >= now
-            }
-            _ => x.created_timestamp > default_outdated_since,
+            cache.retain(|_, x| match &x.value {
+                CrtSession::OAuthSession(oauth_session) => {
+                    x.created_timestamp + oauth_session.expires_in() >= now
+                }
+                _ => x.created_timestamp > default_outdated_since,
+            });
         });
-
-        self.storage.set(Cow::Owned(cache));
     }
 
     fn remove_entry(&self, credentials: &CrtCredentials) {
         let hash = Self::hash_credentials(credentials);
-        let mut cache = self.storage.get().into_owned();
-
-        cache.remove(&hash);
-
-        self.storage.set(Cow::Owned(cache));
+        self.storage.update(|cache| {
+            cache.remove(&hash);
+        });
     }
 }
 
