@@ -64,7 +64,7 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
       - [x] [unpack](#pkg-unpack)
       - [x] [unpack-all](#pkg-unpack-all)
 - **[Config files](#config-files)**
-  - [.env files](#env-files)
+  - [.env](#env)
   - [.crtcli.toml](#crtclitoml)
   - [package.crtcli.toml](#packagecrtclitoml)
   - [workspace.crtcli.toml](#workspacecrtclitoml)
@@ -92,7 +92,7 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
 
 Commands to interact with Creatio application instance.
 
-Please check [.env files](#env-files) and [.crtcli.toml](#crtclitoml) for simplified commands usage.
+Please check [.env](#env) and [.crtcli.toml](#crtclitoml) for simplified commands usage.
 
 **Aliases:** `a` (full command: `crtcli a ...`)
 
@@ -605,17 +605,17 @@ but faster due to in memory processing, merging only changes and more feature-ri
 - `[PACKAGE:DESTINATION]` — Packages to pull and their destination folders (comma-separated `PackageName:DestinationFolder` pairs)
 
   Defaults: 
-  - Package: Tries to determine package name from destination folder (From file ./descriptor.json)
-  - Destination: Current directory if not specified, or the folder with the same name as the package if left empty. 
+  - Package: Tries to determine package name from destination folder (From file ./descriptor.json).
+  - Destination: Folder with the same name as the package if not specified.
   
   Examples:
-  - `UsrPackage` means "UsrPackage" to current folder.
-  - `UsrPackage:.` means "UsrPackage" to current folder.
+  - `UsrPackage` means "UsrPackage" to "./UsrPackage" folder (e.g. destination is empty).
   - `UsrPackage:` means "UsrPackage" to "./UsrPackage" folder (e.g. destination is empty).
+  - `UsrPackage:.` means "UsrPackage" to current folder.
   - `UsrPackage:/repos/UsrPackage` means "UsrPackage" to "/repos/UsrPackage" folder.
   - `:./repos/UsrPackage` means "UsrPackage" (inferred from the destination folder) to "./repos/UsrPackage" folder.
 
-  \* When [workspace.crtcli.toml](#workspacecrtclitoml) present, it uses packages and their package folders from it.
+  \* If no package or destination is specified, crtcli will attempt to determine the package name(s) from the current directory by looking for [workspace.crtcli.toml](#workspacecrtclitoml) or descriptor.json.
 
 **Options:**
 
@@ -648,9 +648,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 - `crtcli app pkg pull --smart-merge` — Downloads the package from the current directory from the default Creatio instance and unpacks it into the current folder using smart merge with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
-- `crtcli app pkg pull UsrPackage2` — Downloads the 'UsrPackage2' package from the default Creatio instance and unpacks it into the current folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
-
-- `crtcli app https://customer-dev.creatio.com -i pkg pull UsrPackage1: UsrPackage2:` — Downloads the 'UsrPackage1' and 'UsrPackage2 'packages from insecure Creatio 'https://customer-dev.creatio.com' using Supervisor:Supervisor credentials, and unpacks them into the './UsrPackage1' and './UsrPackage2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
+- `crtcli app https://customer-dev.creatio.com -i pkg pull UsrPackage1 UsrPackage2` — Downloads the 'UsrPackage1' and 'UsrPackage2 'packages from insecure Creatio 'https://customer-dev.creatio.com' using Supervisor:Supervisor credentials, and unpacks them into the './UsrPackage1' and './UsrPackage2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app pkg pull UsrPackage3:/repos/Pkg3 UsrPackage2:/repos/Pkg2` — Downloads the 'UsrPackage3' and 'UsrPackage2' packages from the default Creatio instance and unpacks them into the '/repos/Pkg3' and '/repos/Pkg2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
@@ -1233,7 +1231,7 @@ For example, file 'MyPackage.zip' contains one 'UsrPackage' package, and file 'M
 ## Config files
 
 
-### .env files
+### .env
 
 crtcli supports .env files for storing environment variables, simplifying command usage by avoiding repetitive argument entry.
 
