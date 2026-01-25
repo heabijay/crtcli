@@ -513,6 +513,11 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 \* (sql) — Requires an installed sql runner package in Creatio that is supported by crtcli. Please check [app sql](#app-sql) command documentation. 
 
 
+**Environment variables:**
+
+- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. Defaults: 10485760 (10 MB)
+
+
 **Examples:**
 
 - `crtcli app https://localhost:5000 Supervisor Supervisor -i --net-framework pkg install /repo/UsrPackage-latest.zip` — Installs package archive '/repo/UsrPackage-latest.zip' at insecure Creatio 'https://localhost:5000' using .NET Framework (IIS) compatibility.
@@ -688,6 +693,11 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 - `crtcli app pkg push -Fcr` — Packs and installs the package from the current directory on the default Creatio instance, executing SQL scripts to mark schemas as unchanged, cleaning up schema localization, compiling the package, and restarting the application after installation. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app prod pkg push /repos/UsrCustomPackage1 /repos/UsrCustomPackage2` — Packs and installs packages 'UsrCustomPackage1' and 'UsrCustomPackage2' into prod (alias) Creatio instance at once. Check [.crtcli.toml](#crtclitoml)
+
+
+**Environment variables:**
+
+- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. Defaults: 10485760 (10 MB)
 
 
 ### app pkg unlock
@@ -1254,6 +1264,10 @@ For OAuth 2.0 authentication (instead of username and password):
 - `CRTCLI_APP_OAUTH_URL` — The OAuth URL (Identity Server).
 - `CRTCLI_APP_OAUTH_CLIENT_ID` — The OAuth Client ID.
 - `CRTCLI_APP_OAUTH_CLIENT_SECRET` — The OAuth Client Secret.
+
+Others:
+
+- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. (`app pkg install`, `app pkg push`) Defaults: 10485760 (10 MB)
 
 **Examples:**
 

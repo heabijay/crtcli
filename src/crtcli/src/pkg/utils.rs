@@ -78,6 +78,16 @@ pub fn walk_over_package_files_content(
         })
 }
 
+pub fn is_gzip_bytes(bytes: &[u8]) -> std::io::Result<bool> {
+    if bytes.len() < 2 {
+        return Ok(false);
+    }
+
+    let format = u16::from_le_bytes([bytes[0], bytes[1]]);
+
+    Ok(format == 0x8b1f)
+}
+
 pub fn is_gzip_stream(reader: &mut (impl Read + Seek)) -> std::io::Result<bool> {
     let format = reader.read_u16_le()?;
 
@@ -86,6 +96,7 @@ pub fn is_gzip_stream(reader: &mut (impl Read + Seek)) -> std::io::Result<bool> 
     Ok(format == 0x8b1f)
 }
 
+#[allow(dead_code)]
 pub async fn is_gzip_async_stream(
     reader: &mut (impl AsyncRead + AsyncSeek + Unpin),
 ) -> std::io::Result<bool> {

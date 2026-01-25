@@ -1,13 +1,15 @@
 use crate::app::{CrtClient, CrtClientError, InstallLogWatcherBuilder, InstallLogWatcherEvent};
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::{CommandDynError, CommandResult};
+use crate::cmd::utils::humanize_bytes;
 use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
+use std::borrow::Cow;
 use std::io::{Cursor, Read, Seek, Write, stdin};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio_util::bytes::Bytes;
 use zip::result::ZipError;
 use zip::write::{FileOptions, SimpleFileOptions};
 use zip::{ZipArchive, ZipWriter};
@@ -101,8 +103,8 @@ impl AppCommand for InstallPkgCommand {
 
         install_package_from_stream_command(
             client,
-            Cursor::new(package_content),
-            &package_name,
+            package_content,
+            package_name,
             &self.install_pkg_options,
         )
         .await?;
@@ -194,34 +196,41 @@ fn get_filename_for_package_reader(
     }
 }
 
-pub async fn install_package_from_stream_command<R>(
+pub async fn install_package_from_stream_command(
     client: Arc<CrtClient>,
-    mut package_reader: R,
-    package_name: &str,
+    package_bytes: impl Into<Bytes>,
+    package_name: impl Into<Cow<'static, str>>,
     options: &InstallPkgCommandOptions,
-) -> Result<(), InstallPkgCommandError>
-where
-    R: AsyncReadExt + AsyncSeekExt + Read + Seek + Send + Sync + Unpin + 'static,
-{
-    let descriptors =
-        crate::pkg::utils::get_package_descriptors_from_package_reader(&mut package_reader)
-            .map_err(InstallPkgCommandError::ReadDescriptor)?;
+) -> Result<(), InstallPkgCommandError> {
+    let package_bytes = package_bytes.into();
+    let package_name = package_name.into();
+
+    let descriptors = crate::pkg::utils::get_package_descriptors_from_package_reader(
+        &mut Cursor::new(package_bytes.as_ref()),
+    )
+    .map_err(InstallPkgCommandError::ReadDescriptor)?;
 
     apply_options_before_install(&client, options, &descriptors).await?;
 
     let progress = spinner_precise!(
-        "Installing {bold}{package_name}{bold:#} package archive at {bold}{url}{bold:#}",
+        "Uploading {bold}{package_name}{bold:#} package archive at {bold}{url}{bold:#}",
         bold = Style::new().bold(),
-        url = client.base_url()
+        url = client.base_url(),
     );
 
     let progress = Arc::new(progress);
 
-    client
-        .package_installer_service()
-        .upload_package(package_reader, package_name.to_owned())
-        .await
-        .map_err(InstallPkgCommandError::Upload)?;
+    let package_installer_service = client.package_installer_service();
+
+    let mut chunked_upload_iter =
+        package_installer_service.start_upload_package_chunked(package_bytes, package_name.clone());
+
+    if let Some(chunk) = chunked_upload_iter.next() {
+        chunk
+            .await
+            .inspect_err(|_err| progress.suspend(|| try_print_upload_package_chunk_size_hint()))
+            .map_err(InstallPkgCommandError::Upload)?;
+    }
 
     let log_watcher = (!options.disable_install_log_polling).then(|| {
         let progress_clone = Arc::clone(&progress);
@@ -247,9 +256,19 @@ where
             })
     });
 
+    while let Some(chunk) = chunked_upload_iter.next() {
+        chunk.await.map_err(InstallPkgCommandError::Upload)?;
+    }
+
+    progress.set_message(format!(
+        "Installing {bold}{package_name}{bold:#} package archive at {bold}{url}{bold:#}",
+        bold = Style::new().bold(),
+        url = client.base_url()
+    ));
+
     let install_result = client
         .package_installer_service()
-        .install_package(package_name)
+        .install_package(&package_name)
         .await
         .map_err(InstallPkgCommandError::Install);
 
@@ -382,5 +401,23 @@ where
         }
 
         Ok(())
+    }
+
+    fn try_print_upload_package_chunk_size_hint() {
+        let current_chunk_size =
+            std::env::var(crate::app::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_ENV_KEY)
+                .ok()
+                .and_then(|x| x.parse::<usize>().ok())
+                .unwrap_or(crate::app::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_DEFAULT);
+
+        eprintln!(
+            "{style}warning: package upload failed. For large package archives, try adjusting the upload chunk size (current: {cur}) by setting the {green}{env}{style:#}{style} environment variable. Set to 0 for a single-part upload.{style:#}",
+            env = crate::app::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_ENV_KEY,
+            cur = humanize_bytes(current_chunk_size as u64),
+            style = Style::new()
+                .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                .dimmed(),
+            green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)))
+        );
     }
 }

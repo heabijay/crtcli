@@ -430,7 +430,7 @@ fn check_pkg_file_content_equal<'a>(
     }
 
     return match (target, source) {
-        (Some(t), Some(s)) => s.deref().as_ref() == t,
+        (Some(t), Some(s)) => *s == t,
         _ => false,
     };
 
