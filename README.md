@@ -515,7 +515,7 @@ Installs a package archive (.zip or .gz) into the Creatio instance.
 
 **Environment variables:**
 
-- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. Defaults: 10485760 (10 MB)
+- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. Set to 0 for a single-part upload. Defaults: 10485760 (10 MB)
 
 
 **Examples:**
@@ -697,7 +697,7 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 
 **Environment variables:**
 
-- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. Defaults: 10485760 (10 MB)
+- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. Set to 0 for a single-part upload. Defaults: 10485760 (10 MB)
 
 
 ### app pkg unlock
@@ -1267,7 +1267,7 @@ For OAuth 2.0 authentication (instead of username and password):
 
 Others:
 
-- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload. (`app pkg install`, `app pkg push`) Defaults: 10485760 (10 MB)
+- `CRTCLI_APP_PKG_UPLOAD_CHUNK_SIZE` — Chunk size for package upload (`app pkg install`, `app pkg push`). Set to 0 for a single-part upload. Defaults: 10485760 (10 MB)
 
 **Examples:**
 
