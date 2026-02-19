@@ -23,8 +23,8 @@ pub struct PullPkgCommand {
     ///
     /// Examples:
     /// `crtcli app pkg pull` (Pulls package from `./descriptor.json` to current dir)
-    /// `crtcli app pkg pull UsrPackage` (Pulls `UsrPackage` to current dir)
-    /// `crtcli app pkg pull UsrPackage:` (Pulls `UsrPackage` to `./UsrPackage`)
+    /// `crtcli app pkg pull UsrPackage` | `crtcli app pkg pull UsrPackage:` (Pulls `UsrPackage` to `./UsrPackage`)
+    /// `crtcli app pkg pull UsrPackage:.` (Pulls `UsrPackage` to current dir)
     /// `crtcli app pkg pull UsrPackage:Src,UsrPackage2:Src2` (Pulls `UsrPackage` to `./Src`, `UsrPackage2` to `./Src2`)
     /// `crtcli app pkg pull :Src` (Pulls package from `./Src/descriptor.json` to `./Src`)
     #[arg(value_name = "PACKAGE:DESTINATION", value_delimiter = ',', value_hint = clap::ValueHint::DirPath)]
@@ -83,18 +83,7 @@ impl TryFrom<&str> for PackageDestinationArg {
         let (package_name, destination_folder) = value
             .split_once(":")
             .map(|(package_name, destination_folder)| {
-                let package_name = package_name.trim();
-                let destination_folder = destination_folder.trim();
-
-                // For syntax like `UsrPackage:` -> 'UsrPackage to ./UsrPackage folder'
-                let destination_folder =
-                    if destination_folder.is_empty() && !package_name.is_empty() {
-                        package_name
-                    } else {
-                        destination_folder
-                    };
-
-                (package_name, destination_folder)
+                (package_name.trim(), destination_folder.trim())
             })
             .unwrap_or((value, ""));
 
@@ -105,7 +94,11 @@ impl TryFrom<&str> for PackageDestinationArg {
         };
 
         let destination_folder = if destination_folder.is_empty() {
-            PathBuf::from(".")
+            if let Some(ref package_name) = package_name {
+                PathBuf::from(package_name)
+            } else {
+                PathBuf::from(".")
+            }
         } else {
             PathBuf::from(destination_folder)
         };
