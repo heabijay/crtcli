@@ -228,7 +228,7 @@ fn is_item_group_start(e: &BytesStart) -> bool {
 fn is_package_references_item_group_start(e: &BytesStart) -> bool {
     is_item_group_start(e)
         && e.try_get_attribute("Label")
-            .is_ok_and(|x| x.is_some_and(|x| x.value.as_ref() == b"Package References"))
+            .is_ok_and(|x| x.is_some_and(|x| &*x.value == b"Package References"))
 }
 
 fn write_indent_if_present(

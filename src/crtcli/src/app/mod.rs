@@ -12,11 +12,11 @@ pub use credentials::*;
 
 pub mod workspace_explorer;
 
-mod package_installer;
+pub mod package_installer;
+
 pub use app_installer::{
     FileSystemSynchronizationObjectState, FileSystemSynchronizationResultResponse,
 };
-
 mod app_installer;
 
 mod package;

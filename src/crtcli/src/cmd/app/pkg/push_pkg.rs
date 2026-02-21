@@ -58,8 +58,8 @@ impl AppCommand for PushPkgCommand {
 
         install_package_from_stream_command(
             client,
-            Cursor::new(package_content),
-            &package_filename,
+            package_content,
+            package_filename,
             &self.install_pkg_options,
         )
         .await
