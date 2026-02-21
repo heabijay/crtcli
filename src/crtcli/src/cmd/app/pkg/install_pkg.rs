@@ -228,7 +228,7 @@ pub async fn install_package_from_stream_command(
     if let Some(chunk) = chunked_upload_iter.next() {
         chunk
             .await
-            .inspect_err(|_err| progress.suspend(|| try_print_upload_package_chunk_size_hint()))
+            .inspect_err(|_err| progress.suspend(try_print_upload_package_chunk_size_hint))
             .map_err(InstallPkgCommandError::Upload)?;
     }
 
