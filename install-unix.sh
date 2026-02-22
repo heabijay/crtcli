@@ -1,14 +1,14 @@
 #!/bin/sh
 
-## Thanks to another project author, used as reference (/boilerplate):
-## https://github.com/ducaale/xh/blob/master/install.sh
-
 set -e
 
+repo_url="https://github.com/heabijay/crtcli"
+metadata_url_default="$repo_url/releases/latest/download/release.json"
+
 fetch() {
-  if which curl >/dev/null; then
+  if command -v curl >/dev/null 2>&1; then
     if [ "$#" -eq 2 ]; then curl -fL -o "$1" "$2"; else curl -fsSL "$1"; fi
-  elif which wget >/dev/null; then
+  elif command -v wget >/dev/null 2>&1; then
     if [ "$#" -eq 2 ]; then wget -O "$1" "$2"; else wget -nv -O - "$1"; fi
   else
     echo "Cannot find curl or wget, can't download package"
@@ -33,26 +33,79 @@ detect_os() {
   fi
 }
 
-fetch_target_url() {
-  if [ -n "$CRTCLI_INSTALL_VERSION_TAG" ]; then
-    tag="$CRTCLI_INSTALL_VERSION_TAG"
-    releases_url="https://api.github.com/repos/heabijay/crtcli/releases/tags/$tag"
-  else
-    releases_url="https://api.github.com/repos/heabijay/crtcli/releases/latest"
+build_urls_from_tag() {
+  release_tag="$1"
+  release_archive_name="crtcli-$release_tag-$target.tar.gz"
+  release_url="$repo_url/releases/download/$release_tag/$release_archive_name"
+}
+
+parse_metadata_for_target() {
+  metadata="$1"
+  metadata_compact=$(printf '%s' "$metadata" | tr -d '\r\n')
+  asset_entry=$(printf '%s' "$metadata_compact" \
+    | sed -n "s/.*\"$target\"[[:space:]]*:[[:space:]]*{\\([^}]*\\)}.*/\\1/p")
+
+  if [ -z "$asset_entry" ]; then
+    return 1
   fi
 
-  releases=$(fetch "$releases_url")
+  release_url=$(printf '%s' "$asset_entry" \
+    | sed -n 's/.*"download_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  release_archive_name=$(printf '%s' "$asset_entry" \
+    | sed -n 's/.*"archive_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 
-  url=$(echo "$releases" | grep -wo -m1 "https://.*$target.tar.gz" || true)
+  test -n "$release_url" && test -n "$release_archive_name"
+}
 
-  if ! test "$url"; then
-    if [ -n "$CRTCLI_INSTALL_VERSION_TAG" ]; then
-      echo "Error: Cannot find release info for $target with tag $tag."
-    else
-      echo "Error: Cannot find release info for $target."
+resolve_latest_tag() {
+  if command -v curl >/dev/null 2>&1; then
+    effective_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "$repo_url/releases/latest" 2>/dev/null || true)
+    latest_tag=$(printf '%s' "$effective_url" | sed -n 's#.*/tag/\([^/?#]*\).*#\1#p')
+
+    if [ -n "$latest_tag" ]; then
+      printf '%s' "$latest_tag"
+      return 0
     fi
+  fi
+
+  release_page=$(fetch "$repo_url/releases/latest")
+  latest_tag=$(printf '%s' "$release_page" | awk '
+    match($0, /releases\/tag\/[^"?# ]+/) {
+      print substr($0, RSTART + 13, RLENGTH - 13)
+      exit
+    }
+  ')
+
+  if [ -z "$latest_tag" ]; then
+    return 1
+  fi
+
+  printf '%s' "$latest_tag"
+}
+
+fetch_release_info() {
+  metadata_url="${CRTCLI_INSTALL_METADATA_URL:-$metadata_url_default}"
+
+  if [ -n "$CRTCLI_INSTALL_VERSION_TAG" ]; then
+    build_urls_from_tag "$CRTCLI_INSTALL_VERSION_TAG"
+    return
+  fi
+
+  if release_metadata=$(fetch "$metadata_url" 2>/dev/null); then
+    if parse_metadata_for_target "$release_metadata"; then
+      return
+    fi
+  fi
+
+  echo "Warning: Unable to use release metadata at $metadata_url. Falling back to release tag discovery."
+
+  latest_tag=$(resolve_latest_tag || true)
+  if [ -z "$latest_tag" ]; then
+    echo "Error: Cannot resolve latest release tag."
     exit 1
   fi
+
+  build_urls_from_tag "$latest_tag"
 }
 
 enter_temp_dir() {
@@ -107,13 +160,14 @@ detect_os
 echo "Detected target: $target"
 echo
 
-fetch_target_url
+fetch_release_info
 
 enter_temp_dir
 
-if ! fetch crtcli.tar.gz "$url"; then
+echo "Downloading: $release_archive_name"
+if ! fetch crtcli.tar.gz "$release_url"; then
   echo
-  echo "Error: Failed to download $url"
+  echo "Error: Failed to download $release_url"
   exit 1
 fi
 

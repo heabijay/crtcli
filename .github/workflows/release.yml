@@ -22,7 +22,10 @@ jobs:
           else
               echo value=true >> $GITHUB_OUTPUT
           fi
-  package:
+
+  publish-release:
+    permissions:
+      contents: write
     strategy:
       matrix:
         job:
@@ -65,9 +68,11 @@ jobs:
         id: package
         shell: bash
         run: |
+          set -euo pipefail
+
           VERSION=${{ github.ref_name }}
           TARGET=${{ matrix.job.target }}
-          DIST=`pwd`/dist
+          DIST=$(pwd)/dist
           EXECUTABLE=target/$TARGET/release/crtcli
           
           if [[ ${{ matrix.job.os }} == windows-latest ]]; then
@@ -91,7 +96,7 @@ jobs:
           RUSTFLAGS="--codegen target-feature=+crt-static ${{ matrix.job.target_rustflags }}" \
             cargo build --bin crtcli --target $TARGET --release
           
-          mkdir $DIST
+          mkdir "$DIST"
           
           cp -r \
             $EXECUTABLE \
@@ -105,15 +110,31 @@ jobs:
           case ${{ matrix.job.os }} in
             ubuntu-latest | macos-latest)
               ARCHIVE=crtcli-$VERSION-$TARGET.tar.gz
-              tar czf $ARCHIVE *
-              echo "archive=$DIST/$ARCHIVE" >> $GITHUB_OUTPUT
+              tar czf "$ARCHIVE" *
               ;;
             windows-latest)
               ARCHIVE=crtcli-$VERSION-$TARGET.zip
-              7z a $ARCHIVE *
-              echo "archive=`pwd -W`/$ARCHIVE" >> $GITHUB_OUTPUT
+              7z a "$ARCHIVE" *
               ;;
           esac
+
+          FRAGMENT_FILE="release-fragment-$TARGET.json"
+          cat > "$FRAGMENT_FILE" <<EOF
+          {
+            "target": "$TARGET",
+            "archive_name": "$ARCHIVE"
+          }
+          EOF
+
+          echo "archive=dist/$ARCHIVE" >> "$GITHUB_OUTPUT"
+          echo "fragment=dist/$FRAGMENT_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Release Metadata Fragment
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-fragment-${{ matrix.job.target }}
+          path: ${{ steps.package.outputs.fragment }}
+          retention-days: 1
         
       - name: Publish Release Archive
         uses: softprops/action-gh-release@v2
@@ -124,17 +145,69 @@ jobs:
           prerelease: ${{ needs.prerelease.outputs.value }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
+  publish-release-metadata:
+    permissions: 
+      contents: write
+    runs-on: ubuntu-latest
+    needs:
+      - prerelease
+      - publish-release
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    steps:
       - name: Publish Changelog
         uses: softprops/action-gh-release@v2
-        if: >-
-          ${{
-            startsWith(github.ref, 'refs/tags/')
-            && matrix.job.target == 'x86_64-unknown-linux-musl'
-          }}
         with:
           draft: false
           files: CHANGELOG.md
+          prerelease: ${{ needs.prerelease.outputs.value }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download release metadata fragments
+        uses: actions/download-artifact@v4
+        with:
+          path: release-metadata-fragments
+          pattern: release-fragment-*
+          merge-multiple: true
+
+      - name: Build release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! command -v jq >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+          TAG=${{ github.ref_name }}
+          PRERELEASE=${{ needs.prerelease.outputs.value }}
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/$TAG"
+
+          jq -s \
+            --arg tag "$TAG" \
+            --arg base_url "$BASE_URL" \
+            --argjson prerelease "$PRERELEASE" \
+            '{
+              schema_version: 1,
+              tag: $tag,
+              prerelease: $prerelease,
+              assets: (
+                map({
+                  (.target): {
+                    archive_name: .archive_name,
+                    download_url: ($base_url + "/" + .archive_name)
+                  }
+                }) | add
+              )
+            }' release-metadata-fragments/release-fragment-*.json > release.json
+
+      - name: Publish Release Metadata
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          files: release.json
           prerelease: ${{ needs.prerelease.outputs.value }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
