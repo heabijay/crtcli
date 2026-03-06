@@ -3,8 +3,9 @@ use crate::pkg::bundling::utils::{
     FolderIsEmptyValidationError, remove_dir_all_files_predicate, validate_folder_is_empty,
 };
 use crate::pkg::transforms::*;
-use crate::pkg::utils::contains_hidden_path;
+use crate::pkg::utils::{contains_hidden_path, get_package_dir_entries};
 use anstyle::{AnsiColor, Color, Style};
+use clap::ValueEnum;
 use std::borrow::Cow;
 use std::cell::LazyCell;
 use std::collections::HashSet;
@@ -38,8 +39,8 @@ pub enum ExtractGzipPackageError {
     #[error("unable to create out folder or file {0}: {1}")]
     CreateFolderOrFile(PathBuf, #[source] std::io::Error),
 
-    #[error("failed to delete files during merge: {0}")]
-    DeleteFilesDuringMerge(#[source] std::io::Error),
+    #[error("failed to remove files during merge: {0}")]
+    RemoveFilesDuringMerge(#[source] std::io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -47,8 +48,13 @@ pub enum ExtractSingleZipPackageError {
     #[error("unable to open zip file for reading: {0}")]
     OpenZipFileForReading(#[source] ZipError),
 
-    #[error("unable to get gzip file in zip: {0}")]
-    GetGZipInZip(#[source] ZipError),
+    #[error("unable to get '{name}' gzip file in zip: {source}", name = .filename.as_deref().unwrap_or("any"))]
+    GetGZipInZip {
+        filename: Option<String>,
+
+        #[source]
+        source: ZipError,
+    },
 
     #[error(
         "multiple package in zip file was found when extracting single gzip package. Consider to specify package filename parameter or use extract_zip_package_to_folder method instead"
@@ -62,6 +68,9 @@ pub enum ExtractSingleZipPackageError {
         #[source]
         source: ExtractGzipPackageError,
     },
+
+    #[error("unable to remove files due missing package: {0}")]
+    RemoveFilesDueMissingPackage(#[source] std::io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -83,7 +92,7 @@ pub enum ExtractZipPackageError {
     },
 }
 
-#[derive(Default, Eq, PartialEq, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum FilesAlreadyExistsInFolderStrategy {
     #[default]
     ThrowError,
@@ -91,10 +100,19 @@ pub enum FilesAlreadyExistsInFolderStrategy {
     SmartMerge,
 }
 
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
+pub enum PkgMissingBehavior {
+    #[default]
+    Fail,
+    Ignore,
+    Remove,
+}
+
 #[derive(Default, Debug)]
 pub struct PackageToFolderExtractorConfig {
     files_already_exists_in_folder_strategy: FilesAlreadyExistsInFolderStrategy,
     file_transform: CombinedPkgFileTransform,
+    pkg_missing_behavior: PkgMissingBehavior,
     print_merge_log: bool,
 }
 
@@ -109,6 +127,11 @@ impl PackageToFolderExtractorConfig {
 
     pub fn with_transform(mut self, transform: CombinedPkgFileTransform) -> Self {
         self.file_transform = transform;
+        self
+    }
+
+    pub fn with_pkg_missing_behavior(mut self, behavior: PkgMissingBehavior) -> Self {
+        self.pkg_missing_behavior = behavior;
         self
     }
 
@@ -148,12 +171,7 @@ impl MergeContext {
         self,
         config: &PackageToFolderExtractorConfig,
     ) -> Result<(), std::io::Error> {
-        let pkg_folders = crate::pkg::paths::PKG_FOLDERS
-            .iter()
-            .map(|&p| self.destination_folder.join(p))
-            .filter(|p| p.exists());
-
-        for folder in pkg_folders {
+        for folder in get_package_dir_entries(&self.destination_folder) {
             remove_dir_all_files_predicate(&folder, |f| {
                 let path = f.path();
                 let relative_path = path.strip_prefix(&self.destination_folder).unwrap();
@@ -238,10 +256,11 @@ pub fn extract_gzip_package_to_folder(
         }
     }
 
-    merge_ctx.map(|ctx| {
-        ctx.execute_remove(config)
-            .map_err(ExtractGzipPackageError::DeleteFilesDuringMerge)
-    });
+    if let Some(merge_ctx) = merge_ctx {
+        merge_ctx
+            .execute_remove(config)
+            .map_err(ExtractGzipPackageError::RemoveFilesDuringMerge)?;
+    }
 
     return Ok(());
 
@@ -335,17 +354,9 @@ pub fn extract_single_zip_package_to_folder(
     let mut zip =
         ZipArchive::new(zip_reader).map_err(ExtractSingleZipPackageError::OpenZipFileForReading)?;
 
-    let gzip = match package_name {
-        Some(package_name) => zip_get_file_by_package_name(&mut zip, package_name)
-            .map_err(ExtractSingleZipPackageError::GetGZipInZip)?,
-        None => {
-            if zip.len() > 1 {
-                return Err(ExtractSingleZipPackageError::MultiplePackageInZipFile);
-            }
-
-            zip.by_index(0)
-                .map_err(ExtractSingleZipPackageError::GetGZipInZip)?
-        }
+    let gzip = determinate_gzip_file(&mut zip, package_name);
+    let Some(gzip) = handle_pkg_missing_behavior(gzip, destination_folder, config)? else {
+        return Ok(());
     };
 
     let gzip_filename = gzip.name().to_owned();
@@ -356,6 +367,73 @@ pub fn extract_single_zip_package_to_folder(
             source: err,
         }
     });
+
+    fn determinate_gzip_file<'a, R: Read + Seek>(
+        zip: &'a mut ZipArchive<R>,
+        package_name: Option<&str>,
+    ) -> Result<zip::read::ZipFile<'a, R>, ExtractSingleZipPackageError> {
+        if let Some(package_name) = package_name {
+            zip_get_file_by_package_name(zip, package_name).map_err(|err| {
+                ExtractSingleZipPackageError::GetGZipInZip {
+                    filename: Some(package_name.to_owned()),
+                    source: err,
+                }
+            })
+        } else if zip.len() > 1 {
+            Err(ExtractSingleZipPackageError::MultiplePackageInZipFile)
+        } else {
+            zip.by_index(0)
+                .map_err(|err| ExtractSingleZipPackageError::GetGZipInZip {
+                    filename: None,
+                    source: err,
+                })
+        }
+    }
+
+    fn handle_pkg_missing_behavior<'a, R: Read + Seek>(
+        result: Result<zip::read::ZipFile<'a, R>, ExtractSingleZipPackageError>,
+        destination_folder: &Path,
+        config: &PackageToFolderExtractorConfig,
+    ) -> Result<Option<zip::read::ZipFile<'a, R>>, ExtractSingleZipPackageError> {
+        match result {
+            Err(ExtractSingleZipPackageError::GetGZipInZip {
+                source: ZipError::FileNotFound,
+                filename,
+            }) => match config.pkg_missing_behavior {
+                PkgMissingBehavior::Remove => {
+                    eprintln!(
+                        "{style}warning: package was not found in zip, removing all package files in destination folder{style:#}",
+                        style = Style::new()
+                            .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                            .dimmed()
+                    );
+
+                    if let Some(merge_ctx) = MergeContext::new_if_needed(destination_folder, config)
+                    {
+                        merge_ctx
+                            .execute_remove(config)
+                            .map_err(ExtractSingleZipPackageError::RemoveFilesDueMissingPackage)?;
+                    }
+
+                    Ok(None)
+                }
+                PkgMissingBehavior::Ignore => {
+                    eprintln!(
+                        "{style}warning: package was not found in zip, destination folder remains unchanged{style:#}",
+                        style = Style::new()
+                            .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))
+                            .dimmed()
+                    );
+                    Ok(None)
+                }
+                PkgMissingBehavior::Fail => Err(ExtractSingleZipPackageError::GetGZipInZip {
+                    filename,
+                    source: ZipError::FileNotFound,
+                }),
+            },
+            _ => Ok(Some(result?)),
+        }
+    }
 
     fn zip_get_file_by_package_name<'a, R: Read + Seek>(
         zip: &'a mut ZipArchive<R>,

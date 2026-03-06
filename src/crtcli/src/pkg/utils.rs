@@ -12,9 +12,7 @@ use walkdir::WalkDir;
 use zip::ZipArchive;
 use zip::unstable::LittleEndianReadExt;
 
-pub fn walk_over_package_dir(
-    pkg_folder: &Path,
-) -> impl Iterator<Item = walkdir::Result<walkdir::DirEntry>> + use<> {
+pub fn get_package_dir_entries(pkg_folder: &Path) -> impl Iterator<Item = PathBuf> + use<> {
     let valid_folders = paths::PKG_FOLDERS.map(|f| pkg_folder.join(f));
     let valid_files = [pkg_folder.join(paths::PKG_DESCRIPTOR_FILE)];
 
@@ -22,7 +20,12 @@ pub fn walk_over_package_dir(
         .into_iter()
         .chain(valid_folders)
         .filter(|x| x.exists())
-        .flat_map(|x| WalkDir::new(x).into_iter())
+}
+
+pub fn walk_over_package_dir(
+    pkg_folder: &Path,
+) -> impl Iterator<Item = walkdir::Result<walkdir::DirEntry>> + use<> {
+    get_package_dir_entries(pkg_folder).flat_map(|x| WalkDir::new(x).into_iter())
 }
 
 #[derive(Error, Debug)]

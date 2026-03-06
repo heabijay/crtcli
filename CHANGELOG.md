@@ -1,5 +1,12 @@
 # crtcli Changelog
 
+## [Unreleased]
+
+### Added
+
+ - `--on-missing <fail|ignore|remove>` option for `app pkg pull` to control behavior when requested packages are missing from the remote Creatio instance
+
+
 ## [0.3.0](https://github.com/heabijay/crtcli/releases/tag/v0.3.0) (2025-12-01)
 
 ### Added

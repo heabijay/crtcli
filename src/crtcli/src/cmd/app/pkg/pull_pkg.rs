@@ -1,3 +1,4 @@
+use crate::CommandHandledError;
 use crate::app::{CrtClient, CrtClientError};
 use crate::cfg::package::combine_apply_config_from_args_and_config;
 use crate::cfg::{PkgConfig, WorkspaceConfig};
@@ -13,9 +14,11 @@ use anstyle::{AnsiColor, Color, Style};
 use clap::Args;
 use clap::builder::{ValueParser, ValueParserFactory};
 use std::path::PathBuf;
+use std::process::ExitCode;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
+use zip::result::ZipError;
 
 #[derive(Args, Debug)]
 pub struct PullPkgCommand {
@@ -34,6 +37,11 @@ pub struct PullPkgCommand {
     /// Enables smart merge strategies that ignore insignificant differences (check docs for more info)
     #[arg(long)]
     smart_merge: bool,
+
+    /// Defines what to do if some requested packages are missing in remote Creatio instance
+    /// (`fail` - exit with error, `ignore` - skip missing (keep local package content untouched), `remove` - skip and remove local package content)
+    #[arg(long, value_name = "MODE", default_value = "fail")]
+    on_missing: PkgMissingBehavior,
 
     #[command(flatten)]
     apply_features: Option<crate::pkg::transforms::PkgApplyFeatures>,
@@ -217,15 +225,35 @@ impl AppCommand for PullPkgCommand {
                     FilesAlreadyExistsInFolderStrategy::Merge
                 })
                 .print_merge_log(true)
-                .with_transform(apply_config.apply().build_combined_transform());
+                .with_transform(apply_config.apply().build_combined_transform())
+                .with_pkg_missing_behavior(self.on_missing);
 
-            extract_single_zip_package_to_folder(
+            let extract_result = extract_single_zip_package_to_folder(
                 std::io::Cursor::new(&package_data),
                 &package_map.destination_folder,
                 Some(&package_map.package_name),
                 &extract_config,
-            )
-            .map_err(PullPkgCommandError::ExtractPackage)?;
+            );
+
+            if let Err(ExtractSingleZipPackageError::GetGZipInZip {
+                source: ZipError::FileNotFound,
+                ..
+            }) = &extract_result
+            {
+                eprintln!(
+                    "{style}error: package was not found inside the zip archive{style:#}",
+                    style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))),
+                );
+                eprintln!(
+                    "  {tip_style}tip:{tip_style:#} you can use {bold}--on-missing <ignore/remove>{bold:#} next time",
+                    tip_style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan))),
+                    bold = Style::new().bold()
+                );
+
+                return Err(CommandHandledError(ExitCode::FAILURE).into());
+            }
+
+            extract_result.map_err(PullPkgCommandError::ExtractPackage)?;
 
             apply_config
                 .apply_post()
