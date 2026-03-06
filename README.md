@@ -68,6 +68,8 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
   - [.crtcli.toml](#crtclitoml)
   - [package.crtcli.toml](#packagecrtclitoml)
   - [workspace.crtcli.toml](#workspacecrtclitoml)
+- **[Extras](#extras)**
+  - [VSCode configuration](#vscode-configuration)
 
 
 ## Commands / Features
@@ -1551,6 +1553,56 @@ Check [toml syntax here](https://toml.io/en/v1.0.0).
         Pkg/UsrPackage2 \
         Pkg/UsrPackage3
       ```
+
+
+## Extras
+
+### VSCode configuration
+
+You can add custom buttons to Visual Studio Code for quick access to common crtcli commands using the [Action Buttons](https://marketplace.visualstudio.com/items?itemName=seunlanlege.action-buttons) extension.
+
+https://github.com/user-attachments/assets/47e99b9f-c58c-4391-920b-d82595b872bf
+
+Add the following configuration to your VSCode settings.json (global, folder, or workspace):
+
+<details>
+<summary>
+settings.json (vscode)
+</summary>
+
+```json
+{
+    ...
+    "actionButtons": {
+        "commands": [
+            {
+                "name": "$(repo-pull) Pull",
+                "color": "#3498db",
+                "singleInstance": true,
+                "command": "crtcli app pkg fs pull"
+            },
+            {
+                "name": "$(repo-sync) Pull & Push",
+                "color": "#9b59b6",
+                "singleInstance": true,
+                "command": "crtcli app pkg fs pull && crtcli app pkg fs push"
+            },
+            {
+                "name": "$(repo-push) Push",
+                "color": "#2ecc71",
+                "singleInstance": true,
+                "command": "crtcli app pkg fs push"
+            }
+        ],
+        "defaultColor": "white",
+        "reloadButton": "↻",
+        "loadNpmCommands": false
+    }
+}
+```
+</details>
+
+If you're not using File System Development (FSD) mode, you can adapt the commands to use `app pkg pull` and `app pkg push` instead of `app pkg fs pull` and `app pkg fs push`.
 
 
 ---

@@ -165,6 +165,8 @@ fetch_release_info
 enter_temp_dir
 
 echo "Downloading: $release_archive_name"
+echo
+
 if ! fetch crtcli.tar.gz "$release_url"; then
   echo
   echo "Error: Failed to download $release_url"
