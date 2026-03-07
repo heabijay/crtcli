@@ -626,15 +626,6 @@ but faster due to in memory processing, merging only changes and more feature-ri
 
 **Options:**
 
-- `--on-missing <MODE>` — Defines behavior when requested packages are missing from the remote Creatio instance.
-
-  Possible values:
-  - `fail` (default) — Fails the pull when any requested package cannot be found.
-  - `ignore` — Continues pulling the packages that are available and leaves destination folders for missing packages untouched.
-  - `remove` — Continues pulling the packages that are available and removes the contents of destination folders whose packages were missing. Check [pkg pack](#pkg-pack) command for package paths.
-
-  Defaults: fail
-
 - `--smart-merge` — Enables smart merge strategies that ignore insignificant differences caused by downloading packages from different Creatio instances.
 
   This option helps improve package version control diffs when working with Creatio without File System Development (FSD) mode.
@@ -649,6 +640,15 @@ but faster due to in memory processing, merging only changes and more feature-ri
   - _Schemas/**/*.cs_ (Missing file equals to an empty file)
 
   \* Same functionality as the `--smart-merge` option in the [pkg unpack](#pkg-unpack) command.
+
+- `--on-missing <MODE>` — Defines behavior when requested packages are missing from the remote Creatio instance.
+
+  Possible values:
+  - `fail` (default) — Fails the pull when any requested package cannot be found.
+  - `ignore` — Continues pulling the packages that are available and leaves destination folders for missing packages untouched.
+  - `remove` — Continues pulling the packages that are available and removes the contents of destination folders whose packages were missing. Check [pkg pack](#pkg-pack) command for package paths.
+
+  Defaults: fail
 
 And here you can use transforms from [pkg apply](#pkg-apply) command.
 
