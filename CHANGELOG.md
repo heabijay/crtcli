@@ -1,5 +1,22 @@
 # crtcli Changelog
 
+## [Unreleased]
+
+### Added
+
+ - Chunked package upload support by default for the `app pkg install` and `app pkg push` commands ([#40](https://github.com/heabijay/crtcli/pull/40))
+
+ - `--on-missing <fail|ignore|remove>` option for `app pkg pull` to control behavior when requested packages are missing from the remote Creatio instance ([#41](https://github.com/heabijay/crtcli/pull/41))
+
+### Changed
+
+ - The `app pkg pull` command now defaults to a folder named after the package if no destination is specified ([#39](https://github.com/heabijay/crtcli/pull/39))
+
+### Fixed
+
+ - Fixed an issue where the `--compile` option in the `app pkg install` command would compile the current directory instead of the packages specified as arguments
+
+
 ## [0.3.0](https://github.com/heabijay/crtcli/releases/tag/v0.3.0) (2025-12-01)
 
 ### Added

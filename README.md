@@ -641,6 +641,15 @@ but faster due to in memory processing, merging only changes and more feature-ri
 
   \* Same functionality as the `--smart-merge` option in the [pkg unpack](#pkg-unpack) command.
 
+- `--on-missing <MODE>` — Defines behavior when requested packages are missing from the remote Creatio instance.
+
+  Possible values:
+  - `fail` (default) — Fails the pull when any requested package cannot be found.
+  - `ignore` — Continues pulling the packages that are available and leaves destination folders for missing packages untouched.
+  - `remove` — Continues pulling the packages that are available and removes the contents of destination folders whose packages were missing. Check [pkg pack](#pkg-pack) command for package paths.
+
+  Defaults: fail
+
 And here you can use transforms from [pkg apply](#pkg-apply) command.
 
 \* Check [package.crtcli.toml](#packagecrtclitoml) to configure default options and apply transforms.
@@ -660,6 +669,10 @@ For example current folder is '/Creatio_8.1.5.2176/Terrasoft.Configuration/Pkg/U
 - `crtcli app pkg pull UsrPackage3:/repos/Pkg3 UsrPackage2:/repos/Pkg2` — Downloads the 'UsrPackage3' and 'UsrPackage2' packages from the default Creatio instance and unpacks them into the '/repos/Pkg3' and '/repos/Pkg2' folders, respectively, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app pkg pull :/repos/Pkg3` — Downloads the 'UsrPackage3' package (inferred from the destination folder) from the default Creatio instance and unpacks it into the '/repos/Pkg3' folder, merging with default transforms applied. Check [app](#app) command to configure default Creatio instance.
+
+- `crtcli app pkg pull --on-missing ignore` — Pulls the available packages and leaves destination folders for missing packages untouched so the command still succeeds.
+
+- `crtcli app pkg pull --on-missing remove` — Pulls the available packages and removes the contents of destination folders whose packages were missing on the remote.
 
 
 ### app pkg push
