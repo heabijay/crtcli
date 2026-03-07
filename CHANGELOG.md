@@ -4,9 +4,9 @@
 
 ### Added
 
- - `--on-missing <fail|ignore|remove>` option for `app pkg pull` to control behavior when requested packages are missing from the remote Creatio instance
+ - Chunked package upload support by default for the `app pkg install` and `app pkg push` commands ([#40](https://github.com/heabijay/crtcli/pull/40))
 
- - Chunked package upload support for the `app pkg install` and `app pkg push` commands ([#40](https://github.com/heabijay/crtcli/pull/40))
+ - `--on-missing <fail|ignore|remove>` option for `app pkg pull` to control behavior when requested packages are missing from the remote Creatio instance ([#41](https://github.com/heabijay/crtcli/pull/41))
 
 ### Changed
 
