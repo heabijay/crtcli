@@ -1,5 +1,5 @@
 use crate::app::CrtClient;
-use crate::app::workspace_explorer::{BaseResponse, BuildPackageError};
+use crate::app::svc::{BaseResponse, BuildPackageError};
 use crate::cmd::app;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::{CommandDynError, CommandResult};
@@ -61,7 +61,7 @@ impl AppCommand for CompileCommand {
         ));
 
         if self.restart {
-            app::restart::RestartCommand
+            app::restart::RestartCommand { wait: false }
                 .run(client)
                 .await
                 .map_err(CompileCommandError::AppRestart)?;

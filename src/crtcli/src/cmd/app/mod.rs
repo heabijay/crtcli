@@ -6,6 +6,7 @@ use std::process::ExitCode;
 mod flush_redis;
 mod fs;
 mod install_log;
+mod ping;
 mod pkg;
 mod pkgs;
 mod request;
@@ -110,6 +111,9 @@ pub enum AppCommands {
     /// Print last package installation log
     InstallLog(install_log::InstallLogCommand),
 
+    /// Pings the Creatio application to verify it is available
+    Ping(ping::PingCommand),
+
     /// Commands to manipulate with packages in Creatio
     #[clap(visible_alias = "p")]
     Pkg {
@@ -159,6 +163,7 @@ impl AppCommands {
             AppCommands::FlushRedis(command) => command.run(client).await,
             AppCommands::Fs { command } => command.run(client).await,
             AppCommands::InstallLog(command) => command.run(client).await,
+            AppCommands::Ping(command) => command.run(client).await,
             AppCommands::Pkg { command } => command.run(client).await,
             AppCommands::Pkgs(command) => command.run(client).await,
             AppCommands::Restart(command) => command.run(client).await,

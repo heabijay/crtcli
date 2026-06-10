@@ -327,7 +327,7 @@ pub async fn install_package_from_stream_command(
         .await
         .map_err(InstallPkgCommandError::PkgCompile)?
     } else if options.restart {
-        crate::cmd::app::restart::RestartCommand
+        crate::cmd::app::restart::RestartCommand { wait: false }
             .run(client)
             .await
             .map_err(InstallPkgCommandError::AppRestart)?
@@ -405,14 +405,14 @@ pub async fn install_package_from_stream_command(
 
     fn try_print_upload_package_chunk_size_hint() {
         let current_chunk_size =
-            std::env::var(crate::app::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_ENV_KEY)
+            std::env::var(crate::app::svc::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_ENV_KEY)
                 .ok()
                 .and_then(|x| x.parse::<usize>().ok())
-                .unwrap_or(crate::app::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_DEFAULT);
+                .unwrap_or(crate::app::svc::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_DEFAULT);
 
         eprintln!(
             "{style}warning: package upload failed. For large package archives, try adjusting the upload chunk size (current: {cur}) by setting the {green}{env}{style:#}{style} environment variable. Set to 0 for a single-part upload.{style:#}",
-            env = crate::app::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_ENV_KEY,
+            env = crate::app::svc::package_installer::UPLOAD_PACKAGE_CHUNK_SIZE_ENV_KEY,
             cur = humanize_bytes(current_chunk_size as u64),
             style = Style::new()
                 .fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)))

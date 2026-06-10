@@ -9,36 +9,36 @@ license = "MIT"
 
 [dependencies]
 anstream = "1.0.0"
-anstyle = "1.0.13"
+anstyle = "1.0.14"
 async-trait = "0.1.89"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
-clap_complete = "4.5.66"
+clap_complete = "4.6.5"
 dotenvy = "0.15.7"
 flate2 = "1.1.9"
 futures = "0.3.32"
 hyper-util = "0.1.20"
-indexmap = { version =  "2.13.0", features = ["serde"] }
+indexmap = { version =  "2.14.0", features = ["serde"] }
 indicatif = "0.18.4"
-quick-xml = "0.39.2"
-regex = "1.12.3"
+quick-xml = "0.40.1"
+regex = "1.12.4"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.149", features = ["preserve_order"] }
+serde_json = { version = "1.0.150", features = ["preserve_order"] }
 thiserror = "2.0.18"
-tokio = { version = "1.49.0", features = ["macros", "io-std"] }
-tokio-tungstenite = { version = "0.28.0", features = ["rustls-tls-webpki-roots"] }
+tokio = { version = "1.52.3", features = ["macros", "io-std"] }
+tokio-tungstenite = { version = "0.29.0", features = ["rustls-tls-webpki-roots"] }
 tokio-util = { version = "0.7.18", features = ["io", "io-util"] }
-toml = "1.0.3"
+toml = "1.1.2"
 urlencoding = "2.1.3"
 walkdir = "2.5.0"
-zip = "8.1.0"
-rkyv = "0.8.15"
+zip = "8.6.0"
+rkyv = "0.8.16"
 
 [dependencies.clap]
-version = "4.5.60"
+version = "4.6.1"
 features = ["derive", "env", "suggestions", "usage"]
 
 [dependencies.hyper-rustls]
-version = "0.27.7"
+version = "0.27.9"
 default-features = false
 features = [
     "http1",
@@ -49,7 +49,7 @@ features = [
 ]
 
 [dependencies.reqwest]
-version = "0.13.2"
+version = "0.13.4"
 default-features = false
 features = [
     "charset",
@@ -64,7 +64,7 @@ features = [
 ]
 
 [dependencies.rustls]
-version = "0.23.36"
+version = "0.23.40"
 default-features = false
 features = [
     "std",

@@ -1,18 +1,35 @@
 use crate::app::CrtClient;
+use crate::cmd::app;
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
 use anstyle::Style;
 use clap::Args;
 use std::sync::Arc;
+use std::time::Duration;
+
+const DEFAULT_WAIT_DELAY: Duration = Duration::from_secs(5);
 
 #[derive(Args, Debug)]
-pub struct RestartCommand;
+pub struct RestartCommand {
+    /// Wait for the application to become available after restart by pinging it
+    #[arg(long)]
+    pub wait: bool,
+}
 
 impl AppCommand for RestartCommand {
     async fn run(&self, client: Arc<CrtClient>) -> CommandResult {
         client.app_installer_service().restart_app().await?;
 
         print_app_restart_requested(&client);
+
+        if self.wait {
+            app::ping::PingCommand {
+                wait: true,
+                initial_delay: Some(DEFAULT_WAIT_DELAY),
+            }
+            .run(client)
+            .await?;
+        }
 
         Ok(())
     }
