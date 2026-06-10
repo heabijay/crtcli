@@ -2,11 +2,16 @@
 
 ## [Unreleased]
 
+
+## [0.3.1](https://github.com/heabijay/crtcli/releases/tag/v0.3.1) (2026-06-10)
+
 ### Added
 
  - Chunked package upload support by default for the `app pkg install` and `app pkg push` commands ([#40](https://github.com/heabijay/crtcli/pull/40))
 
  - `--on-missing <fail|ignore|remove>` option for `app pkg pull` to control behavior when requested packages are missing from the remote Creatio instance ([#41](https://github.com/heabijay/crtcli/pull/41))
+
+ - `app ping` command to verify Creatio application availability, and `--wait` flag for `app restart` to automatically wait for the application to become ready ([#42](https://github.com/heabijay/crtcli/pull/42))
 
 ### Changed
 
