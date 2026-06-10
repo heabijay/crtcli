@@ -101,7 +101,7 @@ impl AppCommand for CompilePkgCommand {
         ));
 
         if self.restart {
-            app::restart::RestartCommand
+            app::restart::RestartCommand { wait: false }
                 .run(client)
                 .await
                 .map_err(CompilePkgCommandError::AppRestart)?;

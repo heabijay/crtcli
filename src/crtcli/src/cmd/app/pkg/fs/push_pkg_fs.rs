@@ -60,7 +60,9 @@ impl AppCommand for PushPkgFsCommand {
             .run(client)
             .await?;
         } else if self.restart {
-            crate::cmd::app::restart::RestartCommand.run(client).await?;
+            crate::cmd::app::restart::RestartCommand { wait: false }
+                .run(client)
+                .await?;
         }
 
         Ok(())

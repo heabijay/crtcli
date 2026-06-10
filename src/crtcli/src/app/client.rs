@@ -1,15 +1,15 @@
-use crate::app::app_installer::AppInstallerService;
-use crate::app::auth::AuthService;
 use crate::app::credentials::CrtCredentials;
-use crate::app::package::PackageService;
-use crate::app::package_installer::PackageInstallerService;
 use crate::app::session::CrtSession;
 use crate::app::session_cache::{
     CrtSessionCache, create_default_session_cache, create_memory_session_cache,
 };
+use crate::app::svc::PackageInstallerService;
+use crate::app::svc::PackageService;
+use crate::app::svc::WorkspaceExplorerService;
+use crate::app::svc::{AppInstallerService, ProcessSchemaManagerService};
+use crate::app::svc::{auth, oauth};
 use crate::app::utils::{iter_set_cookies, iter_set_cookies_in_websocket_response};
-use crate::app::workspace_explorer::WorkspaceExplorerService;
-use crate::app::{auth, oauth, sql, tunneling};
+use crate::app::{sql, tunneling};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::*;
 use rustls::{ClientConfig, DigitallySignedStruct, SignatureScheme};
@@ -202,8 +202,8 @@ impl CrtClient {
             .request(method, format!("{}/{}", self.base_url(), relative_url))
     }
 
-    pub fn auth_service(&self) -> AuthService<'_> {
-        AuthService::new(self)
+    pub fn auth_service(&self) -> auth::AuthService<'_> {
+        auth::AuthService::new(self)
     }
 
     pub fn oauth_service(&self) -> oauth::OAuthService<'_> {
@@ -228,6 +228,10 @@ impl CrtClient {
 
     pub fn package_installer_service(&self) -> PackageInstallerService<'_> {
         PackageInstallerService::new(self)
+    }
+
+    pub fn process_schema_manager_service(&self) -> ProcessSchemaManagerService<'_> {
+        ProcessSchemaManagerService::new(self)
     }
 
     pub fn sql_scripts(&self) -> sql::SqlScripts<'_> {

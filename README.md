@@ -41,6 +41,7 @@ iwr -useb https://raw.githubusercontent.com/heabijay/crtcli/main/install-windows
         - [x] [pull](#app-fs-pull)
         - [x] [push](#app-fs-push)
       - [x] [install-log](#app-install-log)
+      - [x] [ping](#app-ping)
       - [x] [pkg](#app-pkg)
         - [x] [compile](#app-pkg-compile)
         - [x] [download](#app-pkg-download)
@@ -253,6 +254,23 @@ Print last package installation log.
 - `crtcli app install-log` — Gets the last package installation log from the default Creatio instance. Check [app](#app) command to configure default Creatio instance.
 
 - `crtcli app prod install-log --watch` — Watch for install log updates in real-time at prod (alias) Creatio instance. Check [.crtcli.toml](#crtclitoml)
+
+
+### app ping
+
+Pings the Creatio application to verify it is available.
+
+**Options:**
+
+- `--wait` — Keep sending ping requests until a successful connection is established.
+
+**Examples:**
+
+- `crtcli app https://localhost:5000 -i ping` — Pings the insecure Creatio instance at 'https://localhost:5000'.
+
+- `crtcli app ping` — Pings the default Creatio instance. Check [app](#app) command to configure default Creatio instance.
+
+- `crtcli app ping --wait` — Pings the default Creatio instance, retrying until a successful connection is established. Check [app](#app) command to configure default Creatio instance.
 
 
 ### app pkg
@@ -778,6 +796,10 @@ Restarts the Creatio application.
 
 Important: If your Creatio instance is running on .NET Framework (IIS), you must use the --net-framework flag with the app command. Otherwise, the restart will not be executed, and you won't receive an error.
 
+**Options:**
+
+- `--wait` — Wait for the application to become available after restart by pinging it.
+
 **Examples:**
 
 - `crtcli app https://localhost:5000 -i --net-framework restart` — Restarts Creatio application at insecure 'https://localhost:5000' using Supervisor:Supervisor credentials and .NET Framework (IIS) compatibility.
@@ -785,6 +807,8 @@ Important: If your Creatio instance is running on .NET Framework (IIS), you must
 - `crtcli app dev restart` — Restarts Creatio application using the 'dev' alias from .crtcli.toml.
 
 - `crtcli app restart` — Restarts the default Creatio application. Check [app](#app) command to configure default Creatio instance.
+
+- `crtcli app restart --wait` — Restarts the default Creatio application and waits for it to become available by pinging it. Check [app](#app) command to configure default Creatio instance.
 
 
 ### app request

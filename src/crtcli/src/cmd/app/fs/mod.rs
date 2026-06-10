@@ -2,8 +2,9 @@ mod check_fs;
 pub mod pull_fs;
 pub mod push_fs;
 
-use crate::app::{
-    CrtClient, FileSystemSynchronizationObjectState, FileSystemSynchronizationResultResponse,
+use crate::app::CrtClient;
+use crate::app::svc::{
+    FileSystemSynchronizationObjectState, FileSystemSynchronizationResultResponse,
 };
 use crate::cmd::app::AppCommand;
 use crate::cmd::cli::CommandResult;
